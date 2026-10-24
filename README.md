@@ -35,10 +35,12 @@ Plotly.js and D3 are bundled in the plugin and loaded the first time a chart is 
 
 Chart Hands exposes an agentinterop v1 capability provider on the plugin instance. A compatible agent host can read the tool definitions and call them, once you approve them in the host:
 
-- `check_chart` — validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value and Plotly's own attribute check. Does not change any note.
-- `read_charts` — finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
+- `get_chart_guide`: returns writing guidance by topic (`basics`, `style`, `examples`, `dataviewjs`, `errors`), so the agent reads only what it needs.
+- `build_chart`: builds a ready-to-insert `plotly` block for a line, bar, horizontal bar, pie or scatter chart from plain data (labels and series), with the Chart Hands palette, and checks it.
+- `check_chart`: validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value, common mistakes (unquoted `#` colours, dates, JavaScript-like values, mismatched array lengths) and Plotly's own attribute check.
+- `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
 
-Neither tool edits notes or draws charts. The plugin works the same without an agent host.
+None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
 
 ### About the agentinterop v1 provider
 
@@ -49,7 +51,7 @@ How Chart Hands implements it:
 - The plugin instance holds the provider under the key `Symbol.for('dev.agentinterop.capability-provider')`. The provider has `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()` (returns the provider info, instructions and tool definitions with JSON Schema inputs) and `callTool(name, args)` (returns `content` plus `structuredContent`, or an error with a code).
 - Tool definitions carry `_meta` hints under the `dev.agentinterop/` prefix: `effect` (`pure` or `read`), `group`, `keywords`, `resourceTypes` and `maxResultChars`. A host shows these tools to the model only when a request matches a keyword such as "plotly", "chart" or "graph".
 - The plugin triggers the `agentinterop:providers-changed` workspace event on load and unload so a host can refresh its tool list.
-- Both tools are read-only: they never modify notes or draw charts.
+- All tools are read-only: they never modify notes or draw charts.
 
 ## Installation
 

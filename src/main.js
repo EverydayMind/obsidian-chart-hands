@@ -1,4 +1,6 @@
 import * as obsidian from 'obsidian';
+import { GUIDE_TOPICS } from './chart-guide.js';
+import { CHART_TYPES, buildChartDefinition } from './chart-builder.js';
 
 // Plotly.js and D3 are bundled into main.js by esbuild, but each import() below becomes a lazy
 // module: its code only runs on the first call, so the vault opens without evaluating either.
@@ -344,9 +346,9 @@ const AGENT_MAX_RESULT_CHARS = 8000;
 const AGENT_PAGE_CHARS = 6000;
 const AGENT_MAX_CHARTS = 20;
 const AGENT_MAX_PROBLEMS = 12;
-// Notes are .md, like most of a vault, so neither tool is in the core group: a host shows them
+// Notes are .md, like most of a vault, so no tool is in the core group: a host shows them
 // only when the request mentions one of these.
-const AGENT_KEYWORDS = ['plotly', '차트', '그래프', '도표', '시각화', 'chart', 'graph', 'plot'];
+const AGENT_KEYWORDS = ['plotly', 'chart', 'graph', 'plot', 'visuali', '차트', '그래프', '도표', '시각화', '파이', '막대'];
 const agentMeta = (effect) => ({
     'dev.agentinterop/effect': effect,
     'dev.agentinterop/group': 'chart',
@@ -354,17 +356,18 @@ const agentMeta = (effect) => ({
     'dev.agentinterop/keywords': AGENT_KEYWORDS,
     'dev.agentinterop/maxResultChars': AGENT_MAX_RESULT_CHARS
 });
+const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const AGENT_TOOLS = [
     {
         name: 'check_chart',
-        title: 'Plotly 차트 검사',
-        description: 'plotly 코드 블록의 내용(YAML 또는 JSON)을 검사한다. 읽을 수 있는지, 최상위 키가 data·layout·config·fit뿐인지, 트레이스와 레이아웃의 속성 이름과 값이 Plotly에 맞는지 확인하고 문제 목록을 돌려준다. 차트 블록을 노트에 쓰기 전에 부른다. 노트를 바꾸지 않는다.',
+        title: 'Check a Plotly chart',
+        description: 'Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
             required: ['source'],
             properties: {
-                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'plotly 코드 블록 안에 들어갈 내용. 블록을 여닫는 울타리 줄은 빼고 준다.' }
+                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the opening and closing fence lines.' }
             }
         },
         annotations: { readOnlyHint: true },
@@ -372,22 +375,73 @@ const AGENT_TOOLS = [
     },
     {
         name: 'read_charts',
-        title: '노트의 Plotly 차트 읽기',
-        description: '노트에 있는 plotly 코드 블록을 찾아 차트마다 위치(줄 번호), 트레이스 종류와 점 수, 제목, 검사에서 나온 문제를 돌려준다. 한 번에 최대 20개이며 더 있으면 다음 from 값을 알려 준다. dataviewjs로 그리는 차트는 세기만 하고 검사하지 않는다.',
+        title: 'Read the Plotly charts in a note',
+        description: 'Find the plotly code blocks in a note and return, for each chart, its line range, trace types and point counts, title, and the problems found by the check. Returns at most 20 charts per call and gives the next from value when there are more. Charts drawn with dataviewjs are counted but not checked.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
             required: ['path'],
             properties: {
-                path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Markdown 노트의 Vault 기준 상대 경로.' },
-                from: { type: 'integer', minimum: 1, maximum: 100000, description: '이 순번의 차트부터 읽는다. 기본값 1.' }
+                path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative path of a Markdown note.' },
+                from: { type: 'integer', minimum: 1, maximum: 100000, description: 'Start reading at this chart number. Defaults to 1.' }
             }
         },
         annotations: { readOnlyHint: true },
         _meta: agentMeta('read')
+    },
+    {
+        name: 'get_chart_guide',
+        title: 'Plotly chart writing guide',
+        description: 'Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, choosing a chart type, workflow), style (polished look: palette, margins, labels, annotations), examples (line, bar and pie blocks), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.',
+        inputSchema: {
+            type: 'object',
+            additionalProperties: false,
+            properties: {
+                topic: { type: 'string', enum: GUIDE_TOPIC_NAMES, description: 'Guide topic. Defaults to basics.' }
+            }
+        },
+        annotations: { readOnlyHint: true },
+        _meta: agentMeta('pure')
+    },
+    {
+        name: 'build_chart',
+        title: 'Build a Plotly chart block',
+        description: 'Build a ready-to-insert plotly code block for a line, bar, barh (horizontal bar), pie or scatter chart from plain data, apply the Chart Hands palette (style clean) and run the check on it. Line, bar and barh need labels and one values array per series. Scatter needs x and values per series. A pie uses labels and the first series. Returns the fenced block; insert it into the note with the host\'s note-editing tools. Does not change any note.',
+        inputSchema: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['type', 'series'],
+            properties: {
+                type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
+                title: { type: 'string', maxLength: 200, description: 'Chart title.' },
+                labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis, y axis for barh, slice names for pie). Not used by scatter.' },
+                series: {
+                    type: 'array',
+                    minItems: 1,
+                    maxItems: 8,
+                    description: 'Data series.',
+                    items: {
+                        type: 'object',
+                        additionalProperties: false,
+                        required: ['values'],
+                        properties: {
+                            name: { type: 'string', maxLength: 100, description: 'Series name, shown in the legend.' },
+                            values: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'number' }, description: 'One number per label (per x for scatter).' },
+                            x: { type: 'array', maxItems: 500, items: { type: 'number' }, description: 'Scatter only: the x value of each point.' }
+                        }
+                    }
+                },
+                x_title: { type: 'string', maxLength: 100, description: 'Horizontal axis title. Include the unit.' },
+                y_title: { type: 'string', maxLength: 100, description: 'Vertical axis title. Include the unit.' },
+                stacked: { type: 'boolean', description: 'Stack bars instead of grouping them (several bar series).' },
+                style: { type: 'string', enum: ['clean', 'plain'], description: 'clean (default) applies the palette and tidy layout; plain adds nothing beyond the data.' }
+            }
+        },
+        annotations: { readOnlyHint: true },
+        _meta: agentMeta('pure')
     }
 ];
-const AGENT_INSTRUCTIONS = 'Obsidian 노트의 Plotly 차트를 검사하는 도구다. 차트는 노트에 언어가 plotly인 코드 블록으로 적는다. 블록 내용은 YAML 또는 JSON이고 최상위 키는 data(트레이스 배열), layout, config, fit만 쓸 수 있다. fit은 off·shrink·fill 중 하나로 그 차트의 폭 맞춤을 정한다. 차트 블록을 새로 쓰거나 고치기 전에 check_chart로 내용을 검사하고, 문제가 나오면 고쳐서 다시 검사한다. 이 도구들은 노트를 바꾸지 않는다. 검사는 정의가 Plotly 규칙에 맞는지만 보며 화면에 그려진 모양은 확인하지 않는다.';
+const AGENT_INSTRUCTIONS = 'Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, dataviewjs, errors). Use build_chart for line, bar, barh, pie or scatter charts, or write the block yourself. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
 
 class AgentToolError extends Error {
     constructor(code, message, retryable) {
@@ -403,12 +457,72 @@ const agentClip = (value, max) => {
 const TRACE_LENGTH_KEYS = ['x', 'y', 'z', 'values', 'labels', 'r', 'theta', 'lat', 'lon', 'open'];
 const describeTrace = (trace) => {
     if (!trace || typeof trace !== 'object' || Array.isArray(trace)) {
-        return '(객체가 아님)';
+        return '(not an object)';
     }
     const type = typeof trace.type === 'string' ? trace.type : 'scatter';
     const key = TRACE_LENGTH_KEYS.find(name => Array.isArray(trace[name]));
     const name = typeof trace.name === 'string' && trace.name ? ` "${agentClip(trace.name, 30)}"` : '';
-    return `${type}${name}${key ? ` ${trace[key].length}점` : ''}`;
+    return `${type}${name}${key ? ` ${trace[key].length} points` : ''}`;
+};
+// Mistakes that parse fine but draw nothing useful, found from the source text and parsed value.
+const LINT_MAX_FINDINGS = 8;
+const UNQUOTED_HEX = /(?::|-|\[|,)\s*#[0-9a-fA-F]{3,8}\s*(?:[,\]}]|$)/;
+const looksLikeScript = (text) => /\$\{|=>|^\s*function\b/.test(text);
+const lintChart = (source, json, problems) => {
+    const findings = [];
+    const add = (message) => {
+        if (findings.length < LINT_MAX_FINDINGS) {
+            findings.push(message);
+        }
+    };
+    const lines = source.split(/\r?\n/);
+    lines.forEach((line, index) => {
+        if (UNQUOTED_HEX.test(line)) {
+            add(`Line ${index + 1}: unquoted colour. YAML reads # as a comment, so the value becomes null. Write it in quotes, e.g. color: "#2563EB".`);
+        }
+    });
+    const hexFound = findings.length > 0;
+    const walk = (value, path, depth) => {
+        if (depth > 12 || findings.length >= LINT_MAX_FINDINGS) {
+            return;
+        }
+        if (value instanceof Date) {
+            add(`${path} is a Date value. Quote date-like strings so they stay strings.`);
+        }
+        else if (typeof value === 'string') {
+            if (looksLikeScript(value)) {
+                add(`${path} looks like JavaScript. Only static values are allowed.`);
+            }
+        }
+        else if (Array.isArray(value)) {
+            value.slice(0, 500).forEach((item, index) => walk(item, `${path}[${index}]`, depth + 1));
+        }
+        else if (value && typeof value === 'object') {
+            Object.keys(value).forEach(key => {
+                if (value[key] === null && /colou?r$/i.test(key) && !hexFound) {
+                    add(`${path}.${key} is empty (null). Was a colour written without quotes?`);
+                }
+                walk(value[key], `${path}.${key}`, depth + 1);
+            });
+        }
+    };
+    walk(json, '$', 0);
+    if (Array.isArray(json.data)) {
+        const traces = json.data.filter(trace => trace && typeof trace === 'object');
+        traces.forEach((trace, index) => {
+            if (Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length !== trace.y.length) {
+                add(`Trace ${index + 1}: x has ${trace.x.length} points but y has ${trace.y.length}.`);
+            }
+            if (trace.type === 'pie' && (!Array.isArray(trace.values) || !Array.isArray(trace.labels))) {
+                add(`Trace ${index + 1}: a pie needs both labels and values arrays.`);
+            }
+        });
+        const layout = json.layout && typeof json.layout === 'object' ? json.layout : null;
+        if (layout && layout.barmode && traces.length && !traces.some(trace => trace.type === 'bar' || trace.type === 'histogram')) {
+            add('layout.barmode only affects bar and histogram traces, and there are none.');
+        }
+    }
+    problems.push(...findings);
 };
 // The same rules the code block processor applies, plus Plotly's own schema check.
 const analyzeChart = (source) => {
@@ -418,39 +532,40 @@ const analyzeChart = (source) => {
         json = obsidian.parseYaml(source);
     }
     catch (error) {
-        result.problems.push(`YAML/JSON으로 읽을 수 없다: ${agentClip(error && error.message ? error.message : error, 300)}`);
+        result.problems.push(`Cannot parse as YAML/JSON: ${agentClip(error && error.message ? error.message : error, 300)}`);
         return result;
     }
     if (!json || typeof json !== 'object' || Array.isArray(json)) {
-        result.problems.push('블록 내용은 data, layout, config, fit 키를 가진 객체여야 한다.');
+        result.problems.push('The block content must be an object with the keys data, layout, config and fit.');
         return result;
     }
     const unknown = Object.keys(json).filter(key => !allowValues.includes(key));
     if (unknown.length) {
-        result.problems.push(`쓸 수 없는 최상위 키: ${unknown.map(key => agentClip(key, 40)).join(', ')}. data, layout, config, fit만 쓸 수 있고, 하나라도 다른 키가 있으면 차트가 그려지지 않는다.`);
+        result.problems.push(`Unsupported top-level keys: ${unknown.map(key => agentClip(key, 40)).join(', ')}. Only data, layout, config and fit are allowed; any other key stops the chart from drawing.`);
     }
     if (json.fit !== undefined && json.fit !== null && typeof json.fit !== 'boolean'
         && !(typeof json.fit === 'string' && FIT_MODES.includes(json.fit.toLowerCase()))) {
-        result.problems.push(`fit은 ${FIT_MODES.join(', ')} 중 하나여야 한다.`);
+        result.problems.push(`fit must be one of: ${FIT_MODES.join(', ')}.`);
     }
     if (json.data === undefined || json.data === null) {
-        result.problems.push('data가 없다. 트레이스 배열을 data에 넣어야 차트가 그려진다.');
+        result.problems.push('data is missing. Put the list of traces in data.');
     }
     else if (!Array.isArray(json.data)) {
-        result.problems.push('data는 트레이스의 배열이어야 한다.');
+        result.problems.push('data must be a list of traces.');
     }
     else {
         result.traces = json.data.map(describeTrace);
         if (!json.data.length) {
-            result.problems.push('data가 비어 있다.');
+            result.problems.push('data is empty.');
         }
     }
     if (json.layout !== undefined && json.layout !== null && (typeof json.layout !== 'object' || Array.isArray(json.layout))) {
-        result.problems.push('layout은 객체여야 한다.');
+        result.problems.push('layout must be an object.');
     }
     else if (json.layout && json.layout.title) {
         result.title = agentClip(typeof json.layout.title === 'string' ? json.layout.title : json.layout.title.text, 80);
     }
+    lintChart(source, json, result.problems);
     if (Plotly && typeof Plotly.validate === 'function' && Array.isArray(json.data)
         && (!json.layout || (typeof json.layout === 'object' && !Array.isArray(json.layout)))) {
         try {
@@ -459,7 +574,7 @@ const analyzeChart = (source) => {
             issues.forEach(issue => result.problems.push(agentClip(issue && issue.msg ? issue.msg : issue, 300)));
         }
         catch (error) {
-            result.problems.push(`Plotly 검사 중 오류: ${agentClip(error && error.message ? error.message : error, 200)}`);
+            result.problems.push(`Plotly check failed: ${agentClip(error && error.message ? error.message : error, 200)}`);
         }
     }
     return result;
@@ -467,7 +582,7 @@ const analyzeChart = (source) => {
 const problemLines = (problems) => {
     const lines = problems.slice(0, AGENT_MAX_PROBLEMS).map(problem => `  - ${problem}`);
     if (problems.length > AGENT_MAX_PROBLEMS) {
-        lines.push(`  - … 문제 ${problems.length - AGENT_MAX_PROBLEMS}개 더 있음`);
+        lines.push(`  - … ${problems.length - AGENT_MAX_PROBLEMS} more problems`);
     }
     return lines;
 };
@@ -507,7 +622,7 @@ const normalizeAgentPath = (value) => {
     const raw = typeof value === 'string' ? value.trim().replace(/\\/g, '/') : '';
     const parts = raw.split('/');
     if (!raw || /^(?:[A-Za-z]:|\/)/.test(raw) || [...raw].some(char => char.charCodeAt(0) < 32) || parts.includes('..')) {
-        throw new AgentToolError('INVALID_ARGUMENT', 'path는 Vault 기준 상대 경로여야 한다.', true);
+        throw new AgentToolError('INVALID_ARGUMENT', 'path must be a vault-relative path.', true);
     }
     return parts.filter(part => part && part !== '.').join('/');
 };
@@ -517,20 +632,59 @@ const createAgentProvider = (plugin) => {
             id: plugin.manifest.id,
             name: plugin.manifest.name,
             version: plugin.manifest.version,
-            description: '노트의 Plotly 차트 정의 검사'
+            description: 'Check, read and build Plotly chart blocks'
         },
         instructions: AGENT_INSTRUCTIONS,
         tools: AGENT_TOOLS
     };
     let disposed = false;
     const handlers = {
+        get_chart_guide: (args) => {
+            const topic = args.topic === undefined ? 'basics' : args.topic;
+            if (!Object.prototype.hasOwnProperty.call(GUIDE_TOPICS, topic)) {
+                throw new AgentToolError('INVALID_ARGUMENT', `topic must be one of: ${GUIDE_TOPIC_NAMES.join(', ')}.`, true);
+            }
+            const others = GUIDE_TOPIC_NAMES.filter(name => name !== topic).join(', ');
+            return Promise.resolve({
+                content: [{ type: 'text', text: `${GUIDE_TOPICS[topic]}\n\nOther topics: ${others}.` }],
+                structuredContent: { topic, topics: GUIDE_TOPIC_NAMES }
+            });
+        },
+        build_chart: async (args) => {
+            if (plugin.ensureLibraries) await plugin.ensureLibraries();
+            let definition;
+            try {
+                definition = buildChartDefinition(args);
+            }
+            catch (error) {
+                throw new AgentToolError('INVALID_ARGUMENT', error.message, true);
+            }
+            const yaml = obsidian.stringifyYaml(definition).trimEnd();
+            const chart = analyzeChart(yaml);
+            const notes = [];
+            if (args.type === 'pie' && Array.isArray(args.series) && args.series.length > 1) {
+                notes.push('A pie shows one series; only the first was used.');
+            }
+            const text = [
+                chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. The check found no problems.',
+                ...problemLines(chart.problems),
+                ...notes,
+                '```plotly',
+                yaml,
+                '```'
+            ].join('\n');
+            return {
+                content: [{ type: 'text', text }],
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\`` }
+            };
+        },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
             if (plugin.ensureLibraries) yield plugin.ensureLibraries();
             const chart = analyzeChart(String(args.source));
-            const summary = `트레이스 ${chart.traces.length}개${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 400)})` : ''}${chart.title ? ` · 제목 「${chart.title}」` : ''}`;
+            const summary = `traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 400)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}`;
             const lines = chart.problems.length
-                ? [`문제 ${chart.problems.length}건 · ${summary}`, ...problemLines(chart.problems)]
-                : [`문제 없음 · ${summary}`];
+                ? [`${chart.problems.length} problem(s) · ${summary}`, ...problemLines(chart.problems)]
+                : [`No problems · ${summary}`];
             return {
                 content: [{ type: 'text', text: lines.join('\n') }],
                 structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, traces: chart.traces.length }
@@ -540,17 +694,17 @@ const createAgentProvider = (plugin) => {
             const path = normalizeAgentPath(args.path);
             const file = plugin.app.vault.getAbstractFileByPath(path);
             if (!file || typeof file.extension !== 'string') {
-                throw new AgentToolError('NOT_FOUND', `Vault에 이 노트가 없다: ${path}`, true);
+                throw new AgentToolError('NOT_FOUND', `Note not found in the vault: ${path}`, true);
             }
             if (file.extension.toLowerCase() !== 'md') {
-                throw new AgentToolError('UNSUPPORTED_FORMAT', 'Markdown 노트(.md)만 읽는다.');
+                throw new AgentToolError('UNSUPPORTED_FORMAT', 'Only Markdown notes (.md) can be read.');
             }
             const found = findChartBlocks(yield plugin.app.vault.cachedRead(file));
             if (found.charts.length && plugin.ensureLibraries) yield plugin.ensureLibraries();
             const total = found.charts.length;
             const from = typeof args.from === 'number' ? args.from : 1;
             if (from > Math.max(total, 1)) {
-                throw new AgentToolError('INVALID_ARGUMENT', `from은 1~${Math.max(total, 1)} 범위여야 한다.`, true);
+                throw new AgentToolError('INVALID_ARGUMENT', `from must be between 1 and ${Math.max(total, 1)}.`, true);
             }
             const lines = [];
             let size = 0;
@@ -560,7 +714,7 @@ const createAgentProvider = (plugin) => {
                 const block = found.charts[next - 1];
                 const chart = analyzeChart(block.source);
                 const entry = [
-                    `차트 ${next} · ${block.startLine}~${block.endLine}행${block.closed ? '' : ' · 닫는 울타리 없음'} · 트레이스 ${chart.traces.length}개${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 200)})` : ''}${chart.title ? ` · 제목 「${chart.title}」` : ''} · ${chart.problems.length ? `문제 ${chart.problems.length}건` : '문제 없음'}`,
+                    `Chart ${next} · lines ${block.startLine}-${block.endLine}${block.closed ? '' : ' · no closing fence'} · traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 200)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''} · ${chart.problems.length ? `${chart.problems.length} problem(s)` : 'no problems'}`,
                     ...problemLines(chart.problems)
                 ].join('\n');
                 // Stop before the page budget so the host never cuts a chart in half; always return one.
@@ -576,9 +730,9 @@ const createAgentProvider = (plugin) => {
             }
             const complete = next > total;
             const text = [
-                `노트 ${path} · plotly 차트 ${total}개${total ? ` 중 ${from}~${next - 1}` : ''}${found.dataview ? ` · dataviewjs로 그리는 차트 블록 ${found.dataview}개(검사하지 않음)` : ''}`,
+                `Note ${path} · ${total} plotly chart(s)${total ? ` · showing ${from}-${next - 1}` : ''}${found.dataview ? ` · ${found.dataview} dataviewjs chart block(s), not checked` : ''}`,
                 ...lines,
-                ...(complete ? [] : [`… 계속: from=${next} (남은 차트 ${total - next + 1}개)`])
+                ...(complete ? [] : [`… continue with from=${next} (${total - next + 1} more chart(s))`])
             ].join('\n');
             return {
                 content: [{ type: 'text', text }],
@@ -594,14 +748,14 @@ const createAgentProvider = (plugin) => {
         callTool: (name, args, ctx) => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 if (disposed) {
-                    throw new AgentToolError('DISPOSED', '플러그인이 종료됐다.');
+                    throw new AgentToolError('DISPOSED', 'The plugin has been unloaded.');
                 }
                 if (!Object.prototype.hasOwnProperty.call(handlers, name)) {
-                    throw new AgentToolError('UNKNOWN_TOOL', `알 수 없는 도구다: ${name}`);
+                    throw new AgentToolError('UNKNOWN_TOOL', `Unknown tool: ${name}`);
                 }
                 const result = yield handlers[name](args || {});
                 if (ctx && ctx.signal && ctx.signal.aborted) {
-                    throw new AgentToolError('CANCELLED', '호출이 취소됐다.');
+                    throw new AgentToolError('CANCELLED', 'The call was cancelled.');
                 }
                 return result;
             }
@@ -611,7 +765,7 @@ const createAgentProvider = (plugin) => {
                 const retryable = known && error.retryable;
                 return {
                     isError: true,
-                    content: [{ type: 'text', text: known ? error.message : `도구 실행 중 오류: ${error && error.message ? error.message : error}` }],
+                    content: [{ type: 'text', text: known ? error.message : `Tool error: ${error && error.message ? error.message : error}` }],
                     structuredContent: { code, retryable },
                     _meta: { 'dev.agentinterop/error': { code, retryable } }
                 };

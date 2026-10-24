@@ -29,7 +29,8 @@ async function setup({ failPlotly = 0 } = {}) {
             constructor(message, duration) { Object.assign(this, { message, duration }); notices.push(this); }
             hide() { this.hidden = true; }
         },
-        parseYaml: JSON.parse
+        parseYaml: JSON.parse,
+        stringifyYaml: (value) => JSON.stringify(value)
     };
     const stubs = {
         obsidian,
@@ -47,7 +48,7 @@ async function setup({ failPlotly = 0 } = {}) {
     vm.runInContext('Array.prototype.contains = Array.prototype.includes;', context);
     vm.runInContext(code, context);
     const plugin = new module.exports.default();
-    plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.0' };
+    plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.2' };
     plugin.app = { workspace: { onLayoutReady(fn) { readyCallbacks.push(fn); }, trigger() {} } };
     await plugin.onload();
     const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
