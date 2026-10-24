@@ -40,6 +40,17 @@ Chart Hands exposes an agentinterop v1 capability provider on the plugin instanc
 
 Neither tool edits notes or draws charts. The plugin works the same without an agent host.
 
+### About the agentinterop v1 provider
+
+agentinterop v1 is the author's own convention, not an official or widely recognized standard. It lets an Obsidian plugin that runs an AI agent discover tools offered by other plugins through an MCP-like API, without those plugins knowing about any particular agent host.
+
+How Chart Hands implements it:
+
+- The plugin instance holds the provider under the key `Symbol.for('dev.agentinterop.capability-provider')`. The provider has `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()` (returns the provider info, instructions and tool definitions with JSON Schema inputs) and `callTool(name, args)` (returns `content` plus `structuredContent`, or an error with a code).
+- Tool definitions carry `_meta` hints under the `dev.agentinterop/` prefix: `effect` (`pure` or `read`), `group`, `keywords`, `resourceTypes` and `maxResultChars`. A host shows these tools to the model only when a request matches a keyword such as "plotly", "chart" or "graph".
+- The plugin triggers the `agentinterop:providers-changed` workspace event on load and unload so a host can refresh its tool list.
+- Both tools are read-only: they never modify notes or draw charts.
+
 ## Installation
 
 Once listed, install **Chart Hands** from *Settings → Community plugins*. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the latest release into `<Vault>/.obsidian/plugins/chart-hands/`.

@@ -25,6 +25,17 @@ Plotly.js와 D3는 플러그인에 포함되어 있으며 첫 차트를 그릴 �
 
 두 도구 모두 노트를 바꾸거나 차트를 그리지 않습니다.
 
+### agentinterop v1 provider란
+
+agentinterop v1 provider는 AI 에이전트 기능을 수행하는 다른 옵시디언 플러그인에서 MCP-like API를 제공하는 개발자 자체 규약으로, 공인된 표준은 아닙니다. 특정 에이전트 호스트를 몰라도, 에이전트를 실행하는 플러그인이 다른 플러그인의 도구를 찾아 쓸 수 있게 하려는 것입니다.
+
+Chart Hands의 구현 방식:
+
+- 플러그인 인스턴스의 `Symbol.for('dev.agentinterop.capability-provider')` 키에 provider를 둡니다. provider는 `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()`(provider 정보·지침·JSON Schema 입력을 가진 도구 정의 반환), `callTool(name, args)`(`content`와 `structuredContent` 또는 코드가 있는 오류 반환)를 가집니다.
+- 도구 정의의 `_meta`에 `dev.agentinterop/` 접두사로 `effect`(`pure`/`read`), `group`, `keywords`, `resourceTypes`, `maxResultChars` 힌트를 둡니다. 호스트는 요청에 "plotly", "차트", "그래프" 같은 키워드가 있을 때만 모델에게 이 도구를 보여 줍니다.
+- 로드·언로드 때 워크스페이스 이벤트 `agentinterop:providers-changed`를 발생시켜 호스트가 도구 목록을 갱신하게 합니다.
+- 두 도구 모두 읽기 전용이며 노트를 바꾸거나 차트를 그리지 않습니다.
+
 ## 라이선스
 
 MIT. Copyright (c) 2021 Dmitriy Shulha, (c) 2026 everydaymind.
