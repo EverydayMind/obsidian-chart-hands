@@ -1,0 +1,25 @@
+/* main.js gives every SVG layer of a chart a viewBox and sets --chart-hands-width /
+   --chart-hands-aspect, so when printing (Export to PDF) a chart wider than the page is
+   scaled down to the page width instead of being clipped. */
+@media print {
+    .chart-hands-chart {
+        break-inside: avoid;
+    }
+
+    .chart-hands-chart .modebar-container {
+        display: none !important;
+    }
+
+    .chart-hands-print-fit .svg-container {
+        width: 100% !important;
+        max-width: var(--chart-hands-width);
+        height: auto !important;
+        aspect-ratio: var(--chart-hands-aspect);
+    }
+
+    .chart-hands-print-fit .svg-container > .main-svg,
+    .chart-hands-print-fit .svg-container .gl-canvas {
+        width: 100% !important;
+        height: 100% !important;
+    }
+}

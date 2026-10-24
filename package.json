@@ -1,0 +1,38 @@
+{
+  "name": "chart-hands",
+  "version": "0.9.0",
+  "description": "Plotly charts in Obsidian notes, with tools that help LLM agents write and check them.",
+  "main": "main.js",
+  "scripts": {
+    "dev": "node esbuild.config.mjs",
+    "test": "node --test test/*.test.js",
+    "build": "node esbuild.config.mjs production",
+    "version": "node version-bump.mjs && git add manifest.json versions.json",
+    "lint": "eslint src --max-warnings 0",
+    "release:check": "node scripts/check-release.mjs"
+  },
+  "keywords": ["obsidian", "plotly", "charts", "d3"],
+  "author": "everydaymind",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18"
+  },
+  "devDependencies": {
+    "@types/node": "^16.11.6",
+    "esbuild": "0.25.12",
+    "eslint": "9.39.5",
+    "eslint-plugin-obsidianmd": "0.4.2",
+    "obsidian": "1.13.0",
+    "typescript-eslint": "8.71.0"
+  },
+  "dependencies": {
+    "d3": "7.9.0",
+    "plotly.js-dist-min": "4.1.1"
+  },
+  "overrides": {
+    "moment": "2.31.0",
+    "eslint-plugin-obsidianmd": {
+      "obsidian": "$obsidian"
+    }
+  }
+}

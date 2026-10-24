@@ -1,0 +1,10 @@
+{
+	"id": "chart-hands",
+	"name": "Chart Hands",
+	"version": "0.9.0",
+	"minAppVersion": "1.4.0",
+	"description": "Render Plotly charts from code blocks and give LLM agents tools to write and check them.",
+	"author": "everydaymind",
+	"authorUrl": "https://github.com/everydaymind",
+	"isDesktopOnly": false
+}
