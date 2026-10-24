@@ -28,7 +28,7 @@ bundle._compile(require('./helpers/build-plugin')(), bundle.filename);
 const { default: Plugin, createAgentProvider } = bundle.exports;
 Module._load = load;
 
-const MANIFEST = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.2' };
+const MANIFEST = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3' };
 const provide = (markdown) => createAgentProvider({
     app: {
         vault: {
@@ -63,7 +63,7 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     assert.equal(provider.protocolVersion, 1);
     const descriptor = await provider.describe();
     assertPlainJson(descriptor);
-    assert.deepEqual(descriptor.provider, { id: 'chart-hands', name: 'Chart Hands', version: '0.9.2', description: descriptor.provider.description });
+    assert.deepEqual(descriptor.provider, { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3', description: descriptor.provider.description });
     assert.ok(descriptor.instructions.length <= 2000);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'pure']]);
     for (const tool of descriptor.tools) {
@@ -167,6 +167,26 @@ test('check_chart catches mistakes that parse but draw nothing useful', async ()
     const mismatch = await provider.callTool('check_chart', { source: '{"data": [{"x": [1, 2, 3], "y": [1, 2]}], "layout": {"barmode": "group"}}' });
     assert.match(text(mismatch), /x has 3 points but y has 2/);
     assert.match(text(mismatch), /barmode only affects bar/);
+    const stringTitle = await provider.callTool('check_chart', { source: '{"data": [{"y": [1]}], "layout": {"title": "Sales", "xaxis": {"title": "Month"}}}' });
+    assert.match(text(stringTitle), /layout\.title is a plain string/);
+    assert.match(text(stringTitle), /layout\.xaxis\.title is a plain string/);
+    const advanced = [
+        ['{"type": "scattermapbox", "lat": [1], "lon": [2]}', /use scattermap with layout\.map/],
+        ['{"type": "treemap", "labels": ["A", "B"], "parents": [""]}', /labels and parents arrays of the same length/],
+        ['{"type": "sunburst", "labels": ["A", "B"], "parents": ["", "C"]}', /every parent must be one of the labels/],
+        ['{"type": "sankey", "node": {"label": ["A", "B"]}, "link": {"source": [0], "target": [1, 0], "value": [1]}}', /link\.source, link\.target and link\.value/],
+        ['{"type": "sankey", "node": {"label": ["A", "B"]}, "link": {"source": [0], "target": [2], "value": [1]}}', /0-based indexes into node\.label \(0 to 1\)/],
+        ['{"type": "candlestick", "x": [1, 2], "open": [1, 2], "high": [2, 3], "low": [0, 1]}', /open, high, low and close/],
+        ['{"type": "waterfall", "x": ["a", "b"], "y": [1, 2], "measure": ["relative"]}', /measure has 1 items but there are 2 values/],
+        ['{"type": "surface", "z": [1, 2, 3]}', /z must be a list of rows/]
+    ];
+    for (const [trace, pattern] of advanced) {
+        assert.match(text(await provider.callTool('check_chart', { source: `{"data": [${trace}]}` })), pattern, trace);
+    }
+    const sankey = '{"type": "sankey", "node": {"label": ["A", "B"]}, "link": {"source": [0], "target": [1], "value": [1]}}';
+    assert.equal((await provider.callTool('check_chart', { source: `{"data": [${sankey}]}` })).structuredContent.valid, true);
+    assert.equal((await provider.callTool('check_chart', { source: '{"data": [{"type": "heatmap", "x": [1, 2], "y": [1, 2], "z": [3, 4]}]}' })).structuredContent.valid, true);
+    assert.match(text(await provider.callTool('check_chart', { source: '{"data": [{"y": [1]}], "frames": []}' })), /Animations \(frames\) are not available/);
 });
 
 test('get_chart_guide returns each topic and rejects unknown ones', async () => {
@@ -194,7 +214,21 @@ test('build_chart makes checked blocks for every chart type', async () => {
         { type: 'barh', labels, series: [{ values: [1, 2, 3] }], y_title: 'Category', x_title: 'Amount' },
         { type: 'pie', labels, series: [{ values: [1, 2, 3] }] },
         { type: 'scatter', series: [{ name: 'S', x: [1, 2], values: [3, 4] }] },
-        { type: 'line', labels, series: [{ values: [1, 2, 3] }], style: 'plain' }
+        { type: 'line', labels, series: [{ values: [1, 2, 3] }], style: 'plain' },
+        { type: 'area', labels, series: [{ values: [1, 2, 3] }, { values: [2, 2, 2] }], stacked: true, range_slider: true },
+        { type: 'combo', labels, series: [{ name: 'Revenue', values: [10, 12, 15] }, { name: 'Margin', values: [8, 9, 11], secondary: true }], y2_title: 'Margin (%)' },
+        { type: 'donut', labels, series: [{ values: [1, 2, 3] }] },
+        { type: 'bubble', series: [{ x: [1, 2, 3], values: [3, 1, 2], size: [10, 40, 90], text: ['a', 'b', 'c'] }] },
+        { type: 'treemap', labels: ['All', 'A', 'B'], parents: ['', 'All', 'All'], series: [{ values: [5, 2, 3] }] },
+        { type: 'sunburst', labels: ['All', 'A', 'B'], parents: ['', 'All', 'All'], series: [{ values: [0, 2, 3] }] },
+        { type: 'waterfall', labels: ['Start', 'Up', 'End'], measure: ['absolute', 'relative', 'total'], series: [{ values: [10, 5, 0] }] },
+        { type: 'funnel', labels: ['Visit', 'Cart', 'Buy'], series: [{ values: [100, 40, 12] }, { values: [80, 35, 15] }] },
+        { type: 'histogram', series: [{ values: [1, 2, 2, 3, 3, 3] }], bins: 3 },
+        { type: 'box', series: [{ values: [1, 2, 2, 3, 9] }, { values: [2, 3, 4] }] },
+        { type: 'violin', series: [{ values: [1, 2, 2, 3, 9] }] },
+        { type: 'heatmap', labels, series: [{ name: 'Row A', values: [1, -2, 3] }, { name: 'Row B', values: [4, 5, -6] }] },
+        { type: 'radar', labels, series: [{ values: [3, 4, 5] }] },
+        { type: 'indicator', series: [{ name: 'Revenue', values: [120, 100] }] }
     ];
     for (const args of cases) {
         const result = await provider.callTool('build_chart', args);
@@ -212,6 +246,27 @@ test('build_chart makes checked blocks for every chart type', async () => {
     assert.equal(horizontal.layout.yaxis.title.text, 'Category');
     const plain = JSON.parse((await provider.callTool('build_chart', cases[6])).structuredContent.block.split('\n').slice(1, -1).join('\n'));
     assert.equal(plain.data[0].marker, undefined);
+    const built = async (args) => JSON.parse((await provider.callTool('build_chart', args)).structuredContent.block.split('\n').slice(1, -1).join('\n'));
+    const area = await built(cases[7]);
+    assert.equal(area.data[1].stackgroup, 'one');
+    assert.deepEqual(area.layout.xaxis.rangeslider, { visible: true });
+    const combo = await built(cases[8]);
+    assert.deepEqual(combo.data.map(trace => [trace.type, trace.yaxis]), [['bar', undefined], ['scatter', 'y2']]);
+    assert.equal(combo.layout.yaxis2.overlaying, 'y');
+    assert.equal(combo.layout.yaxis2.title.text, 'Margin (%)');
+    // Parent values that equal the sum of their children are totals; zero parents fall back to remainder.
+    assert.equal((await built(cases[11])).data[0].branchvalues, 'total');
+    assert.equal((await built(cases[12])).data[0].branchvalues, undefined);
+    const heatmap = await built(cases[18]);
+    assert.deepEqual(heatmap.data[0].z, [[1, -2, 3], [4, 5, -6]]);
+    assert.deepEqual(heatmap.data[0].y, ['Row A', 'Row B']);
+    assert.equal(heatmap.data[0].zmid, 0);
+    const radar = await built(cases[19]);
+    assert.deepEqual(radar.data[0].theta, ['Jan', 'Feb', 'Mar', 'Jan']);
+    const indicator = await built(cases[20]);
+    assert.equal(indicator.data[0].mode, 'number+delta');
+    assert.equal(indicator.data[0].delta.reference, 100);
+    assert.match(text(await provider.callTool('build_chart', { type: 'treemap', labels: ['All', 'A'], parents: ['', 'All'], series: [{ values: [1, 1] }, { values: [2, 2] }] })), /only the first was used/);
 });
 
 test('build_chart rejects data that does not fit the chart type', async () => {
@@ -220,6 +275,13 @@ test('build_chart rejects data that does not fit the chart type', async () => {
     assert.equal(errorCode(await provider.callTool('build_chart', { type: 'bar', series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
     assert.equal(errorCode(await provider.callTool('build_chart', { type: 'bar', labels, series: [{ values: [1, 2, 3] }] })), 'INVALID_ARGUMENT');
     assert.equal(errorCode(await provider.callTool('build_chart', { type: 'scatter', series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
-    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'donut', labels, series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'gantt', labels, series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'bubble', series: [{ x: [1, 2], values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'treemap', labels, series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'treemap', labels, parents: ['', 'x'], series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'waterfall', labels, measure: ['total'], series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'radar', labels, series: [{ values: [1, 2] }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'pie', labels, series: [{ values: [1, 2], secondary: true }] })), 'INVALID_ARGUMENT');
+    assert.equal(errorCode(await provider.callTool('build_chart', { type: 'pie', labels, series: [{ values: [1, 2] }], range_slider: true })), 'INVALID_ARGUMENT');
     assert.equal(errorCode(await provider.callTool('build_chart', { type: 'bar', labels, series: [] })), 'INVALID_ARGUMENT');
 });

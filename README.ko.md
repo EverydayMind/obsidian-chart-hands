@@ -20,9 +20,9 @@ Plotly.js와 D3는 플러그인에 포함되어 있으며 첫 차트를 그릴 �
 
 플러그인 인스턴스에 agentinterop v1 provider가 있어, 호환되는 에이전트 호스트가 도구 정의를 읽고 호출할 수 있습니다(호스트에서 사용자가 승인해야 모델에 보입니다).
 
-- `get_chart_guide`: 작성 안내를 주제별(`basics`, `style`, `examples`, `dataviewjs`, `errors`)로 돌려줍니다. 필요한 부분만 읽습니다.
-- `build_chart`: 라벨과 계열 데이터로 선·막대·가로 막대·파이·산점도의 `plotly` 블록을 만들어 줍니다(Chart Hands 팔레트 적용, 검사 포함).
-- `check_chart`: `plotly` 블록 내용을 검사합니다(YAML/JSON, 최상위 키, `fit` 값, 따옴표 없는 `#` 색상·날짜·JavaScript 값·배열 길이 불일치 같은 흔한 실수, Plotly 속성 검사).
+- `get_chart_guide`: 작성 안내를 주제별로 돌려줍니다. 필요한 부분만 읽습니다. `basics`는 차트가 답할 질문(추세, 비교, 비중, 분포, 관계, 행렬, 계층, 흐름, 단계, 프로필, KPI)에 맞는 차트 종류를 알려 주고, `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps`, `layout`은 Plotly 고급 차트의 검증된 예제를 담고 있습니다(박스·바이올린, 상관 히트맵, splom, 트리맵·선버스트, 생키, 폭포, 기간 버튼이 있는 캔들스틱, 게이지, 등고선·3D, 극좌표, 삼각 좌표, 평행 좌표, 지도, 서브플롯, 버튼·슬라이더). `style`, `examples`, `dataviewjs`, `errors`는 꾸미기, 기본 예제, DataviewJS, 문제 해결을 다룹니다.
+- `build_chart`: 라벨과 계열 데이터로 `plotly` 블록을 만들어 줍니다(Chart Hands 팔레트 적용, 검사 포함). 종류: 선, 영역, 막대, 가로 막대, 콤보(막대+선, 보조 축 선택), 산점도, 버블, 파이, 도넛, 트리맵, 선버스트, 폭포, 깔때기, 히스토그램, 박스, 바이올린, 히트맵, 레이더, 지표(indicator). 선·영역·막대·산점도 계열에는 범위 슬라이더를 붙일 수 있습니다.
+- `check_chart`: `plotly` 블록 내용을 검사합니다(YAML/JSON, 최상위 키, `fit` 값, 따옴표 없는 `#` 색상·날짜·문자열 제목·JavaScript 값·배열 길이 불일치 같은 흔한 실수, 고급 트레이스의 데이터 형태(트리맵 parents, 생키 링크, 캔들스틱 가격, 폭포 measure, 격자 `z`, 없어진 mapbox 종류), Plotly 속성 검사).
 - `read_charts`: 노트의 `plotly` 블록 위치·트레이스·제목·문제를 20개씩 알려 줍니다.
 
 어떤 도구도 노트를 바꾸거나 차트를 그리지 않습니다. 에이전트는 돌려받은 블록을 호스트의 노트 편집 도구로 삽입합니다. 안내 문구는 영어입니다.

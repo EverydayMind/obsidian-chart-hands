@@ -1,6 +1,6 @@
 import * as obsidian from 'obsidian';
 import { GUIDE_TOPICS } from './chart-guide.js';
-import { CHART_TYPES, buildChartDefinition } from './chart-builder.js';
+import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 
 // Plotly.js and D3 are bundled into main.js by esbuild, but each import() below becomes a lazy
 // module: its code only runs on the first call, so the vault opens without evaluating either.
@@ -348,7 +348,8 @@ const AGENT_MAX_CHARTS = 20;
 const AGENT_MAX_PROBLEMS = 12;
 // Notes are .md, like most of a vault, so no tool is in the core group: a host shows them
 // only when the request mentions one of these.
-const AGENT_KEYWORDS = ['plotly', 'chart', 'graph', 'plot', 'visuali', '차트', '그래프', '도표', '시각화', '파이', '막대'];
+const AGENT_KEYWORDS = ['plotly', 'chart', 'graph', 'plot', 'visuali', 'diagram', 'histogram', 'heatmap', 'treemap', 'sankey', 'dashboard',
+    '차트', '그래프', '도표', '시각화', '파이', '막대', '분포', '히트맵', '산점도', '대시보드'];
 const agentMeta = (effect) => ({
     'dev.agentinterop/effect': effect,
     'dev.agentinterop/group': 'chart',
@@ -392,7 +393,7 @@ const AGENT_TOOLS = [
     {
         name: 'get_chart_guide',
         title: 'Plotly chart writing guide',
-        description: 'Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, choosing a chart type, workflow), style (polished look: palette, margins, labels, annotations), examples (line, bar and pie blocks), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.',
+        description: 'Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -406,7 +407,7 @@ const AGENT_TOOLS = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: 'Build a ready-to-insert plotly code block for a line, bar, barh (horizontal bar), pie or scatter chart from plain data, apply the Chart Hands palette (style clean) and run the check on it. Line, bar and barh need labels and one values array per series. Scatter needs x and values per series. A pie uses labels and the first series. Returns the fenced block; insert it into the note with the host\'s note-editing tools. Does not change any note.',
+        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run the check on it. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; insert it with the host\'s note-editing tools. Does not change any note.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -414,11 +415,13 @@ const AGENT_TOOLS = [
             properties: {
                 type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
                 title: { type: 'string', maxLength: 200, description: 'Chart title.' },
-                labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis, y axis for barh, slice names for pie). Not used by scatter.' },
+                labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator.' },
+                parents: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'treemap and sunburst: the parent label of each label, "" for a top-level item.' },
+                measure: { type: 'array', maxItems: 200, items: { type: 'string', enum: ['relative', 'total', 'absolute'] }, description: 'waterfall: per label, relative (a change, the default), total (running total; its value is ignored) or absolute (sets the level).' },
                 series: {
                     type: 'array',
                     minItems: 1,
-                    maxItems: 8,
+                    maxItems: 12,
                     description: 'Data series.',
                     items: {
                         type: 'object',
@@ -426,14 +429,21 @@ const AGENT_TOOLS = [
                         required: ['values'],
                         properties: {
                             name: { type: 'string', maxLength: 100, description: 'Series name, shown in the legend.' },
-                            values: { type: 'array', minItems: 1, maxItems: 500, items: { type: 'number' }, description: 'One number per label (per x for scatter).' },
-                            x: { type: 'array', maxItems: 500, items: { type: 'number' }, description: 'Scatter only: the x value of each point.' }
+                            values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin.' },
+                            x: { type: 'array', maxItems: 2000, items: { type: 'number' }, description: 'scatter and bubble: the x value of each point.' },
+                            size: { type: 'array', maxItems: 2000, items: { type: 'number', minimum: 0 }, description: 'bubble: the size measure of each point (drawn as area).' },
+                            text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'scatter and bubble: a hover label for each point.' },
+                            kind: { type: 'string', enum: ['bar', 'line', 'area'], description: 'combo: how to draw this series. Defaults to bar for the first series and line for the others.' },
+                            secondary: { type: 'boolean', description: 'line, area, bar, combo: draw this series against a right-hand y axis (a different unit).' }
                         }
                     }
                 },
                 x_title: { type: 'string', maxLength: 100, description: 'Horizontal axis title. Include the unit.' },
                 y_title: { type: 'string', maxLength: 100, description: 'Vertical axis title. Include the unit.' },
-                stacked: { type: 'boolean', description: 'Stack bars instead of grouping them (several bar series).' },
+                y2_title: { type: 'string', maxLength: 100, description: 'Right-hand axis title, for series with secondary. Include the unit.' },
+                stacked: { type: 'boolean', description: 'Stack several bar, area or histogram series instead of grouping or overlaying them.' },
+                bins: { type: 'integer', minimum: 1, maximum: 200, description: 'histogram: the maximum number of bins.' },
+                range_slider: { type: 'boolean', description: 'line, area, bar, combo, scatter, bubble: add a range slider under the x axis for long series.' },
                 style: { type: 'string', enum: ['clean', 'plain'], description: 'clean (default) applies the palette and tidy layout; plain adds nothing beyond the data.' }
             }
         },
@@ -441,7 +451,7 @@ const AGENT_TOOLS = [
         _meta: agentMeta('pure')
     }
 ];
-const AGENT_INSTRUCTIONS = 'Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, dataviewjs, errors). Use build_chart for line, bar, barh, pie or scatter charts, or write the block yourself. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
+const AGENT_INSTRUCTIONS = 'Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose the chart from the question it answers (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI, and use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
 
 class AgentToolError extends Error {
     constructor(code, message, retryable) {
@@ -454,7 +464,7 @@ const agentClip = (value, max) => {
     const text = String(value === undefined || value === null ? '' : value).replace(/\s+/g, ' ').trim();
     return text.length <= max ? text : `${text.slice(0, max - 1)}…`;
 };
-const TRACE_LENGTH_KEYS = ['x', 'y', 'z', 'values', 'labels', 'r', 'theta', 'lat', 'lon', 'open'];
+const TRACE_LENGTH_KEYS = ['x', 'y', 'z', 'values', 'labels', 'r', 'theta', 'a', 'lat', 'lon', 'locations', 'open', 'dimensions'];
 const describeTrace = (trace) => {
     if (!trace || typeof trace !== 'object' || Array.isArray(trace)) {
         return '(not an object)';
@@ -463,6 +473,48 @@ const describeTrace = (trace) => {
     const key = TRACE_LENGTH_KEYS.find(name => Array.isArray(trace[name]));
     const name = typeof trace.name === 'string' && trace.name ? ` "${agentClip(trace.name, 30)}"` : '';
     return `${type}${name}${key ? ` ${trace[key].length} points` : ''}`;
+};
+const REMOVED_TRACE_TYPES = {
+    scattermapbox: 'scattermap', choroplethmapbox: 'choroplethmap', densitymapbox: 'densitymap', heatmapgl: 'heatmap', pointcloud: 'scattergl'
+};
+const sameLength = (arrays) => arrays.every(array => Array.isArray(array) && array.length === arrays[0].length);
+// Data shapes that the advanced trace types need and Plotly.validate does not check.
+const lintTrace = (trace, where, add) => {
+    const type = trace.type;
+    if (Object.prototype.hasOwnProperty.call(REMOVED_TRACE_TYPES, type)) {
+        add(`${where}: type ${type} does not exist in this Plotly version; use ${REMOVED_TRACE_TYPES[type]}${type.endsWith('mapbox') ? ' with layout.map instead of layout.mapbox' : ''}.`);
+    }
+    if ((type === 'treemap' || type === 'sunburst' || type === 'icicle') && !trace.ids) {
+        if (!Array.isArray(trace.labels) || !Array.isArray(trace.parents) || trace.labels.length !== trace.parents.length) {
+            add(`${where}: a ${type} needs labels and parents arrays of the same length ("" for a top-level item).`);
+        }
+        else if (trace.parents.some(parent => parent !== '' && !trace.labels.includes(parent))) {
+            add(`${where}: every parent must be one of the labels or "".`);
+        }
+    }
+    if (type === 'sankey') {
+        const link = trace.link || {};
+        const nodes = trace.node && Array.isArray(trace.node.label) ? trace.node.label.length : 0;
+        if (!sameLength([link.source, link.target, link.value])) {
+            add(`${where}: a sankey needs link.source, link.target and link.value arrays of the same length.`);
+        }
+        else if (nodes && [...link.source, ...link.target].some(node => !Number.isInteger(node) || node < 0 || node >= nodes)) {
+            add(`${where}: link.source and link.target must be 0-based indexes into node.label (0 to ${nodes - 1}).`);
+        }
+    }
+    if ((type === 'candlestick' || type === 'ohlc') && !sameLength([trace.open, trace.high, trace.low, trace.close])) {
+        add(`${where}: a ${type} needs open, high, low and close arrays of the same length.`);
+    }
+    if (type === 'waterfall' && Array.isArray(trace.measure)) {
+        const values = trace.orientation === 'h' ? trace.x : trace.y;
+        if (Array.isArray(values) && values.length !== trace.measure.length) {
+            add(`${where}: measure has ${trace.measure.length} items but there are ${values.length} values.`);
+        }
+    }
+    if (['heatmap', 'contour', 'surface'].includes(type) && Array.isArray(trace.z) && trace.z.length && !Array.isArray(trace.z[0])
+        && (type === 'surface' || !Array.isArray(trace.x) || !Array.isArray(trace.y))) {
+        add(`${where}: z must be a list of rows (a list of lists).`);
+    }
 };
 // Mistakes that parse fine but draw nothing useful, found from the source text and parsed value.
 const LINT_MAX_FINDINGS = 8;
@@ -510,20 +562,35 @@ const lintChart = (source, json, problems) => {
     if (Array.isArray(json.data)) {
         const traces = json.data.filter(trace => trace && typeof trace === 'object');
         traces.forEach((trace, index) => {
-            if (Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length !== trace.y.length) {
+            // With a grid z (heatmap, contour, surface) x labels the columns and y the rows.
+            const grid = Array.isArray(trace.z) && Array.isArray(trace.z[0]);
+            if (!grid && Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length !== trace.y.length) {
                 add(`Trace ${index + 1}: x has ${trace.x.length} points but y has ${trace.y.length}.`);
             }
             if (trace.type === 'pie' && (!Array.isArray(trace.values) || !Array.isArray(trace.labels))) {
                 add(`Trace ${index + 1}: a pie needs both labels and values arrays.`);
             }
+            lintTrace(trace, `Trace ${index + 1}`, add);
         });
         const layout = json.layout && typeof json.layout === 'object' ? json.layout : null;
+        if (layout) {
+            Object.keys(layout).filter(key => key === 'title' || /^(?:[xy]axis\d*|scene\d*|polar\d*|ternary\d*)$/.test(key)).forEach(key => {
+                const owner = key === 'title' ? layout : layout[key];
+                if (owner && typeof owner.title === 'string') {
+                    add(`layout.${key === 'title' ? '' : `${key}.`}title is a plain string, which this Plotly version does not show. Write title: {text: "..."}.`);
+                }
+            });
+        }
         if (layout && layout.barmode && traces.length && !traces.some(trace => trace.type === 'bar' || trace.type === 'histogram')) {
             add('layout.barmode only affects bar and histogram traces, and there are none.');
         }
     }
     problems.push(...findings);
 };
+// Plotly.validate reports every args value of a button or slider step as reset, although Plotly
+// uses those values as written.
+const isMenuArgsIssue = (issue) => Boolean(issue && issue.code === 'dynamic' && Array.isArray(issue.path)
+    && (issue.path[0] === 'updatemenus' || issue.path[0] === 'sliders') && issue.path[4] === 'args');
 // The same rules the code block processor applies, plus Plotly's own schema check.
 const analyzeChart = (source) => {
     const result = { problems: [], traces: [], title: '' };
@@ -541,7 +608,7 @@ const analyzeChart = (source) => {
     }
     const unknown = Object.keys(json).filter(key => !allowValues.includes(key));
     if (unknown.length) {
-        result.problems.push(`Unsupported top-level keys: ${unknown.map(key => agentClip(key, 40)).join(', ')}. Only data, layout, config and fit are allowed; any other key stops the chart from drawing.`);
+        result.problems.push(`Unsupported top-level keys: ${unknown.map(key => agentClip(key, 40)).join(', ')}. Only data, layout, config and fit are allowed; any other key stops the chart from drawing.${unknown.includes('frames') ? ' Animations (frames) are not available; use layout.sliders or layout.updatemenus.' : ''}`);
     }
     if (json.fit !== undefined && json.fit !== null && typeof json.fit !== 'boolean'
         && !(typeof json.fit === 'string' && FIT_MODES.includes(json.fit.toLowerCase()))) {
@@ -570,7 +637,7 @@ const analyzeChart = (source) => {
         && (!json.layout || (typeof json.layout === 'object' && !Array.isArray(json.layout)))) {
         try {
             // Plotly.validate returns undefined when there is nothing to report.
-            const issues = Plotly.validate(json.data, json.layout || {}) || [];
+            const issues = (Plotly.validate(json.data, json.layout || {}) || []).filter(issue => !isMenuArgsIssue(issue));
             issues.forEach(issue => result.problems.push(agentClip(issue && issue.msg ? issue.msg : issue, 300)));
         }
         catch (error) {
@@ -662,8 +729,8 @@ const createAgentProvider = (plugin) => {
             const yaml = obsidian.stringifyYaml(definition).trimEnd();
             const chart = analyzeChart(yaml);
             const notes = [];
-            if (args.type === 'pie' && Array.isArray(args.series) && args.series.length > 1) {
-                notes.push('A pie shows one series; only the first was used.');
+            if (SINGLE_SERIES_TYPES.includes(args.type) && Array.isArray(args.series) && args.series.length > 1) {
+                notes.push(`A ${args.type} chart shows one series; only the first was used.`);
             }
             const text = [
                 chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. The check found no problems.',
