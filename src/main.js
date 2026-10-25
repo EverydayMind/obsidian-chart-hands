@@ -147,6 +147,19 @@ const ensurePlotlyStyles = (doc) => {
     }
     copy.textContent = rules.join('\n');
 };
+// Plotly sets the size of the SVG container and the WebGL canvases as inline styles, which a
+// stylesheet can only override with !important. Writing them as var(--chart-hands-print-width,
+// 700px) keeps the same size on screen, where the variable is unset, and lets the print rules
+// in styles.css replace it by defining the variable. Plotly writes plain values again on every
+// draw, and syncPrintBox wraps them again after it.
+const wrapPrintSize = (el) => {
+    ['width', 'height'].forEach(prop => {
+        const value = el.style[prop];
+        if (value && !value.startsWith('var(')) {
+            el.style[prop] = `var(--chart-hands-print-${prop}, ${value})`;
+        }
+    });
+};
 const rerenderCharts = () => {
     liveCharts.forEach(ref => {
         const chart = ref.deref();
@@ -248,6 +261,7 @@ class PlotlyChart {
         gd.querySelectorAll('.svg-container > .main-svg').forEach(svg => {
             svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
         });
+        gd.querySelectorAll('.svg-container, .svg-container .gl-canvas').forEach(wrapPrintSize);
         gd.classList.toggle(PRINT_FIT_CLASS, settings.printFit);
     }
     destroy() {

@@ -1,25 +1,31 @@
-/* main.js gives every SVG layer of a chart a viewBox and sets --chart-hands-width /
-   --chart-hands-aspect, so when printing (Export to PDF) a chart wider than the page is
-   scaled down to the page width instead of being clipped. */
+/* main.js gives every SVG layer of a chart a viewBox, sets --chart-hands-width /
+   --chart-hands-aspect, and writes Plotly's inline sizes as var(--chart-hands-print-width, ...)
+   and var(--chart-hands-print-height, ...). Defining those variables here, when printing
+   (Export to PDF), scales a chart wider than the page down to the page width instead of
+   clipping it. */
 @media print {
+    /* The CSS 2.1 name: the lint treats break-inside as a partly supported multicolumn feature. */
     .chart-hands-chart {
-        break-inside: avoid;
+        page-break-inside: avoid;
     }
 
     .chart-hands-chart .modebar-container {
-        display: none !important;
+        display: none;
     }
 
     .chart-hands-print-fit .svg-container {
-        width: 100% !important;
+        --chart-hands-print-width: 100%;
+        --chart-hands-print-height: auto;
         max-width: var(--chart-hands-width);
-        height: auto !important;
         aspect-ratio: var(--chart-hands-aspect);
     }
 
+    /* The SVG size comes from width/height attributes, which any CSS rule overrides. */
     .chart-hands-print-fit .svg-container > .main-svg,
     .chart-hands-print-fit .svg-container .gl-canvas {
-        width: 100% !important;
-        height: 100% !important;
+        --chart-hands-print-width: 100%;
+        --chart-hands-print-height: 100%;
+        width: 100%;
+        height: 100%;
     }
 }
