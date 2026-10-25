@@ -282,10 +282,24 @@ const showError = (el, error) => {
     errorDiv.textContent = "Couldn't render plot:" + error;
     el.appendChild(errorDiv);
 };
+// YAML forbids tabs as indentation, but the New Plotly chart template up to 0.9.6 (and
+// obsidian-plotly's) indented with them. Such a block is read again with each leading tab as
+// two spaces, so charts already in notes keep drawing.
+const parseChartYaml = (content) => {
+    try {
+        return obsidian.parseYaml(content);
+    }
+    catch (error) {
+        if (!/^ *\t/m.test(content)) {
+            throw error;
+        }
+        return obsidian.parseYaml(content.replace(/^[ \t]+/gm, indent => indent.replace(/\t/g, '  ')));
+    }
+};
 const preprocessor = (content, el, ctx) => {
     let json;
     try {
-        json = obsidian.parseYaml(content);
+        json = parseChartYaml(content);
         validate(json, el);
         const chart = new PlotlyChart(el, json.data, json.layout, json.config, json.fit);
         const child = new obsidian.MarkdownRenderChild(el);
@@ -318,8 +332,8 @@ const renderPlotly = (el, data, layout, config, fit) => {
 const basicPlotlyChart = [
     '```plotly',
     'data:',
-    '\t- x: [0,1,2]',
-    '\t  y: [0,1,0]',
+    '  - x: [0, 1, 2]',
+    '    y: [0, 1, 0]',
     '```\n'
 ].join('\n');
 const NEW_PLOTLY_CHART_NAME = "New Plotly chart";
@@ -610,7 +624,7 @@ const analyzeChart = (source) => {
     const result = { problems: [], traces: [], title: '' };
     let json;
     try {
-        json = obsidian.parseYaml(source);
+        json = parseChartYaml(source);
     }
     catch (error) {
         result.problems.push(`Cannot parse as YAML/JSON: ${agentClip(error && error.message ? error.message : error, 300)}`);
