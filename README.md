@@ -1,61 +1,163 @@
 # Chart Hands
 
-Chart Hands renders [Plotly](https://plotly.com/javascript/) charts from code blocks in your Obsidian notes, and gives LLM agents a pair of "hands" — tools to check chart definitions before they are written into a note.
+Chart Hands draws interactive [Plotly](https://plotly.com/javascript/) charts in your Obsidian notes from short `plotly` code blocks, with no JavaScript needed. You can hover over a chart to read values and drag to zoom. Charts fit the note width, and they fit the page when you export a note to PDF.
 
-It is a fork of [obsidian-plotly](https://github.com/Dmitriy-Shulha/obsidian-plotly) by Dmitriy Shulha (MIT), updated to Plotly.js 4 and D3 7 and extended with width fitting, PDF export support and agent tools.
+Chart Hands also gives LLM agents a pair of "hands": tools that build and check chart blocks before an agent writes them into a note. You don't need an agent to use the plugin.
 
-## Usage
+It is a fork of [obsidian-plotly](https://github.com/Dmitriy-Shulha/obsidian-plotly) by Dmitriy Shulha (MIT), updated to Plotly.js 4 and D3 7. It adds width fitting, PDF export support and the agent tools. It works on desktop and mobile.
 
-Write a `plotly` code block. The content is YAML or JSON with the top-level keys `data`, `layout`, `config` and `fit`:
+**Contents:** [Quick start](#quick-start) · [Writing a plotly block](#writing-a-plotly-block) · [Using examples from plotly.com](#using-examples-from-plotlycom) · [Charts from vault data (DataviewJS)](#charts-from-vault-data-dataviewjs) · [When a chart doesn't show](#when-a-chart-doesnt-show) · [Settings](#settings) · [Examples](#examples) · [Tools for LLM agents](#tools-for-llm-agents) · [Installation](#installation)
+
+## Quick start
+
+1. Install and enable Chart Hands (see [Installation](#installation)).
+2. Open a note, press `Ctrl+P` (`Cmd+P` on macOS) and run **Chart Hands: New Plotly chart**, or paste this block:
+
+   ````
+   ```plotly
+   data:
+     - x: [0, 1, 2]
+       y: [0, 1, 0]
+   ```
+   ````
+
+3. Move the cursor out of the block in Live Preview, or switch to Reading view, and a line chart appears. The first chart can take a moment, because Plotly loads the first time a chart is drawn. A "loading Plotly and D3…" notice shows while that happens.
+
+Next, try a bar chart with a title and axis labels:
 
 ````
 ```plotly
 data:
-  - x: [0, 1, 2]
-    y: [0, 1, 0]
+  - type: bar
+    x: ["Mon", "Tue", "Wed", "Thu", "Fri"]
+    y: [3, 5, 2, 6, 4]
+layout:
+  title: {text: "Hours of focus"}
+  xaxis: {title: {text: "Day"}}
+  yaxis: {title: {text: "Hours"}}
 ```
 ````
 
-See [Examples](#examples) for ready-to-copy blocks of many chart types. Run **New Plotly chart** from the command palette to insert a starter block. Charts can also be drawn from DataviewJS:
+Change `type: bar` to `type: scatter` to draw a line instead. When that works, copy any chart from [Examples](#examples) and replace the numbers with your own.
+
+## Writing a `plotly` block
+
+The block is YAML or JSON (both are read the same way) with up to four top-level keys:
+
+| Key | What it holds |
+| --- | --- |
+| `data` | A list of traces. Each trace is one series: its `type` (`bar`, `scatter`, `pie`, `heatmap`, …) and its values (`x`, `y`, `labels`, `values`, …). Without a `type`, a trace is drawn as `scatter`. |
+| `layout` | Optional. The title, axes, legend, size, margins, reference lines (`shapes`) and notes (`annotations`). |
+| `config` | Optional. Interaction options such as `displaylogo: false`, `displayModeBar: false` or `scrollZoom: true`. |
+| `fit` | Optional. `off`, `shrink` or `fill`, to override the **Fit chart width** setting for this chart only. |
+
+These are the objects that Plotly.js takes in `Plotly.newPlot(div, data, layout, config)`. Every option is listed in the [Plotly.js reference](https://plotly.com/javascript/reference/).
+
+A few YAML rules cause most of the problems:
+
+- **Quote colours**: write `color: "#2563EB"`. Without quotes, `#` starts a YAML comment and the colour is lost.
+- **Quote dates**: write `x: ["2026-01-05", "2026-01-12"]`, so the values stay as text and Plotly reads them as dates.
+- **Write titles as objects**: write `title: {text: "Sales"}`. Plotly.js 4 doesn't show a title written as a plain string.
+- **Indent with spaces**, never tabs, and start each trace with `- `.
+- **No JavaScript**: a `plotly` block holds values only, so functions, variables and `new Date()` don't work. For computed data, use [DataviewJS](#charts-from-vault-data-dataviewjs).
+
+## Using examples from plotly.com
+
+The [Plotly.js examples](https://plotly.com/javascript/) are written in JavaScript. When an example only builds objects from plain values, copy those objects into a `plotly` block. This example:
 
 ```js
-await window.loadPlotlyLibraries();
+var trace1 = {x: [1, 2, 3, 4], y: [10, 15, 13, 17], type: 'scatter'};
+var trace2 = {x: [1, 2, 3, 4], y: [16, 5, 11, 9], type: 'scatter'};
+var layout = {title: {text: 'Two lines'}};
+Plotly.newPlot('myDiv', [trace1, trace2], layout);
+```
+
+becomes:
+
+````
+```plotly
+data:
+  - {x: [1, 2, 3, 4], y: [10, 15, 13, 17], type: scatter}
+  - {x: [1, 2, 3, 4], y: [16, 5, 11, 9], type: scatter}
+layout:
+  title: {text: "Two lines"}
+```
+````
+
+If the example computes its values (loops, `Math.random()`, `d3.csv(...)`), run it in a DataviewJS block instead.
+
+## Charts from vault data (DataviewJS)
+
+For a chart computed from your notes, or a plotly.com example that runs code, use a `dataviewjs` block. This needs the [Dataview](https://github.com/blacksmithgu/obsidian-dataview) plugin with **Enable JavaScript queries** turned on in its settings.
+
+Run **Chart Hands: New Plotly chart (Dataviewjs)** to insert a starter block. When you paste a plotly.com example, replace `Plotly.newPlot` with `window.renderPlotly` and draw into `this.container`:
+
+```js
+// plotly.com
+Plotly.newPlot('myDiv', data, layout, config);
+// DataviewJS in Obsidian
 window.renderPlotly(this.container, data, layout, config);
 ```
 
-Plotly.js and D3 are bundled in the plugin and loaded the first time a chart is drawn, so they do not slow down opening your vault.
+This block counts the notes created in each month:
+
+````
+```dataviewjs
+const counts = {};
+for (const page of dv.pages()) {
+  const month = page.file.ctime.toFormat('yyyy-MM');
+  counts[month] = (counts[month] || 0) + 1;
+}
+const months = Object.keys(counts).sort();
+window.renderPlotly(this.container,
+  [{type: 'bar', x: months, y: months.map(m => counts[m]), marker: {color: '#2563EB'}}],
+  {title: {text: 'Notes created per month'}});
+```
+````
+
+`window.renderPlotly` waits for Plotly to load by itself. An optional fifth argument (`'off'`, `'shrink'` or `'fill'`) sets the width fitting for that chart. Plotly.js and D3 are bundled, so unlike obsidian-plotly you don't need to download D3 into your vault. Code that calls `Plotly` or `d3` directly must load them first:
+
+```js
+const { Plotly, d3 } = await window.loadPlotlyLibraries();
+```
+
+## When a chart doesn't show
+
+| What you see | What to check |
+| --- | --- |
+| The block stays as code | The plugin is enabled, and the fence language is exactly `plotly` in lowercase. In Live Preview, move the cursor outside the block. |
+| `Couldn't render plot:` followed by a YAML error | Indentation (spaces, not tabs), a missing `- ` before a trace, or an unclosed quote or bracket. The message shows the line. |
+| `The only valid keys are data, layout, config and fit.` | A key such as `title` or `type` is at the top level. Move it under `layout` or into a trace. |
+| `There should be a valid JSON in this block.` | The block is empty, or it holds only comments. |
+| The chart is drawn but a colour or title is missing | Quote `#` colours, and write titles as `title: {text: "..."}`. |
+| A "could not load Plotly" notice | Reopen the note. Chart Hands tries to load Plotly again the next time a chart is drawn. |
+| A DataviewJS block draws nothing | Dataview is installed with JavaScript queries enabled, and the code calls `window.renderPlotly(this.container, ...)` rather than `Plotly.newPlot`. |
 
 ## Settings
 
-- **Fit chart width**: shrink only when wider than the note (default), always fill the width, or keep the original size. Override per chart with `fit: off`, `fit: shrink` or `fit: fill` in the block.
-- **Keep aspect ratio when shrinking**.
-- **Fit the page width when exporting to PDF**.
+Open *Settings → Chart Hands*:
 
-## Tools for LLM agents
-
-Chart Hands exposes an agentinterop v1 capability provider on the plugin instance. A compatible agent host can read the tool definitions and call them, once you approve them in the host:
-
-- `get_chart_guide`: returns writing guidance by topic, so the agent reads only what it needs. `basics` maps the question a chart answers (trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile, KPI) to a chart type; `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps` and `layout` give checked examples of Plotly's advanced charts (box and violin, correlation heatmaps, splom, treemap and sunburst, sankey, waterfall, candlestick with range buttons, gauges, contour and 3D, polar, ternary, parallel coordinates, maps, subplots, buttons and sliders). `style`, `examples`, `dataviewjs` and `errors` cover the look, basic examples, DataviewJS and fixes.
-- `build_chart`: builds a ready-to-insert `plotly` block from plain data (labels and series), with the Chart Hands palette, and checks it. Types: line, area, bar, barh, combo (bars and lines with an optional secondary axis), scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar and indicator. Line, area, bar and scatter charts can add a range slider.
-- `check_chart`: validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value, common mistakes (unquoted `#` colours, dates, plain-string titles, JavaScript-like values, mismatched array lengths), the data shapes of advanced traces (treemap parents, sankey links, candlestick prices, waterfall measures, grid `z`, removed mapbox types) and Plotly's own attribute check.
-- `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
-
-None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
-
-### About the agentinterop v1 provider
-
-agentinterop v1 is the author's own convention, not an official or widely recognized standard. It lets an Obsidian plugin that runs an AI agent discover tools offered by other plugins through an MCP-like API, without those plugins knowing about any particular agent host.
-
-How Chart Hands implements it:
-
-- The plugin instance holds the provider under the key `Symbol.for('dev.agentinterop.capability-provider')`. The provider has `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()` (returns the provider info, instructions and tool definitions with JSON Schema inputs) and `callTool(name, args)` (returns `content` plus `structuredContent`, or an error with a code).
-- Tool definitions carry `_meta` hints under the `dev.agentinterop/` prefix: `effect` (`pure` or `read`), `group`, `keywords`, `resourceTypes` and `maxResultChars`. A host shows these tools to the model only when a request matches a keyword such as "plotly", "chart" or "graph".
-- The plugin triggers the `agentinterop:providers-changed` workspace event on load and unload so a host can refresh its tool list.
-- All tools are read-only: they never modify notes or draw charts.
+- **Fit chart width**: *Shrink only when wider* (the default) narrows charts that are wider than the note. *Always fill the width* stretches every chart to the note width. *Off* keeps the original size (`layout.width`, or Plotly's 700 px). To change one chart, add `fit: off`, `fit: shrink` or `fit: fill` to its block.
+- **Keep aspect ratio when shrinking** (on by default): scales the height along with the width.
+- **Fit the page width when exporting to PDF** (on by default): shrinks charts that are wider than the page, so they aren't cut off when you export to PDF or print.
 
 ## Examples
 
-Copy any block below into a note. Each one is YAML except the last, which shows the same format in JSON. Colours come from the Chart Hands palette; replace the sample numbers with your own.
+Copy any block below into a note. All of them are YAML except the last, which shows the same format in JSON. The colours come from the Chart Hands palette, so you only need to replace the sample numbers and labels with your own.
+
+| To show | Example |
+| --- | --- |
+| A trend over time | [Line chart with a target line](#line-chart-with-a-target-line), [Time series with a range slider](#time-series-with-a-range-slider-and-an-event-band) |
+| A comparison between categories | [Grouped bars](#grouped-bars-with-value-labels), [Stacked bars](#stacked-bars), [Bars and a line on a secondary axis](#bars-and-a-line-on-a-secondary-axis) |
+| Parts of a whole | [Donut chart](#donut-chart), [Sunburst](#sunburst) |
+| How values are spread | [Box plots](#box-plots) |
+| A relationship between measures | [Bubble chart](#bubble-chart) |
+| A grid of values | [Heatmap habit tracker](#heatmap-habit-tracker) |
+| Flows and running totals | [Sankey diagram](#sankey-diagram), [Waterfall](#waterfall) |
+| Key numbers | [KPI row with a gauge](#kpi-row-with-a-gauge) |
+| Items rated on several criteria | [Radar chart](#radar-chart) |
+| Switching views | [Buttons that switch views](#buttons-that-switch-views) |
+| The JSON format | [JSON and the fit key](#json-and-the-fit-key) |
 
 ### Line chart with a target line
 
@@ -444,9 +546,39 @@ The block can also be JSON. `fit: fill` stretches this chart to the note width, 
 ```
 ````
 
+## Tools for LLM agents
+
+You can skip this section if you don't use an AI agent in Obsidian.
+
+Chart Hands exposes an agentinterop v1 capability provider on the plugin instance. A compatible agent host can read the tool definitions and call them, once you approve them in the host:
+
+- `get_chart_guide`: returns writing guidance by topic, so the agent reads only what it needs. `basics` maps the question a chart answers (trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile, KPI) to a chart type; `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps` and `layout` give checked examples of Plotly's advanced charts (box and violin, correlation heatmaps, splom, treemap and sunburst, sankey, waterfall, candlestick with range buttons, gauges, contour and 3D, polar, ternary, parallel coordinates, maps, subplots, buttons and sliders). `style`, `examples`, `dataviewjs` and `errors` cover the look, basic examples, DataviewJS and fixes.
+- `build_chart`: builds a ready-to-insert `plotly` block from plain data (labels and series), with the Chart Hands palette, and checks it. Types: line, area, bar, barh, combo (bars and lines with an optional secondary axis), scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar and indicator. Line, area, bar and scatter charts can add a range slider.
+- `check_chart`: validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value, common mistakes (unquoted `#` colours, dates, plain-string titles, JavaScript-like values, mismatched array lengths), the data shapes of advanced traces (treemap parents, sankey links, candlestick prices, waterfall measures, grid `z`, removed mapbox types) and Plotly's own attribute check.
+- `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
+
+None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
+
+### About the agentinterop v1 provider
+
+agentinterop v1 is the author's own convention, not an official or widely recognized standard. It lets an Obsidian plugin that runs an AI agent discover tools offered by other plugins through an MCP-like API, without those plugins knowing about any particular agent host.
+
+How Chart Hands implements it:
+
+- The plugin instance holds the provider under the key `Symbol.for('dev.agentinterop.capability-provider')`. The provider has `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()` (returns the provider info, instructions and tool definitions with JSON Schema inputs) and `callTool(name, args)` (returns `content` plus `structuredContent`, or an error with a code).
+- Tool definitions carry `_meta` hints under the `dev.agentinterop/` prefix: `effect` (`pure` or `read`), `group`, `keywords`, `resourceTypes` and `maxResultChars`. A host shows these tools to the model only when a request matches a keyword such as "plotly", "chart" or "graph".
+- The plugin triggers the `agentinterop:providers-changed` workspace event on load and unload so a host can refresh its tool list.
+- All tools are read-only: they never modify notes or draw charts.
+
 ## Installation
 
-Once listed, install **Chart Hands** from *Settings → Community plugins*. To install manually, copy `main.js`, `manifest.json` and `styles.css` from the latest release into `<Vault>/.obsidian/plugins/chart-hands/`.
+**From the community plugins list** (once Chart Hands is listed): open *Settings → Community plugins*, turn off Restricted mode if it is on, select **Browse**, search for **Chart Hands**, then select **Install** and **Enable**.
+
+**Manually**:
+
+1. Download `main.js`, `manifest.json` and `styles.css` from the [latest release](https://github.com/EverydayMind/obsidian-chart-hands/releases/latest).
+2. Create the folder `<Vault>/.obsidian/plugins/chart-hands/` and put the three files in it. The `.obsidian` folder is hidden on some systems.
+3. Restart Obsidian, or reload the community plugins list, then enable **Chart Hands** in *Settings → Community plugins*.
 
 ## Development
 
