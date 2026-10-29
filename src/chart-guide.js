@@ -63,7 +63,7 @@ Notes:
 - Automatic margins belong on axes and titles (automargin) and in margin.autoexpand, not at the top level of layout.
 - Skip a fixed height and a horizontal legend for long titles or narrow panes.
 - hovermode "x unified" suits series that share an x axis.
-- Bar value labels: texttemplate "%{y:,.0f}" for vertical bars, "%{x:,.0f}" for horizontal bars. With textposition "outside" and cliponaxis false, check the top and bottom margins and negative values.
+- Bar value labels: texttemplate "%{y:,.12~g}" for vertical bars, "%{x:,.12~g}" for horizontal bars preserves meaningful decimals. Match the format and units to the data; with textposition "outside" and cliponaxis false, check margins and negative values.
 - Annotations: use only when needed (1 to 3), set xref and yref, and base causes or events on the user's material, never on the data alone.
 - Plotly.js draws a white background and does not inherit the Obsidian theme. State a white background only for report or print requests; for a dark look set explicit colours for paper_bgcolor, plot_bgcolor, font and grid.
 - When editing an existing chart, keep its data, layout, config, colours, axis ranges and uirevision and merge only the style properties you need.`;

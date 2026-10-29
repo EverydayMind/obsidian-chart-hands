@@ -269,6 +269,35 @@ test('build_chart makes checked blocks for every chart type', async () => {
     assert.match(text(await provider.callTool('build_chart', { type: 'treemap', labels: ['All', 'A'], parents: ['', 'All'], series: [{ values: [1, 1] }, { values: [2, 2] }] })), /only the first was used/);
 });
 
+test('bar and waterfall labels retain fractional values', async () => {
+    const { format } = await import('d3-format');
+    const provider = provide('');
+    const getTrace = async (type, extra = {}) => {
+        const result = await provider.callTool('build_chart', { type, labels: ['A', 'B'], series: [{ values: [0.125, 0.42] }], ...extra });
+        assert.notEqual(result.isError, true, text(result));
+        return JSON.parse(result.structuredContent.block.split('\n').slice(1, -1).join('\n')).data[0];
+    };
+    for (const type of ['bar', 'barh']) {
+        const trace = await getTrace(type);
+        const specifier = trace.texttemplate.match(/:\s*([^}]+)}/)[1];
+        assert.deepEqual([0.125, 0.42, 1234].map(format(specifier)), ['0.125', '0.42', '1,234']);
+    }
+    const waterfall = await getTrace('waterfall', { measure: ['relative', 'total'] });
+    assert.equal(format(waterfall.texttemplate[0].match(/:([^}]+)}/)[1])(0.125), '+0.125');
+    assert.equal(format(waterfall.texttemplate[1].match(/:([^}]+)}/)[1])(0.42), '0.42');
+});
+
+test('build_chart offers a data-only static block for compatible report inputs', async () => {
+    const provider = provide('');
+    const args = { type: 'bar', title: 'Rates', labels: ['Q1', 'Q2'], series: [{ values: [0.125, 0.42] }] };
+    const result = await provider.callTool('build_chart', args);
+    assert.match(result.structuredContent.staticBlock, /^```chart-hands-static\n/);
+    const source = result.structuredContent.staticBlock.split('\n')[1];
+    assert.deepEqual(JSON.parse(source), args);
+    const markup = await provider.callTool('build_chart', { ...args, title: '<b>Rates</b>' });
+    assert.match(markup.structuredContent.staticBlock, /^```chart-hands-static\n/);
+});
+
 test('build_chart rejects data that does not fit the chart type', async () => {
     const provider = provide('');
     const labels = ['a', 'b'];

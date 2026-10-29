@@ -175,7 +175,7 @@ const buildTrace = (args, labels, entry, index, count, clean) => {
     else if (kind === 'bar' || kind === 'barh') {
         trace.marker = { color };
         if (count === 1) {
-            trace.texttemplate = kind === 'bar' ? '%{y:,.0f}' : '%{x:,.0f}';
+            trace.texttemplate = kind === 'bar' ? '%{y:,.12~g}' : '%{x:,.12~g}';
             trace.textposition = 'outside';
             trace.cliponaxis = false;
         }
@@ -253,7 +253,7 @@ const buildWaterfall = (args, labels, entry, clean) => {
         trace.name = entry.name;
     }
     if (clean) {
-        trace.texttemplate = measure.map(item => (item === 'relative' ? '%{delta:+,.0f}' : '%{final:,.0f}'));
+        trace.texttemplate = measure.map(item => (item === 'relative' ? '%{delta:+,.12~g}' : '%{final:,.12~g}'));
         trace.textposition = 'outside';
         trace.cliponaxis = false;
         trace.increasing = { marker: { color: PALETTE.series2 } };

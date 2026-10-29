@@ -65,6 +65,8 @@ test('startup registers APIs without loading libraries; concurrent demand loads 
     assert.equal(h.required.includes('plotly.js-dist-min'), false);
     assert.equal(typeof h.plugin.processor, 'function');
     assert.equal(typeof h.window.renderPlotly, 'function');
+    const staticApi = Symbol.for('dev.chart-hands.static-chart-v1');
+    assert.equal(h.plugin[staticApi].protocol, 'chart-hands-static');
     const first = h.window.loadPlotlyLibraries();
     assert.equal(first, h.window.loadPlotlyLibraries());
     await h.flush();
@@ -81,6 +83,7 @@ test('startup registers APIs without loading libraries; concurrent demand loads 
     assert.equal(h.notices[0].duration, 0);
     assert.equal(h.notices[0].hidden, true);
     h.plugin.onunload();
+    assert.equal(h.plugin[staticApi], undefined);
 });
 
 test('load failure hides notice and allows retry', async () => {

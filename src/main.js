@@ -1,6 +1,7 @@
 import * as obsidian from 'obsidian';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
+import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 
 // Plotly.js and D3 are bundled into main.js by esbuild, but each import() below becomes a lazy
 // module: its code only runs on the first call, so the vault opens without evaluating either.
@@ -435,7 +436,7 @@ const AGENT_TOOLS = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run the check on it. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; insert it with the host\'s note-editing tools. Does not change any note.',
+        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run the check on it. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host\'s note-editing tools. Does not change any note.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -756,6 +757,15 @@ const createAgentProvider = (plugin) => {
             }
             const yaml = obsidian.stringifyYaml(definition).trimEnd();
             const chart = analyzeChart(yaml);
+            const staticSource = JSON.stringify(args);
+            let staticBlock;
+            try {
+                if (staticSource.length <= 2000) {
+                    parseStaticChart(staticSource);
+                    staticBlock = `\`\`\`chart-hands-static\n${staticSource}\n\`\`\``;
+                }
+            }
+            catch { /* The interactive chart can support inputs that the static renderer cannot. */ }
             const notes = [];
             if (SINGLE_SERIES_TYPES.includes(args.type) && Array.isArray(args.series) && args.series.length > 1) {
                 notes.push(`A ${args.type} chart shows one series; only the first was used.`);
@@ -770,7 +780,7 @@ const createAgentProvider = (plugin) => {
             ].join('\n');
             return {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\`` }
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : {}) }
             };
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
@@ -918,6 +928,21 @@ class ChartHandsPlugin extends obsidian.Plugin {
                 return renderPlotly(...args);
             };
             window.renderPlotly = this.renderApi;
+            this.registerMarkdownCodeBlockProcessor('chart-hands-static', async (content, el, ctx) => {
+                let cancelled = false;
+                const child = new obsidian.MarkdownRenderChild(el);
+                let chart;
+                child.onunload = () => { cancelled = true; chart?.destroy(); };
+                ctx.addChild(child);
+                try {
+                    const definition = parseStaticChart(content);
+                    await this.ensureLibraries();
+                    if (cancelled || this.unloaded) return;
+                    chart = new PlotlyChart(el, definition.data, definition.layout, definition.config);
+                    await chart.render();
+                }
+                catch (error) { if (!cancelled && !this.unloaded) showError(el, error); }
+            });
                         this.registerMarkdownCodeBlockProcessor('plotly', async (content, el, ctx) => {
                 // A note may close while the libraries are loading.
                 let cancelled = false;
@@ -946,6 +971,10 @@ class ChartHandsPlugin extends obsidian.Plugin {
             // Self-exposed chart tools (agentinterop v1). An agent host finds the provider under the Symbol.
             this.agentProvider = createAgentProvider(this);
             Object.defineProperty(this, AGENT_CAPABILITY_PROVIDER, { value: this.agentProvider, configurable: true, enumerable: false, writable: false });
+            Object.defineProperty(this, STATIC_CHART_API, { value: Object.freeze({
+                protocol: 'chart-hands-static', version: 1,
+                render: (source, signal) => renderStaticChart(source, { document, loadPlotly: () => loadPlotly(this), signal })
+            }), configurable: true, enumerable: false, writable: false });
             this.app.workspace.onLayoutReady(() => {
                 if (!this.unloaded) this.app.workspace.trigger(PROVIDERS_CHANGED_EVENT);
             });
@@ -1009,6 +1038,7 @@ ${error.message}`, 8000);
             this.agentProvider = undefined;
         }
         delete this[AGENT_CAPABILITY_PROVIDER];
+        delete this[STATIC_CHART_API];
         this.app.workspace.trigger(PROVIDERS_CHANGED_EVENT);
         liveCharts.forEach(ref => {
             const chart = ref.deref();
