@@ -128,3 +128,14 @@ test('agent checks await libraries and perform Plotly schema validation on first
     assert.match(result.content[0].text, /schema issue/);
     h.plugin.onunload();
 });
+
+
+test('chart validation loads Plotly without initializing D3', async () => {
+    const h = await setup();
+    const checked = h.plugin.agentProvider.callTool('check_chart', { source: '{"data":[{"y":[1]}]}' });
+    await h.ready();
+    await checked;
+    assert.equal(h.required.filter(name => name === 'plotly.js-dist-min').length, 1);
+    assert.equal(h.required.includes('d3'), false);
+    h.plugin.onunload();
+});

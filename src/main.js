@@ -921,7 +921,14 @@ class ChartHandsPlugin extends obsidian.Plugin {
                 this.app.workspace.onLayoutReady(resolve);
             });
             yield this.loadSettings();
-            this.loadLibrariesApi = () => this.ensureLibraries();
+            this.loadLibrariesApi = () => {
+                if (!this.bothLibrariesPromise) {
+                    this.bothLibrariesPromise = Promise.all([this.ensureLibraries(), loadD3(this)])
+                        .then(([plotly, d3]) => ({ Plotly: plotly, d3 }))
+                        .catch(error => { this.bothLibrariesPromise = null; throw error; });
+                }
+                return this.bothLibrariesPromise;
+            };
             window.loadPlotlyLibraries = this.loadLibrariesApi;
             this.renderApi = async (...args) => {
                 await this.ensureLibraries();
@@ -991,12 +998,11 @@ class ChartHandsPlugin extends obsidian.Plugin {
                 try {
                     // Yield once so the ready layout and loading notice can be painted.
                     await new Promise(resolve => window.setTimeout(resolve, 0));
-                    await loadD3(this);
                     await loadPlotly(this);
                     if (this.unloaded) throw new Error('Chart Hands is unloaded.');
                     this.Plotly = Plotly;
-                    new obsidian.Notice('Chart Hands: Plotly and D3 loaded', 3000);
-                    return { Plotly, d3: window.d3 };
+                    new obsidian.Notice('Chart Hands: Plotly loaded', 3000);
+                    return Plotly;
                 }
                 catch (error) {
                     if (!this.unloaded) new obsidian.Notice(`Chart Hands: could not load Plotly. It will retry on next use.
