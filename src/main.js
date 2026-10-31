@@ -1,4 +1,5 @@
 import * as obsidian from 'obsidian';
+import { parseDataset, profile, analyze } from './eda.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
@@ -386,8 +387,31 @@ const agentMeta = (effect) => ({
     'dev.agentinterop/keywords': AGENT_KEYWORDS,
     'dev.agentinterop/maxResultChars': AGENT_MAX_RESULT_CHARS
 });
+const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': [...AGENT_KEYWORDS, 'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', '??', '???', '??', '??', '??'] });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const AGENT_TOOLS = [
+    {
+        name: 'eda_profile', title: 'Profile a CSV dataset',
+        description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
+        inputSchema: { type: 'object', additionalProperties: false, required: ['path'], properties: {
+            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+            from: { type: 'integer', minimum: 1, description: '1-based column number; defaults to 1.' }
+        } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
+    },
+    {
+        name: 'eda_analyze', title: 'Analyze a CSV dataset',
+        description: 'Analyze a vault CSV using a renderer-independent analysis specification. summary and histogram take one numeric column; correlation takes two and computes Pearson correlation using complete numeric pairs. Reports excluded rows and null correlation when undefined. Does not modify files or load Plotly.',
+        inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
+            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+            analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
+                type: { type: 'string', enum: ['summary', 'histogram', 'correlation'] },
+                columns: { type: 'array', minItems: 1, maxItems: 2, items: { type: 'string' } },
+                method: { type: 'string', enum: ['pearson'] },
+                bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' }
+            } }
+        } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
+    },
+
     {
         name: 'check_chart',
         title: 'Check a Plotly chart',
@@ -436,7 +460,7 @@ const AGENT_TOOLS = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run the check on it. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host\'s note-editing tools. Does not change any note.',
+        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host\'s note-editing tools. Does not change any note.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -480,7 +504,7 @@ const AGENT_TOOLS = [
         _meta: agentMeta('pure')
     }
 ];
-const AGENT_INSTRUCTIONS = 'Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose the chart from the question it answers (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI, and use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
+const AGENT_INSTRUCTIONS = 'For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze for numeric summary, histogram or Pearson correlation. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose the chart from the question it answers (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI, and use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
 
 class AgentToolError extends Error {
     constructor(code, message, retryable) {
@@ -728,13 +752,40 @@ const createAgentProvider = (plugin) => {
             id: plugin.manifest.id,
             name: plugin.manifest.name,
             version: plugin.manifest.version,
-            description: 'Check, read and build Plotly chart blocks'
+            description: 'Analyze CSV data and build, check and read Plotly charts'
         },
         instructions: AGENT_INSTRUCTIONS,
         tools: AGENT_TOOLS
     };
     let disposed = false;
+    const readDataset = async (rawPath) => {
+        const path = normalizeAgentPath(rawPath);
+        const file = plugin.app.vault.getAbstractFileByPath(path);
+        if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}`, true);
+        if (file.extension.toLowerCase() !== 'csv') throw new AgentToolError('UNSUPPORTED_FORMAT', 'Only CSV files (.csv) can be analyzed.');
+        if (file.stat && file.stat.size > 5 * 1024 * 1024) throw new AgentToolError('INVALID_ARGUMENT', 'CSV must be at most 5 MiB.', true);
+        try { return { path, dataset: parseDataset(await plugin.app.vault.cachedRead(file)) }; }
+        catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+    };
     const handlers = {
+        eda_profile: async (args) => {
+            const { path, dataset } = await readDataset(args.path);
+            const from = args.from === undefined ? 1 : args.from;
+            if (!Number.isInteger(from) || from < 1 || from > dataset.headers.length) throw new AgentToolError('INVALID_ARGUMENT', 'from must identify a column, starting at 1.', true);
+            const result = profile(dataset, from - 1);
+            result.from = from;
+            result.to = from + result.columns.length - 1;
+            result.complete = result.to === result.columnCount;
+            if (!result.complete) result.nextFrom = result.to + 1;
+            return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+        },
+        eda_analyze: async (args) => {
+            const { path, dataset } = await readDataset(args.path);
+            let result;
+            try { result = analyze(dataset, args.analysis); }
+            catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+            return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+        },
         get_chart_guide: (args) => {
             const topic = args.topic === undefined ? 'basics' : args.topic;
             if (!Object.prototype.hasOwnProperty.call(GUIDE_TOPICS, topic)) {
@@ -747,7 +798,6 @@ const createAgentProvider = (plugin) => {
             });
         },
         build_chart: async (args) => {
-            if (plugin.ensureLibraries) await plugin.ensureLibraries();
             let definition;
             try {
                 definition = buildChartDefinition(args);
@@ -771,7 +821,7 @@ const createAgentProvider = (plugin) => {
                 notes.push(`A ${args.type} chart shows one series; only the first was used.`);
             }
             const text = [
-                chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. The check found no problems.',
+                chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
                 ...problemLines(chart.problems),
                 ...notes,
                 '```plotly',

@@ -594,3 +594,11 @@ npm run lint
 ## License
 
 MIT. Copyright (c) 2021 Dmitriy Shulha, (c) 2026 everydaymind. Plotly.js and D3 are bundled under their own MIT and ISC licenses.
+
+### CSV exploration for agents
+
+A compatible agent host can call `eda_profile` with a vault-relative CSV `path` to inspect inferred column types, missing counts and rates, distinct counts, frequent text values, and numeric quartiles, mean, and sample standard deviation. Results contain five columns per page; continue with `nextFrom`. CSV files must have a header with unique nonempty names, at most 100 columns and 100,000 data rows, and be no larger than 5 MiB. Quoted fields and newlines are supported. Blank or whitespace-only cells are missing. A column is numeric only when every nonblank value is a finite number; other missing-value conventions are not inferred.
+
+Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
+
+For a distribution, use `{"type":"histogram","columns":["score"],"bins":10}`; bins are left-inclusive and right-exclusive, except that the last includes the maximum. A constant column produces one bin.
