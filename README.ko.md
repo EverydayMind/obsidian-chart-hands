@@ -546,6 +546,91 @@ layout:
 ```
 ````
 
+## LLM 없이 직접 CSV 탐색하기
+
+CSV 탐색 도구(`eda_profile`, `eda_analyze`, [에이전트용 CSV 탐색](#에이전트용-csv-탐색) 참고)는 일반 함수라서 `dataviewjs` 블록에서 직접 호출하고 결과를 Chart Hands로 그릴 수 있습니다. [노트 데이터로 그리기](#노트-데이터로-그리기-dataviewjs)와 같이 Dataview 플러그인에서 **Enable JavaScript Queries**를 켜야 합니다. 도구는 CSV를 읽기만 하고 바꾸지 않습니다.
+
+`dataviewjs` 블록 맨 위에 아래 도우미를 둡니다. `data/survey.csv`는 볼트 상대 경로이니 본인 파일로 바꾸세요.
+
+````
+```dataviewjs
+const provider = app.plugins.plugins['chart-hands'][Symbol.for('dev.agentinterop.capability-provider')];
+const eda = async (name, args) => (await provider.callTool(name, args)).structuredContent;
+const path = 'data/survey.csv';
+```
+````
+
+아래 예제는 모두 같은 블록에서 이 세 줄 밑에 이어서 씁니다.
+
+### 1. 먼저 데이터 상태 확인 (프로필)
+
+어느 열이 숫자인지, 빈 칸이 얼마나 되는지, 어떤 값이 자주 나오는지 봅니다. `eda_profile`은 한 번에 열 5개를 반환하므로 `nextFrom`으로 끝까지 반복합니다.
+
+```js
+const rows = [];
+let from = 1;
+while (from) {
+  const p = await eda('eda_profile', { path, from });
+  for (const c of p.columns) {
+    rows.push([c.name, c.type, `${(c.missingRate * 100).toFixed(1)}%`, c.distinct,
+      c.statistics ? `${c.statistics.min} ~ ${c.statistics.max}` : c.top.map(t => t.value).join(', ')]);
+  }
+  from = p.nextFrom;
+}
+dv.table(['열', '자료형', '결측', '고유값', '범위 또는 상위 값'], rows);
+```
+
+먼저 볼 것: 숫자여야 하는데 `text`로 나온 열(`N/A`나 `1,200` 같은 값 하나만 있어도 열 전체가 텍스트가 됩니다), 결측 비율이 높은 열, `distinct`가 1인 열(값이 변하지 않음).
+
+### 2. 한 열의 분포 (히스토그램)
+
+```js
+const h = await eda('eda_analyze', { path, analysis: { type: 'histogram', columns: ['score'], bins: 10 } });
+window.renderPlotly(this.container,
+  [{ type: 'bar', x: h.bins.map(b => `${b.lower.toFixed(1)}–${b.upper.toFixed(1)}`), y: h.bins.map(b => b.count), marker: { color: '#2563EB' } }],
+  { title: { text: `score (${h.validRows}행, ${h.excludedRows}행 제외)` }, bargap: 0.05 });
+```
+
+막대 하나만 유난히 높으면 이상치가 범위를 늘렸을 가능성이 있고, 봉우리가 둘이면 두 집단이 섞여 있을 수 있습니다. `excludedRows`(빈 칸이나 숫자가 아니라서 빠진 행 수)를 꼭 확인하세요.
+
+### 3. 두 열이 함께 움직일까? (상관계수)
+
+```js
+const pairs = [['duration', 'score'], ['duration', 'age'], ['score', 'age']];
+const out = [];
+for (const [a, b] of pairs) {
+  const r = await eda('eda_analyze', { path, analysis: { type: 'correlation', columns: [a, b] } });
+  out.push([a, b, r.correlation === null ? 'n/a' : r.correlation.toFixed(2), r.validPairs]);
+}
+dv.table(['A', 'B', 'Pearson r', '사용한 쌍'], out);
+```
+
+`r`은 -1~1이며 0에 가까우면 직선 관계가 거의 없다는 뜻입니다. 인과관계를 말해 주지 않고 곡선 관계도 잡지 못하니, 중요한 쌍은 산점도를 그려 본 뒤 판단하세요. `n/a`는 유효 쌍이 두 개 미만이거나 한 열의 값이 변하지 않는다는 뜻입니다.
+
+### 4. 한 열 요약
+
+```js
+const s = (await eda('eda_analyze', { path, analysis: { type: 'summary', columns: ['score'] } })).statistics;
+dv.paragraph(`n=${s.count}, 평균 ${s.mean?.toFixed(2)}, 중앙값 ${s.median}, 표준편차 ${s.stddevSample?.toFixed(2)}, 범위 ${s.min} ~ ${s.max}`);
+```
+
+평균과 중앙값이 많이 다르면 분포가 한쪽으로 치우쳤거나 이상치가 있다는 신호입니다.
+
+### 작업 순서 예
+
+1. 헤더 행(중복 없는 열 이름)이 있는 CSV를 볼트에 저장합니다(예: `data/survey.csv`).
+2. 프로필(예제 1)을 실행하고 CSV의 문제를 고칩니다. 빈 칸을 채우거나 지우고, 숫자 열에서 단위와 천 단위 구분 기호를 없앱니다.
+3. 관심 있는 열마다 히스토그램(예제 2)을 그립니다.
+4. 숫자 열 쌍의 상관계수(예제 3)를 확인합니다.
+5. 알게 된 내용을 노트용 차트로 만듭니다. [예제](#예제)의 `plotly` 블록을 쓰거나 같은 숫자를 `window.renderPlotly`에 넘깁니다.
+
+### 한계
+
+- CSV는 헤더가 있어야 하고 최대 100열, 데이터 100,000행, 5 MiB입니다. 구분자는 쉼표만 지원하며, 따옴표로 감싼 필드와 그 안의 줄바꿈은 지원합니다.
+- 비어 있지 않은 모든 칸이 단순한 숫자(`12`, `-3.5`, `1e3`)일 때만 숫자 열입니다. `1,200`, `$5`, `50%`, `N/A` 같은 값이 있으면 텍스트 열이 됩니다.
+- Pearson 상관계수, 요약, 히스토그램(1~50구간)만 제공합니다. 그 밖의 계산은 프로필 결과를 보고 직접 DataviewJS로 작성하세요.
+- 플러그인의 에이전트용 인터페이스를 직접 호출하는 방식이며 명령 팔레트 기능은 아닙니다. `app.plugins.plugins['chart-hands']`는 플러그인 폴더 이름이 `chart-hands`라고 가정합니다.
+
 ## LLM 에이전트용 도구
 
 옵시디언에서 AI 에이전트를 쓰지 않는다면 이 부분은 건너뛰어도 됩니다.
@@ -560,6 +645,14 @@ layout:
 - `read_charts`: 노트의 `plotly` 블록 위치·트레이스·제목·문제를 20개씩 알려 줍니다.
 
 어떤 도구도 노트를 바꾸거나 차트를 그리지 않습니다. 에이전트는 돌려받은 블록을 호스트의 노트 편집 도구로 삽입합니다. 안내 문구는 영어입니다.
+
+### 에이전트용 CSV 탐색
+
+호환 에이전트 호스트에서 `eda_profile`에 볼트 상대 CSV `path`를 전달하면 열별 추정 자료형, 결측 건수와 비율, 고유값 수, 빈도가 높은 텍스트 값, 숫자의 사분위수·평균·표본 표준편차를 조회합니다. 한 번에 열 5개를 반환하며 `nextFrom`으로 이어서 읽습니다. CSV는 고유하고 비어 있지 않은 열 이름을 포함해야 하며 최대 100열, 데이터 100,000행, 5 MiB입니다. 따옴표로 감싼 필드와 줄바꿈을 지원합니다. 빈 값과 공백만 있는 값은 결측이며, 비어 있지 않은 모든 값이 유한한 숫자일 때만 숫자 열로 추정합니다. 다른 결측 표시 문자열은 자동 추정하지 않습니다.
+
+`eda_analyze`에 `path`와 분석 명세를 전달합니다. 예: `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` 또는 `{"type":"summary","columns":["score"]}`. 빈 값이나 숫자가 아닌 값으로 제외된 행 수를 반환합니다. 상관계수는 두 열이 모두 숫자인 행으로 계산하며 유효 쌍이 두 개 미만이거나 어느 한 열의 분산이 0이면 `null`입니다. 사분위수는 선형 보간하며 표준편차는 표본 기준입니다. 도구는 볼트를 읽기만 하고 파일의 코드나 SQL을 실행하지 않으며 Plotly와 D3를 로드하지 않습니다. 분석 결과는 차트 정의와 분리되어 있어 에이전트가 결과를 바탕으로 `build_chart` 또는 Plotly 블록을 사용할 수 있습니다. `build_chart`는 Plotly 없이 기본 검사를 수행하며 전체 속성 검사는 `check_chart`를 사용합니다.
+
+분포 집계는 `{"type":"histogram","columns":["score"],"bins":10}`으로 요청합니다. 구간은 왼쪽 끝을 포함하고 오른쪽 끝을 제외하되 마지막 구간은 최댓값도 포함합니다. 모든 값이 같으면 구간 하나를 반환합니다.
 
 ### agentinterop v1 provider란
 
@@ -585,11 +678,3 @@ Chart Hands의 구현 방식:
 ## 라이선스
 
 MIT. Copyright (c) 2021 Dmitriy Shulha, (c) 2026 everydaymind. Plotly.js와 D3는 각각의 MIT, ISC 라이선스로 포함되어 있습니다.
-
-### 에이전트용 CSV 탐색
-
-호환 에이전트 호스트에서 `eda_profile`에 볼트 상대 CSV `path`를 전달하면 열별 추정 자료형, 결측 건수와 비율, 고유값 수, 빈도가 높은 텍스트 값, 숫자의 사분위수·평균·표본 표준편차를 조회합니다. 한 번에 열 5개를 반환하며 `nextFrom`으로 이어서 읽습니다. CSV는 고유하고 비어 있지 않은 열 이름을 포함해야 하며 최대 100열, 데이터 100,000행, 5 MiB입니다. 따옴표로 감싼 필드와 줄바꿈을 지원합니다. 빈 값과 공백만 있는 값은 결측이며, 비어 있지 않은 모든 값이 유한한 숫자일 때만 숫자 열로 추정합니다. 다른 결측 표시 문자열은 자동 추정하지 않습니다.
-
-`eda_analyze`에 `path`와 분석 명세를 전달합니다. 예: `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` 또는 `{"type":"summary","columns":["score"]}`. 빈 값이나 숫자가 아닌 값으로 제외된 행 수를 반환합니다. 상관계수는 두 열이 모두 숫자인 행으로 계산하며 유효 쌍이 두 개 미만이거나 어느 한 열의 분산이 0이면 `null`입니다. 사분위수는 선형 보간하며 표준편차는 표본 기준입니다. 도구는 볼트를 읽기만 하고 파일의 코드나 SQL을 실행하지 않으며 Plotly와 D3를 로드하지 않습니다. 분석 결과는 차트 정의와 분리되어 있어 에이전트가 결과를 바탕으로 `build_chart` 또는 Plotly 블록을 사용할 수 있습니다. `build_chart`는 Plotly 없이 기본 검사를 수행하며 전체 속성 검사는 `check_chart`를 사용합니다.
-
-분포 집계는 `{"type":"histogram","columns":["score"],"bins":10}`으로 요청합니다. 구간은 왼쪽 끝을 포함하고 오른쪽 끝을 제외하되 마지막 구간은 최댓값도 포함합니다. 모든 값이 같으면 구간 하나를 반환합니다.
