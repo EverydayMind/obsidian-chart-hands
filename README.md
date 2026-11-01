@@ -546,6 +546,91 @@ The block can also be JSON. `fit: fill` stretches this chart to the note width, 
 ```
 ````
 
+## Exploring a CSV yourself (no LLM needed)
+
+The CSV exploration tools (`eda_profile` and `eda_analyze`, described under [CSV exploration for agents](#csv-exploration-for-agents)) are ordinary functions, so you can call them from a `dataviewjs` block and draw the results with Chart Hands. This needs Dataview with **Enable JavaScript queries** turned on, the same as [Charts from vault data](#charts-from-vault-data-dataviewjs). The tools only read the CSV; they never change it.
+
+Put this helper at the top of a `dataviewjs` block. `data/survey.csv` is a vault-relative path; replace it with your own file:
+
+````
+```dataviewjs
+const provider = app.plugins.plugins['chart-hands'][Symbol.for('dev.agentinterop.capability-provider')];
+const eda = async (name, args) => (await provider.callTool(name, args)).structuredContent;
+const path = 'data/survey.csv';
+```
+````
+
+The examples below each continue in the same block, below those three lines.
+
+### 1. Check the data first (profile)
+
+Which columns are numbers, how many cells are empty, which values repeat? `eda_profile` returns five columns per call, so loop with `nextFrom` to see them all:
+
+```js
+const rows = [];
+let from = 1;
+while (from) {
+  const p = await eda('eda_profile', { path, from });
+  for (const c of p.columns) {
+    rows.push([c.name, c.type, `${(c.missingRate * 100).toFixed(1)}%`, c.distinct,
+      c.statistics ? `${c.statistics.min} to ${c.statistics.max}` : c.top.map(t => t.value).join(', ')]);
+  }
+  from = p.nextFrom;
+}
+dv.table(['Column', 'Type', 'Missing', 'Distinct', 'Range or top values'], rows);
+```
+
+Look for these first: a `text` column that should be numeric (one stray value such as `N/A` or `1,200` turns the whole column into text), a high missing rate, and a `distinct` count of 1 (a column that never varies).
+
+### 2. Distribution of one column (histogram)
+
+```js
+const h = await eda('eda_analyze', { path, analysis: { type: 'histogram', columns: ['score'], bins: 10 } });
+window.renderPlotly(this.container,
+  [{ type: 'bar', x: h.bins.map(b => `${b.lower.toFixed(1)}–${b.upper.toFixed(1)}`), y: h.bins.map(b => b.count), marker: { color: '#2563EB' } }],
+  { title: { text: `score (${h.validRows} rows, ${h.excludedRows} excluded)` }, bargap: 0.05 });
+```
+
+A single tall bar suggests an outlier stretching the range; two humps suggest two groups mixed together. Always read `excludedRows`: it counts blank and nonnumeric cells that were left out.
+
+### 3. Do two columns move together? (correlation)
+
+```js
+const pairs = [['duration', 'score'], ['duration', 'age'], ['score', 'age']];
+const out = [];
+for (const [a, b] of pairs) {
+  const r = await eda('eda_analyze', { path, analysis: { type: 'correlation', columns: [a, b] } });
+  out.push([a, b, r.correlation === null ? 'n/a' : r.correlation.toFixed(2), r.validPairs]);
+}
+dv.table(['A', 'B', 'Pearson r', 'Pairs used'], out);
+```
+
+`r` runs from -1 to 1; near 0 means no straight-line relationship. It says nothing about cause, and it does not detect curved relationships, so draw a scatter chart of any pair that matters before you conclude anything. `n/a` means fewer than two usable pairs, or one column never varies.
+
+### 4. A quick summary of one column
+
+```js
+const s = (await eda('eda_analyze', { path, analysis: { type: 'summary', columns: ['score'] } })).statistics;
+dv.paragraph(`n=${s.count}, mean ${s.mean?.toFixed(2)}, median ${s.median}, sd ${s.stddevSample?.toFixed(2)}, range ${s.min} to ${s.max}`);
+```
+
+When the mean and the median differ a lot, the data is skewed or has outliers.
+
+### A typical session
+
+1. Save the CSV in your vault, for example `data/survey.csv`, with a header row of unique column names.
+2. Run the profile (example 1). Fix problems in the CSV: fill or delete blank cells, remove units and thousands separators from number columns.
+3. Draw a histogram for each column you care about (example 2).
+4. Check correlations between pairs of numeric columns (example 3).
+5. Turn what you found into a chart for your note. Use the `plotly` block from [Examples](#examples), or pass the same numbers to `window.renderPlotly`.
+
+### Limits
+
+- A CSV needs a header, at most 100 columns and 100,000 data rows, and at most 5 MiB. Fields are separated by commas only; quoted fields and newlines inside them are supported.
+- A column counts as numeric only when every nonblank cell is a plain number (`12`, `-3.5`, `1e3`). Values such as `1,200`, `$5`, `50%` or `N/A` make it text.
+- Only Pearson correlation, summary and histogram (1 to 50 bins) are available. For anything else, use the profile results to decide what to compute in your own DataviewJS.
+- This calls the plugin's agent interface directly. It is not a separate commands-palette feature, and its `app.plugins.plugins['chart-hands']` lookup assumes the plugin folder is named `chart-hands`.
+
 ## Tools for LLM agents
 
 You can skip this section if you don't use an AI agent in Obsidian.
@@ -560,6 +645,14 @@ Chart Hands exposes an agentinterop v1 capability provider on the plugin instanc
 - `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
 
 None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
+
+### CSV exploration for agents
+
+A compatible agent host can call `eda_profile` with a vault-relative CSV `path` to inspect inferred column types, missing counts and rates, distinct counts, frequent text values, and numeric quartiles, mean, and sample standard deviation. Results contain five columns per page; continue with `nextFrom`. CSV files must have a header with unique nonempty names, at most 100 columns and 100,000 data rows, and be no larger than 5 MiB. Quoted fields and newlines are supported. Blank or whitespace-only cells are missing. A column is numeric only when every nonblank value is a finite number; other missing-value conventions are not inferred.
+
+Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
+
+For a distribution, use `{"type":"histogram","columns":["score"],"bins":10}`; bins are left-inclusive and right-exclusive, except that the last includes the maximum. A constant column produces one bin.
 
 ### About the agentinterop v1 provider
 
@@ -594,11 +687,3 @@ npm run lint
 ## License
 
 MIT. Copyright (c) 2021 Dmitriy Shulha, (c) 2026 everydaymind. Plotly.js and D3 are bundled under their own MIT and ISC licenses.
-
-### CSV exploration for agents
-
-A compatible agent host can call `eda_profile` with a vault-relative CSV `path` to inspect inferred column types, missing counts and rates, distinct counts, frequent text values, and numeric quartiles, mean, and sample standard deviation. Results contain five columns per page; continue with `nextFrom`. CSV files must have a header with unique nonempty names, at most 100 columns and 100,000 data rows, and be no larger than 5 MiB. Quoted fields and newlines are supported. Blank or whitespace-only cells are missing. A column is numeric only when every nonblank value is a finite number; other missing-value conventions are not inferred.
-
-Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
-
-For a distribution, use `{"type":"histogram","columns":["score"],"bins":10}`; bins are left-inclusive and right-exclusive, except that the last includes the maximum. A constant column produces one bin.
