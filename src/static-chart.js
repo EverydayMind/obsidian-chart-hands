@@ -74,23 +74,41 @@ export async function renderStaticChart(source, { document, loadPlotly, signal, 
     const deadline = Date.now() + timeoutMs;
     const timers = document.defaultView;
     if (!timers) throw new Error('Static chart requires a window.');
-    signal?.throwIfAborted();
+    const assertLive = () => {
+        signal?.throwIfAborted();
+        if (Date.now() >= deadline) throw new Error('Static chart rendering timed out.');
+    };
+    assertLive();
     const plotly = await waitFor(loadPlotly(), signal, deadline, timers);
-    signal?.throwIfAborted();
+    assertLive();
     const container = document.createElement('div');
     Object.assign(container.style, { position: 'fixed', left: '-10000px', top: '0', width: '1000px', height: '600px', pointerEvents: 'none' });
     document.body.appendChild(container);
+    const purge = () => { try { plotly.purge(container); } catch { /* Plotly may not have finished initializing. */ } };
+    const waitForStage = async operation => {
+        let pending = true;
+        const tracked = Promise.resolve(operation).then(value => { pending = false; return value; }, error => { pending = false; throw error; });
+        try { return await waitFor(tracked, signal, deadline, timers); }
+        catch (error) {
+            // A timed-out Plotly operation may still initialize resources later.
+            // Clean up again after it settles, without awaiting or retrying it.
+            if (pending) void tracked.then(purge, purge);
+            throw error;
+        }
+    };
     try {
-        await waitFor(plotly.newPlot(container, definition.data, { ...definition.layout, width: 1000, height: 600 }, { staticPlot: true, responsive: false, displayModeBar: false, showSendToCloud: false }), signal, deadline, timers);
-        signal?.throwIfAborted();
-        const url = await waitFor(plotly.toImage(container, { format: 'png', width: 1000, height: 600, scale: 1 }), signal, deadline, timers);
-        signal?.throwIfAborted();
+        await waitForStage(plotly.newPlot(container, definition.data, { ...definition.layout, width: 1000, height: 600 }, { staticPlot: true, responsive: false, displayModeBar: false, showSendToCloud: false }));
+        assertLive();
+        const url = await waitForStage(plotly.toImage(container, { format: 'png', width: 1000, height: 600, scale: 1 }));
+        assertLive();
         if (typeof url !== 'string' || !url.startsWith('data:image/png;base64,') || url.length > 12_000_000) throw new Error('Invalid chart image.');
         const binary = document.defaultView.atob(url.slice(22));
+        assertLive();
         const bytes = Uint8Array.from(binary, char => char.charCodeAt(0));
+        assertLive();
         if (bytes.length < 8 || [137, 80, 78, 71, 13, 10, 26, 10].some((value, index) => bytes[index] !== value)) throw new Error('Invalid chart image.');
         return { bytes, width: 1000, height: 600 };
     } finally {
-        try { plotly.purge(container); } catch { /* Plotly may not have finished initializing. */ } finally { container.remove(); }
+        try { purge(); } finally { container.remove(); }
     }
 }
