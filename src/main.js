@@ -1,5 +1,5 @@
 import * as obsidian from 'obsidian';
-import { parseDataset, profile, analyze } from './eda.js';
+import { parseDataset, profile, analyze, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
@@ -387,7 +387,7 @@ const agentMeta = (effect) => ({
     'dev.agentinterop/keywords': AGENT_KEYWORDS,
     'dev.agentinterop/maxResultChars': AGENT_MAX_RESULT_CHARS
 });
-const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': [...AGENT_KEYWORDS, 'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', '??', '???', '??', '??', '??'] });
+const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': [...AGENT_KEYWORDS, 'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', 'aggregate', '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트'] });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const AGENT_TOOLS = [
     {
@@ -400,14 +400,17 @@ const AGENT_TOOLS = [
     },
     {
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
-        description: 'Analyze a vault CSV using a renderer-independent analysis specification. summary and histogram take one numeric column; correlation takes two and computes Pearson correlation using complete numeric pairs. Reports excluded rows and null correlation when undefined. Does not modify files or load Plotly.',
+        description: 'Analyze a vault CSV using a renderer-independent analysis specification. summary and histogram take one numeric column; correlation takes two and computes Pearson correlation using complete numeric pairs. aggregate groups rows by columns[0] and reduces columns[1] with function (sum, mean, count, min, max, median; count may omit the value column), sorted by value (desc, asc), label or original order; label and original also give the change from the previous group. It returns up to limit groups with rows, value, share of the total for sum and count, and chart labels/values for build_chart. Numbers with exact thousands separators (1,234) are numbers. Reports excluded rows and null values when undefined. Does not modify files or load Plotly.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
-                type: { type: 'string', enum: ['summary', 'histogram', 'correlation'] },
+                type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate'] },
                 columns: { type: 'array', minItems: 1, maxItems: 2, items: { type: 'string' } },
                 method: { type: 'string', enum: ['pearson'] },
-                bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' }
+                bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
+                function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without.' },
+                sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate only. Default desc.' },
+                limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate only. Groups returned, default 20.' }
             } }
         } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
     },
@@ -504,7 +507,7 @@ const AGENT_TOOLS = [
         _meta: agentMeta('pure')
     }
 ];
-const AGENT_INSTRUCTIONS = 'For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze for numeric summary, histogram or Pearson correlation. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose the chart from the question it answers (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI, and use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
+const AGENT_INSTRUCTIONS = 'For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze for numeric summary, histogram, Pearson correlation or grouped aggregate (totals, averages, shares, top groups, change between periods); quote its computed numbers instead of doing arithmetic yourself. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose the chart from the question it answers (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI, and use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
 
 class AgentToolError extends Error {
     constructor(code, message, retryable) {

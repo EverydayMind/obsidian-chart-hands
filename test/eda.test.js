@@ -55,3 +55,25 @@ test('histogram includes endpoints and excludes invalid values', async () => {
     assert.deepEqual(d.bins, [{ lower: 0, upper: 2, count: 2 }, { lower: 2, upper: 4, count: 3 }]);
     assert.equal(d.excludedRows, 1);
 });
+test('aggregate groups rows, reports shares, exclusions and changes, and reads grouped thousands', async () => {
+    const csv = 'region,quarter,amount\n서울,Q1,"1,200"\n부산,Q1,300\n서울,Q2,"1,500"\n부산,Q2,n/a\n,Q2,10\n대구,Q3,"12,34"\n';
+    const total = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['region', 'amount'] } });
+    assert.equal(total.isError, undefined);
+    assert.deepEqual(total.structuredContent, { type: 'aggregate', columns: ['region', 'amount'], function: 'sum', sort: 'desc', totalRows: 6, validRows: 3,
+        excludedRows: 2, missingGroupRows: 1, groupCount: 2, truncated: false, total: 3000,
+        groups: [{ group: '서울', rows: 2, value: 2700, share: 0.9 }, { group: '부산', rows: 1, value: 300, share: 0.1 }],
+        chart: { labels: ['서울', '부산'], values: [2700, 300] } });
+    const trend = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'sum', sort: 'label', limit: 1 } });
+    assert.deepEqual(trend.structuredContent.groups, [{ group: 'Q1', rows: 2, value: 1500, share: 1500 / 3010, change: null, changeRate: null }]);
+    assert.equal(trend.structuredContent.truncated, true);
+    const changes = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'mean', sort: 'original' } });
+    assert.deepEqual(changes.structuredContent.groups.map(g => [g.group, g.value, g.change, g.changeRate]), [['Q1', 750, null, null], ['Q2', 755, 5, 5 / 750]]);
+    assert.equal(changes.structuredContent.total, undefined);
+    const count = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter'] } });
+    assert.deepEqual(count.structuredContent.chart, { labels: ['Q2', 'Q1', 'Q3'], values: [3, 2, 1] });
+    for (const analysis of [{ type: 'aggregate', columns: ['region'], function: 'sum' }, { type: 'aggregate', columns: ['region', 'amount'], sort: 'random' },
+        { type: 'aggregate', columns: ['region', 'amount'], limit: 0 }, { type: 'summary', columns: ['amount'], function: 'sum' }]) {
+        const res = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis });
+        assert.equal(res.isError, true, JSON.stringify(analysis));
+    }
+});

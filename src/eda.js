@@ -34,7 +34,9 @@ export function parseDataset(source) {
 }
 const missing = value => value.trim() === '';
 const number = value => {
-    const s = value.trim();
+    let s = value.trim();
+    // Spreadsheet exports often quote grouped numbers ("1,234,567.5"); only exact three-digit groups are accepted.
+    if (/^[+-]?\d{1,3}(?:,\d{3})+(?:\.\d+)?$/.test(s)) s = s.replace(/,/g, '');
     if (!s || !/^[+-]?(?:\d+\.?\d*|\.\d+)(?:e[+-]?\d+)?$/i.test(s)) return null;
     const n = Number(s); return Number.isFinite(n) ? n : null;
 };
@@ -68,9 +70,75 @@ export function profile(dataset, from = 0, limit = 5) {
         return { name, type: numeric ? 'number' : values.length ? 'text' : 'empty', missing: dataset.rows.length - values.length, missingRate: dataset.rows.length ? (dataset.rows.length - values.length) / dataset.rows.length : 0, distinct: counts.size, ...(numeric ? { statistics: summary(nums) } : { top }) };
     }) };
 }
+export const AGGREGATE_FUNCTIONS = ['sum', 'mean', 'count', 'min', 'max', 'median'];
+export const AGGREGATE_SORTS = ['desc', 'asc', 'label', 'original'];
+const label = value => [...value.trim().slice(0, 100)].map(c => c.charCodeAt(0) < 32 ? ' ' : c).join('');
+/**
+ * Group rows by one column and reduce a numeric column per group. Rows with a blank group or a non-numeric value are
+ * counted, not guessed. With sort label or original, each group also gets its change from the previous group.
+ */
+function aggregate(dataset, spec) {
+    const cols = spec.columns;
+    const fn = spec.function ?? (cols.length === 2 ? 'sum' : 'count');
+    if (!AGGREGATE_FUNCTIONS.includes(fn)) throw new Error(`analysis.function must be one of ${AGGREGATE_FUNCTIONS.join(', ')}.`);
+    if (fn !== 'count' && cols.length !== 2) throw new Error('aggregate needs [group column, value column]; count may omit the value column.');
+    const sort = spec.sort ?? 'desc';
+    if (!AGGREGATE_SORTS.includes(sort)) throw new Error(`analysis.sort must be one of ${AGGREGATE_SORTS.join(', ')}.`);
+    const limit = spec.limit ?? 20;
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('analysis.limit must be an integer from 1 to 100.');
+    const gi = indexOf(dataset, cols[0]), vi = cols.length === 2 ? indexOf(dataset, cols[1]) : -1;
+    const groups = new Map();
+    let excluded = 0, missingGroup = 0;
+    for (const row of dataset.rows) {
+        if (missing(row[gi])) { missingGroup++; continue; }
+        const value = vi < 0 ? null : number(row[vi]);
+        if (vi >= 0 && value === null && fn !== 'count') { excluded++; continue; }
+        const key = row[gi].trim();
+        let group = groups.get(key);
+        if (!group) groups.set(key, group = { values: [], rows: 0 });
+        group.rows++;
+        if (value !== null) group.values.push(value);
+    }
+    const reduce = ({ values, rows }) => {
+        if (fn === 'count') return rows;
+        if (fn === 'sum') return values.reduce((a, b) => a + b, 0);
+        if (fn === 'mean') { let mean = 0; values.forEach((v, i) => { mean += (v - mean) / (i + 1); }); return mean; }
+        if (fn === 'min') return values.reduce((a, b) => Math.min(a, b), Infinity);
+        if (fn === 'max') return values.reduce((a, b) => Math.max(a, b), -Infinity);
+        return quantile([...values].sort((a, b) => a - b), .5);
+    };
+    let list = [...groups].map(([key, group]) => ({ group: label(key), rows: group.rows, value: reduce(group) }));
+    const additive = fn === 'sum' || fn === 'count';
+    const total = additive ? list.reduce((a, g) => a + g.value, 0) : null;
+    if (sort === 'desc') list.sort((a, b) => b.value - a.value || a.group.localeCompare(b.group));
+    else if (sort === 'asc') list.sort((a, b) => a.value - b.value || a.group.localeCompare(b.group));
+    else if (sort === 'label') list.sort((a, b) => a.group.localeCompare(b.group, undefined, { numeric: true }));
+    const finite = n => Number.isFinite(n) ? n : null;
+    list = list.map((g, i) => {
+        const result = { ...g, value: finite(g.value) };
+        if (additive) result.share = total ? finite(g.value / total) : null;
+        if (sort === 'label' || sort === 'original') {
+            const prev = list[i - 1];
+            result.change = prev ? finite(g.value - prev.value) : null;
+            result.changeRate = prev && prev.value !== 0 ? finite((g.value - prev.value) / Math.abs(prev.value)) : null;
+        }
+        return result;
+    });
+    const shown = list.slice(0, limit);
+    return { type: 'aggregate', columns: cols, function: fn, sort, totalRows: dataset.rows.length, validRows: dataset.rows.length - excluded - missingGroup,
+        excludedRows: excluded, missingGroupRows: missingGroup, groupCount: list.length, truncated: list.length > shown.length,
+        ...(additive ? { total: finite(total) } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
+}
+
 export function analyze(dataset, spec) {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
-    if (!['summary', 'histogram', 'correlation'].includes(spec.type)) throw new Error('analysis.type must be summary, histogram or correlation.');
+    if (!['summary', 'histogram', 'correlation', 'aggregate'].includes(spec.type)) throw new Error('analysis.type must be summary, histogram, correlation or aggregate.');
+    if (spec.type === 'aggregate') {
+        if (!Array.isArray(spec.columns) || spec.columns.length < 1 || spec.columns.length > 2 || spec.columns.some(c => typeof c !== 'string')) throw new Error('aggregate needs [group column, value column].');
+        if (spec.method !== undefined || spec.bins !== undefined) throw new Error('method and bins do not apply to aggregate.');
+        return aggregate(dataset, spec);
+    }
+    if (spec.function !== undefined || spec.sort !== undefined || spec.limit !== undefined) throw new Error('function, sort and limit apply only to aggregate.');
     const cols = spec.columns;
     if (!Array.isArray(cols) || cols.length !== (spec.type === 'correlation' ? 2 : 1) || cols.some(c => typeof c !== 'string')) throw new Error('summary and histogram need one column; correlation needs two columns.');
     if (spec.method !== undefined && (spec.type !== 'correlation' || spec.method !== 'pearson')) throw new Error('Only Pearson correlation is supported.');
