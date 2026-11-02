@@ -1051,7 +1051,6 @@ class ChartHandsPlugin extends obsidian.Plugin {
                     await loadPlotly(this);
                     if (this.unloaded) throw new Error('Chart Hands is unloaded.');
                     this.Plotly = Plotly;
-                    new obsidian.Notice('Chart Hands: Plotly loaded', 3000);
                     return Plotly;
                 }
                 catch (error) {

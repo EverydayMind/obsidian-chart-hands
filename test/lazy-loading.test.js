@@ -79,7 +79,7 @@ test('startup registers APIs without loading libraries; concurrent demand loads 
     assert.equal(h.required.filter(name => name === 'd3').length, 1);
     await h.window.loadPlotlyLibraries();
     assert.equal(h.required.filter(name => name === 'plotly.js-dist-min').length, 1);
-    assert.equal(h.notices.length, 2);
+    assert.equal(h.notices.length, 1);
     assert.equal(h.notices[0].duration, 0);
     assert.equal(h.notices[0].hidden, true);
     h.plugin.onunload();
