@@ -77,6 +77,39 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     }
 });
 
+test('all descriptor tool keywords satisfy the Verbex limits without duplicates or encoding damage', async () => {
+    const descriptor = await provide('').describe();
+    // Verbex src/provider/interop/descriptorSchema.ts strings(): at most 32 strings, each 1-64 characters.
+    // Duplicates and question-mark-only entries are additional regression guards for our metadata.
+    for (const tool of descriptor.tools) {
+        const keywords = tool._meta['dev.agentinterop/keywords'];
+        assert.ok(Array.isArray(keywords), `${tool.name}: keywords must be an array`);
+        assert.ok(keywords.length <= 32, `${tool.name}: at most 32 keywords`);
+        assert.equal(new Set(keywords).size, keywords.length, `${tool.name}: no duplicate keywords`);
+        for (const keyword of keywords) {
+            assert.equal(typeof keyword, 'string', `${tool.name}: keyword must be a string`);
+            assert.ok(keyword.length >= 1 && keyword.length <= 64, `${tool.name}: keyword length must be 1-64`);
+            assert.doesNotMatch(keyword, /^\?+$/, `${tool.name}: keyword must not be corrupted to question marks`);
+        }
+    }
+});
+
+test('EDA tools expose the dedicated 30-keyword vocabulary', async () => {
+    const expected = [
+        'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', 'aggregate',
+        '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트',
+        'chart', 'graph', 'plot', 'visuali', 'histogram', 'heatmap', 'dashboard',
+        '차트', '그래프', '시각화', '히트맵', '산점도', '대시보드'
+    ];
+    assert.equal(expected.length, 30);
+    const descriptor = await provide('').describe();
+    const edaTools = descriptor.tools.filter(tool => tool.name.startsWith('eda_'));
+    assert.ok(edaTools.length >= 2);
+    for (const tool of edaTools) {
+        assert.deepEqual(tool._meta['dev.agentinterop/keywords'], expected, tool.name);
+    }
+});
+
 test('check_chart applies the code block rules', async () => {
     const provider = provide('');
     const good = await provider.callTool('check_chart', { source: '{"data": [{"x": [1, 2, 3], "y": [2, 4, 8], "type": "bar", "name": "sales"}], "layout": {"title": {"text": "Q1"}}, "fit": "fill"}' });

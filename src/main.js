@@ -380,6 +380,14 @@ const AGENT_MAX_PROBLEMS = 12;
 // only when the request mentions one of these.
 const AGENT_KEYWORDS = ['plotly', 'chart', 'graph', 'plot', 'visuali', 'diagram', 'histogram', 'heatmap', 'treemap', 'sankey', 'dashboard',
     '차트', '그래프', '도표', '시각화', '파이', '막대', '분포', '히트맵', '산점도', '대시보드'];
+// Keep EDA discovery focused on analysis and relevant charts: inheriting every chart keyword
+// exceeds Verbex's 32-keyword descriptor limit and hides all tools from the provider.
+const EDA_KEYWORDS = [
+    'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', 'aggregate',
+    '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트',
+    'chart', 'graph', 'plot', 'visuali', 'histogram', 'heatmap', 'dashboard',
+    '차트', '그래프', '시각화', '히트맵', '산점도', '대시보드'
+];
 const agentMeta = (effect) => ({
     'dev.agentinterop/effect': effect,
     'dev.agentinterop/group': 'chart',
@@ -387,7 +395,7 @@ const agentMeta = (effect) => ({
     'dev.agentinterop/keywords': AGENT_KEYWORDS,
     'dev.agentinterop/maxResultChars': AGENT_MAX_RESULT_CHARS
 });
-const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': [...AGENT_KEYWORDS, 'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', 'aggregate', '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트'] });
+const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': EDA_KEYWORDS });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const AGENT_TOOLS = [
     {
