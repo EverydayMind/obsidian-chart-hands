@@ -408,7 +408,7 @@ const AGENT_TOOLS = [
     },
     {
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
-        description: 'Analyze a vault CSV using a renderer-independent analysis specification. summary and histogram take one numeric column; correlation takes two and computes Pearson correlation using complete numeric pairs. aggregate groups rows by columns[0] and reduces columns[1] with function (sum, mean, count, min, max, median; count may omit the value column), sorted by value (desc, asc), label or original order; label and original also give the change from the previous group. It returns up to limit groups with rows, value, share of the total for sum and count, and chart labels/values for build_chart. Numbers with exact thousands separators (1,234) are numbers. Reports excluded rows and null values when undefined. Does not modify files or load Plotly.',
+        description: 'Analyze a vault CSV using a renderer-independent analysis specification. summary and histogram take one numeric column; correlation takes two and computes Pearson correlation using complete numeric pairs. aggregate groups rows by columns[0] and reduces columns[1] with function (sum, mean, count, min, max, median; count may omit the value column), sorted by value (desc, asc), label or original order; label and original also give the change from the previous group. It returns up to limit groups (default 60, maximum 100) with rows, value, share of the total for sum and count, and chart labels/values for build_chart. Numbers with exact thousands separators (1,234) are numbers. Reports excluded rows and null values when undefined. Does not modify files or load Plotly.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
@@ -418,7 +418,7 @@ const AGENT_TOOLS = [
                 bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
                 function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without.' },
                 sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate only. Default desc.' },
-                limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate only. Groups returned, default 20.' }
+                limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate only. Groups returned, default 60.' }
             } }
         } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
     },

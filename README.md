@@ -652,6 +652,8 @@ A compatible agent host can call `eda_profile` with a vault-relative CSV `path` 
 
 Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
 
+For `aggregate`, `analysis.limit` defaults to 60 and accepts 1–100. The result includes `groupCount`, `truncated`, `groups`, and chart labels and values. When truncated, it also includes `returnedGroups`, the applied `limit`, `maxLimit`, and a `note` explaining how to obtain more groups. If there are more than 100 groups, use a smaller CSV; this tool has no filter or pagination parameter.
+
 For a distribution, use `{"type":"histogram","columns":["score"],"bins":10}`; bins are left-inclusive and right-exclusive, except that the last includes the maximum. A constant column produces one bin.
 
 ### About the agentinterop v1 provider

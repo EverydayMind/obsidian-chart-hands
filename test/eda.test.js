@@ -66,6 +66,10 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
     const trend = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'sum', sort: 'label', limit: 1 } });
     assert.deepEqual(trend.structuredContent.groups, [{ group: 'Q1', rows: 2, value: 1500, share: 1500 / 3010, change: null, changeRate: null }]);
     assert.equal(trend.structuredContent.truncated, true);
+    assert.equal(trend.structuredContent.returnedGroups, 1);
+    assert.equal(trend.structuredContent.limit, 1);
+    assert.equal(trend.structuredContent.maxLimit, 100);
+    assert.match(trend.structuredContent.note, /analysis\.limit to 2/);
     const changes = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'mean', sort: 'original' } });
     assert.deepEqual(changes.structuredContent.groups.map(g => [g.group, g.value, g.change, g.changeRate]), [['Q1', 750, null, null], ['Q2', 755, 5, 5 / 750]]);
     assert.equal(changes.structuredContent.total, undefined);
@@ -76,4 +80,32 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
         const res = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis });
         assert.equal(res.isError, true, JSON.stringify(analysis));
     }
+});
+
+test('aggregate defaults to 60 groups and explains truncation at and above the maximum', async () => {
+    const csv = 'period,value\n' + Array.from({ length: 101 }, (_, i) => `month${i + 1},${i + 1}`).join('\n');
+    const p = provider(csv);
+    for (const sort of ['original', 'label']) {
+        const analysis = { type: 'aggregate', columns: ['period', 'value'], function: 'mean', sort };
+        const result = (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).structuredContent;
+        assert.equal(result.groupCount, 101);
+        assert.equal(result.returnedGroups, 60);
+        assert.equal(result.limit, 60);
+        assert.equal(result.maxLimit, 100);
+        assert.match(result.note, /smaller CSV/);
+        assert.equal(result.chart.labels.length, 60);
+        const max = (await p.callTool('eda_analyze', { path: 'data.csv', analysis: { ...analysis, limit: 100 } })).structuredContent;
+        assert.equal(max.returnedGroups, 100);
+        assert.equal(max.truncated, true);
+    }
+    for (const count of [57, 60, 100]) {
+        const subset = provider('period,value\n' + Array.from({ length: count }, (_, i) => `month${i + 1},${i}`).join('\n'));
+        const analysis = { type: 'aggregate', columns: ['period', 'value'], sort: 'original', ...(count === 100 ? { limit: 100 } : {}) };
+        const complete = (await subset.callTool('eda_analyze', { path: 'data.csv', analysis })).structuredContent;
+        assert.equal(complete.truncated, false);
+        assert.equal(complete.groups.length, count);
+        assert.equal(complete.note, undefined);
+    }
+    const invalid = await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['period'], limit: 101 } });
+    assert.equal(invalid.isError, true);
 });

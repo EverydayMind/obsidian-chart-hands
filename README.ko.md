@@ -652,6 +652,8 @@ dv.paragraph(`n=${s.count}, 평균 ${s.mean?.toFixed(2)}, 중앙값 ${s.median},
 
 `eda_analyze`에 `path`와 분석 명세를 전달합니다. 예: `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` 또는 `{"type":"summary","columns":["score"]}`. 빈 값이나 숫자가 아닌 값으로 제외된 행 수를 반환합니다. 상관계수는 두 열이 모두 숫자인 행으로 계산하며 유효 쌍이 두 개 미만이거나 어느 한 열의 분산이 0이면 `null`입니다. 사분위수는 선형 보간하며 표준편차는 표본 기준입니다. 도구는 볼트를 읽기만 하고 파일의 코드나 SQL을 실행하지 않으며 Plotly와 D3를 로드하지 않습니다. 분석 결과는 차트 정의와 분리되어 있어 에이전트가 결과를 바탕으로 `build_chart` 또는 Plotly 블록을 사용할 수 있습니다. `build_chart`는 Plotly 없이 기본 검사를 수행하며 전체 속성 검사는 `check_chart`를 사용합니다.
 
+`aggregate`의 `analysis.limit` 기본값은 60이고 허용 범위는 1–100입니다. 결과에는 `groupCount`, `truncated`, `groups`, 차트 레이블과 값이 포함됩니다. 잘린 경우 반환된 묶음 수 `returnedGroups`, 적용된 `limit`, `maxLimit`, 나머지를 얻는 방법을 설명하는 `note`도 포함됩니다. 묶음이 100개를 넘으면 더 작은 CSV를 사용하세요. 이 도구에는 필터나 페이지 매개변수가 없습니다.
+
 분포 집계는 `{"type":"histogram","columns":["score"],"bins":10}`으로 요청합니다. 구간은 왼쪽 끝을 포함하고 오른쪽 끝을 제외하되 마지막 구간은 최댓값도 포함합니다. 모든 값이 같으면 구간 하나를 반환합니다.
 
 ### agentinterop v1 provider란

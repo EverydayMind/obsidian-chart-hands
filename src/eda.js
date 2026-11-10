@@ -72,6 +72,8 @@ export function profile(dataset, from = 0, limit = 5) {
 }
 export const AGGREGATE_FUNCTIONS = ['sum', 'mean', 'count', 'min', 'max', 'median'];
 export const AGGREGATE_SORTS = ['desc', 'asc', 'label', 'original'];
+const AGGREGATE_DEFAULT_LIMIT = 60;
+const AGGREGATE_MAX_LIMIT = 100;
 const label = value => [...value.trim().slice(0, 100)].map(c => c.charCodeAt(0) < 32 ? ' ' : c).join('');
 /**
  * Group rows by one column and reduce a numeric column per group. Rows with a blank group or a non-numeric value are
@@ -84,8 +86,8 @@ function aggregate(dataset, spec) {
     if (fn !== 'count' && cols.length !== 2) throw new Error('aggregate needs [group column, value column]; count may omit the value column.');
     const sort = spec.sort ?? 'desc';
     if (!AGGREGATE_SORTS.includes(sort)) throw new Error(`analysis.sort must be one of ${AGGREGATE_SORTS.join(', ')}.`);
-    const limit = spec.limit ?? 20;
-    if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('analysis.limit must be an integer from 1 to 100.');
+    const limit = spec.limit ?? AGGREGATE_DEFAULT_LIMIT;
+    if (!Number.isInteger(limit) || limit < 1 || limit > AGGREGATE_MAX_LIMIT) throw new Error(`analysis.limit must be an integer from 1 to ${AGGREGATE_MAX_LIMIT}.`);
     const gi = indexOf(dataset, cols[0]), vi = cols.length === 2 ? indexOf(dataset, cols[1]) : -1;
     const groups = new Map();
     let excluded = 0, missingGroup = 0;
@@ -127,6 +129,10 @@ function aggregate(dataset, spec) {
     const shown = list.slice(0, limit);
     return { type: 'aggregate', columns: cols, function: fn, sort, totalRows: dataset.rows.length, validRows: dataset.rows.length - excluded - missingGroup,
         excludedRows: excluded, missingGroupRows: missingGroup, groupCount: list.length, truncated: list.length > shown.length,
+        ...(list.length > shown.length ? { returnedGroups: shown.length, limit, maxLimit: AGGREGATE_MAX_LIMIT,
+            note: list.length <= AGGREGATE_MAX_LIMIT
+                ? `Returned the first ${shown.length} of ${list.length} groups. To see all groups, set analysis.limit to ${list.length} (maximum ${AGGREGATE_MAX_LIMIT}).`
+                : `Returned the first ${shown.length} of ${list.length} groups. The maximum analysis.limit is ${AGGREGATE_MAX_LIMIT}; use a smaller CSV to see the remaining groups.` } : {}),
         ...(additive ? { total: finite(total) } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
 }
 
