@@ -417,7 +417,7 @@ const AGENT_TOOLS = [
                 filter: { type: 'array', description: 'Up to four conditions combined with AND before analysis.', maxItems: 4, items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string', description: 'CSV column to compare.' }, op: { type: 'string', description: 'Comparison operator.', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string', description: 'Value to compare against the cell.' } } } },
                 method: { type: 'string', enum: ['pearson'] },
                 bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
-                function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without.' },
+                function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic.' },
                 sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by.' },
                 sort_by: { type: 'string', description: 'rows only. Sort by this CSV column before pagination.' },
                 limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate or rows. Defaults to 60 groups or 50 rows.' },

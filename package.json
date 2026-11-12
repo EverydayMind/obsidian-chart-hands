@@ -1,6 +1,6 @@
 {
   "name": "chart-hands",
-  "version": "0.10.10",
+  "version": "0.10.11",
   "description": "Plotly charts in Obsidian notes, with tools that help LLM agents write and check them.",
   "main": "main.js",
   "scripts": {

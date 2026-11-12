@@ -33,6 +33,11 @@ test('summarizes multiple columns independently and preserves the single-column 
     const single = await call({ type: 'summary', columns: ['중국'], filter });
     assert.deepEqual(single, { type: 'summary', columns: ['중국'], totalRows: 3, excludedRows: 0,
         statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2 });
+    const note = 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.';
+    for (const fn of ['count', 'sum', 'mean', 'min', 'max', 'median']) {
+        assert.deepEqual(await call({ type: 'summary', columns: ['중국'], filter, function: fn }), { ...single, note });
+        assert.deepEqual(await call({ type: 'summary', columns, filter, function: fn }), { ...result, note });
+    }
     const zero = await call({ type: 'summary', columns: ['중국', '홍콩'], filter: [{ column: '기간', op: 'eq', value: 'none' }] });
     assert.equal(zero.sumTotal, 0); assert.deepEqual(zero.shares.map(item => item.share), [null, null]);
 });
@@ -113,7 +118,7 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
     const count = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter'] } });
     assert.deepEqual(count.structuredContent.chart, { labels: ['Q2', 'Q1', 'Q3'], values: [3, 2, 1] });
     for (const analysis of [{ type: 'aggregate', columns: ['region'], function: 'sum' }, { type: 'aggregate', columns: ['region', 'amount'], sort: 'random' },
-        { type: 'aggregate', columns: ['region', 'amount'], limit: 0 }, { type: 'summary', columns: ['amount'], function: 'sum' }]) {
+        { type: 'aggregate', columns: ['region', 'amount'], limit: 0 }]) {
         const res = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis });
         assert.equal(res.isError, true, JSON.stringify(analysis));
     }
@@ -196,6 +201,12 @@ test('filters dates for summary and returns paginated original rows with bounded
 test('analysis errors identify invalid keys and explain accepted values', async () => {
     const p = provider('x,y\n1,2');
     const error = async analysis => (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).content[0].text;
+    for (const fn of [null, 1, {}, 'invalid', undefined]) {
+        assert.match(await error({ type: 'summary', columns: ['x'], function: fn }), /summary function must be one of count, sum, mean, min, max, median, or omitted\./);
+    }
+    for (const type of ['histogram', 'correlation', 'rows']) {
+        assert.match(await error({ type, columns: type === 'correlation' ? ['x', 'y'] : ['x'], function: 'mean' }), /Unknown or inapplicable analysis key: function/);
+    }
     for (const [analysis, patterns] of [
         [{ type: 'bad', columns: ['x'] }, [/summary/, /rows/]],
         [{ type: 'summary', columns: ['x'], offset: 1 }, [/offset/, /summary/, /type, columns, filter/]],

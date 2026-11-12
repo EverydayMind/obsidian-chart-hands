@@ -141,10 +141,11 @@ function aggregate(dataset, spec) {
 export function analyze(dataset, spec) {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
     if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
-    const allowed = { summary: [], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
+    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
     const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
     const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
     if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
+    if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
     const cols = spec.columns;
     const max = spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
     const min = spec.type === 'correlation' ? 2 : 1;
@@ -208,7 +209,7 @@ export function analyze(dataset, spec) {
     } else {
         result = analyzeSelected({ ...dataset, rows: selected.map(item => item.row) }, spec);
     }
-    return { ...result, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}) };
+    return { ...result, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}), ...(spec.type === 'summary' && Object.hasOwn(spec, 'function') ? { note: 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.' } : {}) };
 }
 
 function analyzeSelected(dataset, spec) {
@@ -217,7 +218,7 @@ function analyzeSelected(dataset, spec) {
         if (spec.method !== undefined || spec.bins !== undefined) throw new Error('method and bins do not apply to aggregate.');
         return aggregate(dataset, spec);
     }
-    if (spec.function !== undefined || spec.sort !== undefined || spec.limit !== undefined) throw new Error('function, sort and limit apply only to aggregate.');
+    if ((spec.type !== 'summary' && spec.function !== undefined) || spec.sort !== undefined || spec.limit !== undefined) throw new Error('function, sort and limit apply only to aggregate.');
     const cols = spec.columns;
     if (!Array.isArray(cols) || (spec.type === 'summary' ? cols.length < 1 || cols.length > 8 : cols.length !== (spec.type === 'correlation' ? 2 : 1)) || cols.some(c => typeof c !== 'string')) throw new Error('summary needs one to eight columns; histogram needs one; correlation needs two.');
     if (spec.method !== undefined && (spec.type !== 'correlation' || spec.method !== 'pearson')) throw new Error('Only Pearson correlation is supported.');
