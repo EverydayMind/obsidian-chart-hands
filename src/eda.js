@@ -112,6 +112,8 @@ function aggregate(dataset, spec) {
     let list = [...groups].map(([key, group]) => ({ group: label(key), rows: group.rows, value: reduce(group) }));
     const additive = fn === 'sum' || fn === 'count';
     const total = additive ? list.reduce((a, g) => a + g.value, 0) : null;
+    const allValues = additive ? [] : [...groups.values()].flatMap(group => group.values);
+    const overall = allValues.length ? reduce({ values: allValues }) : null;
     if (sort === 'desc') list.sort((a, b) => b.value - a.value || a.group.localeCompare(b.group));
     else if (sort === 'asc') list.sort((a, b) => a.value - b.value || a.group.localeCompare(b.group));
     else if (sort === 'label') list.sort((a, b) => a.group.localeCompare(b.group, undefined, { numeric: true }));
@@ -133,7 +135,7 @@ function aggregate(dataset, spec) {
             note: list.length <= AGGREGATE_MAX_LIMIT
                 ? `Returned the first ${shown.length} of ${list.length} groups. To see all groups, set analysis.limit to ${list.length} (maximum ${AGGREGATE_MAX_LIMIT}).`
                 : `Returned the first ${shown.length} of ${list.length} groups. The maximum analysis.limit is ${AGGREGATE_MAX_LIMIT}; use a smaller CSV to see the remaining groups.` } : {}),
-        ...(additive ? { total: finite(total) } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
+        ...(additive ? { total: finite(total) } : { overall: finite(overall) }), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
 }
 
 export function analyze(dataset, spec) {

@@ -119,6 +119,25 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
     }
 });
 
+test('aggregate overall uses all valid matching rows before limiting groups', async () => {
+    const p = provider('group,value,year\na,1,2025\na,2,2025\na,3,2025\nb,10,2025\nc,100,2024\n,50,2025\nb,invalid,2025');
+    const filter = [{ column: 'year', op: 'eq', value: '2025' }];
+    for (const [fn, expected] of Object.entries({ mean: 4, min: 1, max: 10, median: 2.5 })) {
+        const result = (await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['group', 'value'], function: fn, sort: 'original', limit: 1, filter } })).structuredContent;
+        assert.equal(result.overall, expected, fn);
+        assert.equal(result.truncated, true);
+        assert.equal(result.groups.length, 1);
+        assert.equal('total' in result, false);
+    }
+    for (const fn of ['sum', 'count']) {
+        const result = (await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['group', 'value'], function: fn, filter } })).structuredContent;
+        assert.equal('overall' in result, false);
+        assert.ok('total' in result);
+    }
+    const empty = (await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['group', 'value'], function: 'median', filter: [{ column: 'year', op: 'eq', value: 'none' }] } })).structuredContent;
+    assert.equal(empty.overall, null);
+});
+
 test('aggregate defaults to 60 groups and explains truncation at and above the maximum', async () => {
     const csv = 'period,value\n' + Array.from({ length: 101 }, (_, i) => `month${i + 1},${i + 1}`).join('\n');
     const p = provider(csv);
