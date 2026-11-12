@@ -435,7 +435,7 @@ const AGENT_TOOLS = [
             additionalProperties: false,
             required: ['source'],
             properties: {
-                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the opening and closing fence lines.' }
+                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the fence lines: data and layout on separate lines, or one JSON object.' }
             }
         },
         annotations: { readOnlyHint: true },
