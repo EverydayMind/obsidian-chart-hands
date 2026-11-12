@@ -40,14 +40,19 @@ test('sorts rows before pagination with stable ties and blanks last', async () =
     const call = async analysis => p.callTool('eda_analyze', { path: 'data.csv', analysis });
     const top = (await call({ type: 'rows', columns: ['연월', '네온_달러kg'], sort_by: '네온_달러kg', sort: 'desc', limit: 1 })).structuredContent;
     assert.deepEqual(top.rows[0].values, ['a', '10']); assert.equal(top.sortedBy, '네온_달러kg'); assert.equal(top.sort, 'desc');
+    assert.equal(top.order, 'descending (largest first)');
     const numeric = (await call({ type: 'rows', columns: ['연월'], sort_by: '네온_달러kg' })).structuredContent;
     assert.deepEqual(numeric.rows.map(row => row.rowNumber), [2, 5, 1, 3, 4]);
+    assert.equal(numeric.order, 'ascending (smallest first)');
     const text = (await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort: 'desc' })).structuredContent;
     assert.deepEqual(text.rows.map(row => row.rowNumber), [5, 1, 2, 3, 4]);
-    const error = await call({ type: 'rows', columns: ['연월'], sort: 'desc', limit: 1 });
-    assert.match(error.content[0].text, /rows에서 sort를 쓰려면 sort_by에 열 이름을 줄 것/);
+    for (const sort of ['desc', 'asc']) {
+        const error = await call({ type: 'rows', columns: ['연월', '네온_달러kg'], sort, limit: 1 });
+        assert.ok(error.content[0].text.includes(`rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":"네온_달러kg","sort":"${sort}" (sort는 그대로 두고 sort_by를 더한다)`));
+    }
     assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '없음' })).content[0].text, /Unknown column/);
     for (const sort of ['label', 'original']) assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort })).content[0].text, /asc or desc/);
+    assert.match((await call({ type: 'rows', columns: ['연월'], sort: 'invalid' })).content[0].text, /rows sort must be asc or desc/);
 });
 test('profiles quoted CSV, missing values, numeric summaries and categories', async () => {
     const p = provider('age,score,name\r\n20,5,"a,b"\r\n30,,"a,b"\r\n40,15,"line\nbreak"\r\n');

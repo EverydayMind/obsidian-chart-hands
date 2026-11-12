@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.10.7
+
+- Clarify row sorting errors and show the sort direction in results.
+
 ## 0.10.6
 
 - Support summaries of multiple columns and sorted row inspection.

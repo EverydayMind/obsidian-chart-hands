@@ -184,11 +184,11 @@ export function analyze(dataset, spec) {
         const limit = spec.limit ?? 50, offset = spec.offset ?? 0;
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('rows limit must be an integer from 1 to 100.');
         if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
-        if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error('rows에서 sort를 쓰려면 sort_by에 열 이름을 줄 것');
+        if (spec.sort !== undefined && !['asc', 'desc'].includes(spec.sort)) throw new Error('rows sort must be asc or desc.');
+        if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error(`rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (sort는 그대로 두고 sort_by를 더한다)`);
         if (spec.sort_by !== undefined) {
             if (typeof spec.sort_by !== 'string') throw new Error('rows sort_by must be a column name.');
             const sortIndex = indexOf(dataset, spec.sort_by), direction = spec.sort ?? 'asc';
-            if (!['asc', 'desc'].includes(direction)) throw new Error('rows sort must be asc or desc.');
             const numeric = selected.every(({ row }) => missing(row[sortIndex]) || number(row[sortIndex]) !== null);
             selected.sort((a, b) => {
                 const x = a.row[sortIndex], y = b.row[sortIndex];
@@ -199,7 +199,7 @@ export function analyze(dataset, spec) {
         }
         const page = selected.slice(offset, offset + limit);
         const truncated = offset + page.length < selected.length;
-        result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc' } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
+        result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc', order: spec.sort === 'desc' ? 'descending (largest first)' : 'ascending (smallest first)' } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
             const truncatedColumns = cols.filter((_, j) => row[indexes[j]].length > 200);
             return { rowNumber, values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
         }), truncated, nextOffset: truncated ? offset + page.length : null };
