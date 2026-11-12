@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.8
+
+- Clarify multi-column summary shares and remind agents to check notes for column meanings and units.
+- The updated tool descriptor changes its digest, so hosts must reapprove the provider.
+
 ## 0.10.7
 
 - Clarify row sorting errors and show the sort direction in results.

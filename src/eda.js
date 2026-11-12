@@ -235,7 +235,7 @@ function analyzeSelected(dataset, spec) {
             const share = sum !== null && sumTotal !== null && sumTotal !== 0 ? sum / sumTotal : null;
             return { column, sum, share: Number.isFinite(share) && share !== null ? share : null };
         });
-        return { type: 'summary', columns: cols, totalRows: dataset.rows.length, perColumn, sumTotal, shares };
+        return { type: 'summary', columns: cols, totalRows: dataset.rows.length, perColumn, sumTotal, shareOf: 'sum of the listed columns', shares };
     }
     let excluded = 0;
     const pairs = [];

@@ -65,6 +65,8 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     assertPlainJson(descriptor);
     assert.deepEqual(descriptor.provider, { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3', description: descriptor.provider.description });
     assert.ok(descriptor.instructions.length <= 2000);
+    assert.ok(descriptor.instructions.includes('Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file.'));
+    assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.includes("summary accepts 1–8 numeric columns and reports statistics, sums and each column's share of the listed columns' total"));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'pure']]);
     for (const tool of descriptor.tools) {

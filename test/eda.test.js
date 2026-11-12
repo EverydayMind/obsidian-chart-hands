@@ -26,6 +26,7 @@ test('summarizes multiple columns independently and preserves the single-column 
     const result = await call({ type: 'summary', columns, filter });
     assert.equal(result.totalRows, 3); assert.equal(result.filteredRows, 2); assert.deepEqual(result.filter, filter);
     assert.equal(result.sumTotal, 53);
+    assert.equal(result.shareOf, 'sum of the listed columns');
     assert.deepEqual(result.shares[0], { column: '중국', sum: 4, share: 4 / 53 });
     assert.equal(result.perColumn[1].excludedRows, 1); assert.equal(result.perColumn[2].excludedRows, 1);
     assert.equal(result.perColumn[1].statistics.sum, 2);
