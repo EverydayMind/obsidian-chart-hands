@@ -109,3 +109,71 @@ test('aggregate defaults to 60 groups and explains truncation at and above the m
     const invalid = await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['period'], limit: 101 } });
     assert.equal(invalid.isError, true);
 });
+
+test('filters dates for summary and returns paginated original rows with bounded cells', async () => {
+    const long = '가'.repeat(201);
+    const csv = `연월,주차,경보단계,값,설명\n2025-01,2026-W45,경계,100,첫째\n2025-12,2026-W45,경계,200,${long}\n2026-01,2026-W45,주의,900,셋째\n`;
+    const p = provider(csv);
+    const call = async analysis => (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).structuredContent;
+    const filter = [{ column: '연월', op: 'gte', value: '2025-01' }, { column: '연월', op: 'lte', value: '2025-12' }];
+    const summary = await call({ type: 'summary', columns: ['값'], filter });
+    assert.equal(summary.statistics.mean, 150); assert.equal(summary.statistics.sum, 300);
+    assert.equal(summary.totalRows, 3); assert.equal(summary.filteredRows, 2); assert.deepEqual(summary.filter, filter);
+    const conditions = [{ column: '주차', op: 'eq', value: '2026-W45' }, { column: '경보단계', op: 'eq', value: '경계' }];
+    const first = await call({ type: 'rows', columns: ['설명'], filter: conditions, limit: 1 });
+    assert.equal(first.totalRows, 3); assert.equal(first.filteredRows, 2); assert.equal(first.matchedRows, 2); assert.equal(first.truncated, true); assert.equal(first.nextOffset, 1);
+    assert.deepEqual(first.rows[0], { rowNumber: 1, values: ['첫째'] });
+    const second = await call({ type: 'rows', columns: ['설명'], filter: conditions, limit: 1, offset: first.nextOffset });
+    assert.deepEqual(second.rows[0], { rowNumber: 2, values: [long.slice(0, 200)], truncatedColumns: ['설명'] });
+    assert.equal(second.truncated, false); assert.equal(second.nextOffset, null);
+    const empty = await call({ type: 'summary', columns: ['값'], filter: [{ column: '주차', op: 'eq', value: 'none' }] });
+    assert.equal(empty.filteredRows, 0); assert.deepEqual(empty.statistics, { count: 0 });
+    for (const type of ['histogram', 'correlation', 'aggregate', 'rows']) {
+        const result = await call({ type, columns: type === 'correlation' ? ['값', '값'] : ['값'], filter: [{ column: '주차', op: 'eq', value: 'none' }] });
+        assert.equal(result.filteredRows, 0); assert.equal(result.totalRows, 3);
+        if (type === 'rows') assert.equal(result.matchedRows, 0);
+    }
+    const all = await call({ type: 'rows', columns: ['값'] });
+    assert.equal(all.totalRows, 3); assert.equal(all.matchedRows, 3); assert.equal(all.filteredRows, undefined);
+});
+
+test('analysis errors identify invalid keys and explain accepted values', async () => {
+    const p = provider('x,y\n1,2');
+    const error = async analysis => (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).content[0].text;
+    for (const [analysis, patterns] of [
+        [{ type: 'bad', columns: ['x'] }, [/summary/, /rows/]],
+        [{ type: 'summary', columns: ['x'], offset: 1 }, [/offset/, /summary/, /type, columns, filter/]],
+        [{ type: 'correlation', columns: ['x'] }, [/correlation/, /2/]],
+        [{ type: 'rows', columns: ['x'], limit: 0 }, [/limit/, /1 to 100/]],
+        [{ type: 'rows', columns: ['x'], offset: -1 }, [/offset/, /0 to/]],
+        [{ type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'eq', value: '1' }, { column: 'x', op: 'eq', value: '1', typo: 1 }] }, [/condition 2/, /typo/]],
+        [{ type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'bad', value: '1' }] }, [/condition 1/, /bad/, /prefix/, /contains/]],
+        [{ type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'eq', value: 1 }] }, [/condition 1/, /value must be a string/]],
+        [{ type: 'rows', columns: ['x'], filter: [{ column: 'absent', op: 'eq', value: '1' }] }, [/condition 1/, /absent/]]
+    ]) {
+        const result = await error(analysis);
+        for (const pattern of patterns) assert.match(JSON.stringify(result), pattern);
+    }
+});
+
+test('filter operators handle numbers, text and blank cells and reject invalid arguments', async () => {
+    const p = provider('x,y\n001,alpha\n1,alphabet\n2,beta\n,blank\n');
+    const call = async analysis => p.callTool('eda_analyze', { path: 'data.csv', analysis });
+    for (const [column, op, value, expected] of [
+        ['x', 'eq', '1', [1, 2]], ['x', 'ne', '1', [3, 4]], ['x', 'gt', '1', [3]],
+        ['x', 'gte', '1', [1, 2, 3]], ['x', 'lt', '2', [1, 2]], ['x', 'lte', '1', [1, 2]],
+        ['y', 'prefix', 'alpha', [1, 2]], ['y', 'contains', 'pha', [1, 2]],
+        ['x', 'eq', '', []], ['x', 'ne', '', [1, 2, 3, 4]]
+    ]) {
+        const result = await call({ type: 'rows', columns: ['x'], filter: [{ column, op, value }] });
+        assert.deepEqual(result.structuredContent.rows.map(row => row.rowNumber), expected, op);
+    }
+    for (const analysis of [
+        { type: 'rows', columns: ['x'], filter: [{ column: 'missing', op: 'eq', value: '1' }] },
+        { type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'bad', value: '1' }] },
+        { type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'eq', value: '1', extra: true }] },
+        { type: 'rows', columns: ['x'], extra: true }, { type: 'rows', columns: ['x'], offset: -1 },
+        { type: 'summary', columns: ['x'], limit: 1 }, { type: 'aggregate', columns: ['x'], offset: 1 },
+        { type: 'rows', columns: Array(9).fill('x') }, { type: 'rows', columns: ['x'], filter: Array(5).fill({ column: 'x', op: 'eq', value: '1' }) }
+    ]) assert.equal((await call(analysis)).isError, true, JSON.stringify(analysis));
+});

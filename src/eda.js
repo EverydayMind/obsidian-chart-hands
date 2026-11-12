@@ -138,7 +138,65 @@ function aggregate(dataset, spec) {
 
 export function analyze(dataset, spec) {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
-    if (!['summary', 'histogram', 'correlation', 'aggregate'].includes(spec.type)) throw new Error('analysis.type must be summary, histogram, correlation or aggregate.');
+    if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
+    const allowed = { summary: [], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset'] };
+    const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
+    const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
+    if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
+    const cols = spec.columns;
+    const max = spec.type === 'rows' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
+    const min = spec.type === 'correlation' ? 2 : 1;
+    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
+    const indexes = cols.map(c => indexOf(dataset, c));
+    let selected = dataset.rows.map((row, i) => ({ row, rowNumber: i + 1 }));
+    if (spec.filter !== undefined) {
+        if (!Array.isArray(spec.filter) || spec.filter.length > 4) throw new Error('analysis.filter must be an array of at most 4 conditions.');
+        const ops = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'];
+        const conditions = spec.filter.map((condition, i) => {
+            const where = `analysis.filter condition ${i + 1}`;
+            if (!condition || typeof condition !== 'object' || Array.isArray(condition)) throw new Error(`${where} must be an object.`);
+            const key = Object.keys(condition).find(k => !['column', 'op', 'value'].includes(k));
+            if (key !== undefined) throw new Error(`${where} has unknown key: ${key}.`);
+            if (typeof condition.column !== 'string') throw new Error(`${where} column must be a string.`);
+            if (!dataset.headers.includes(condition.column)) throw new Error(`${where} has unknown column: ${condition.column}.`);
+            if (!ops.includes(condition.op)) throw new Error(`${where} has unknown op: ${condition.op}; allowed: ${ops.join(', ')}.`);
+            if (typeof condition.value !== 'string') throw new Error(`${where} value must be a string.`);
+            return { ...condition, index: indexOf(dataset, condition.column) };
+        });
+        selected = selected.filter(({ row }) => conditions.every(({ index, op, value }) => {
+            const cell = row[index];
+            if (op === 'prefix') return cell.startsWith(value);
+            if (op === 'contains') return cell.includes(value);
+            if (missing(cell)) return op === 'ne';
+            const a = number(cell), b = number(value);
+            const left = a !== null && b !== null ? a : cell.trim();
+            const right = a !== null && b !== null ? b : value.trim();
+            if (op === 'eq') return left === right;
+            if (op === 'ne') return left !== right;
+            if (op === 'gt') return left > right;
+            if (op === 'gte') return left >= right;
+            if (op === 'lt') return left < right;
+            return left <= right;
+        }));
+    }
+    let result;
+    if (spec.type === 'rows') {
+        const limit = spec.limit ?? 50, offset = spec.offset ?? 0;
+        if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('rows limit must be an integer from 1 to 100.');
+        if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
+        const page = selected.slice(offset, offset + limit);
+        const truncated = offset + page.length < selected.length;
+        result = { type: 'rows', columns: cols, matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
+            const truncatedColumns = cols.filter((_, j) => row[indexes[j]].length > 200);
+            return { rowNumber, values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
+        }), truncated, nextOffset: truncated ? offset + page.length : null };
+    } else {
+        result = analyzeSelected({ ...dataset, rows: selected.map(item => item.row) }, spec);
+    }
+    return { ...result, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}) };
+}
+
+function analyzeSelected(dataset, spec) {
     if (spec.type === 'aggregate') {
         if (!Array.isArray(spec.columns) || spec.columns.length < 1 || spec.columns.length > 2 || spec.columns.some(c => typeof c !== 'string')) throw new Error('aggregate needs [group column, value column].');
         if (spec.method !== undefined || spec.bins !== undefined) throw new Error('method and bins do not apply to aggregate.');
@@ -156,7 +214,12 @@ export function analyze(dataset, spec) {
         const nums = indexes.map(i => number(row[i]));
         if (nums.some(n => n === null)) excluded++; else pairs.push(nums);
     }
-    if (spec.type === 'summary') return { type: 'summary', columns: cols, totalRows: dataset.rows.length, excludedRows: excluded, statistics: summary(pairs.map(p => p[0])) };
+    if (spec.type === 'summary') {
+        const values = pairs.map(p => p[0]);
+        const statistics = summary(values);
+        if (values.length) { const sum = values.reduce((a, b) => a + b, 0); statistics.sum = Number.isFinite(sum) ? sum : null; }
+        return { type: 'summary', columns: cols, totalRows: dataset.rows.length, excludedRows: excluded, statistics };
+    }
     if (spec.type === 'histogram') {
         const values = pairs.map(p => p[0]);
         const base = { type: 'histogram', columns: cols, totalRows: dataset.rows.length, validRows: values.length, excludedRows: excluded, bins: [] };

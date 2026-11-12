@@ -94,14 +94,14 @@ test('all descriptor tool keywords satisfy the Verbex limits without duplicates 
     }
 });
 
-test('EDA tools expose the dedicated 30-keyword vocabulary', async () => {
+test('EDA tools expose the dedicated 32-keyword vocabulary', async () => {
     const expected = [
         'eda', 'data', 'csv', 'statistics', 'correlation', 'dataset', 'aggregate',
-        '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트',
+        '데이터', '분석', '통계', '집계', '합계', '평균', '상관', '분포', '추이', '인사이트', '계산', '누계',
         'chart', 'graph', 'plot', 'visuali', 'histogram', 'heatmap', 'dashboard',
         '차트', '그래프', '시각화', '히트맵', '산점도', '대시보드'
     ];
-    assert.equal(expected.length, 30);
+    assert.equal(expected.length, 32);
     const descriptor = await provide('').describe();
     const edaTools = descriptor.tools.filter(tool => tool.name.startsWith('eda_'));
     assert.ok(edaTools.length >= 2);
