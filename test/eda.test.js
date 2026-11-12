@@ -18,6 +18,37 @@ function provider(csv) {
         ensureLibraries() { throw new Error('EDA must not load Plotly'); },
         app: { vault: { getAbstractFileByPath: p => p === 'data.csv' ? { path: p, extension: 'csv' } : null, cachedRead: async () => csv } } });
 }
+test('summarizes multiple columns independently and preserves the single-column shape', async () => {
+    const columns = ['중국', '홍콩', '대만', '베트남', '미국', '일본', '기타'];
+    const p = provider(`${columns.join(',')},기간\n1,2,3,4,5,6,7,2025\n3,bad,,4,5,6,7,2025\n9,9,9,9,9,9,9,2024`);
+    const call = async analysis => (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).structuredContent;
+    const filter = [{ column: '기간', op: 'eq', value: '2025' }];
+    const result = await call({ type: 'summary', columns, filter });
+    assert.equal(result.totalRows, 3); assert.equal(result.filteredRows, 2); assert.deepEqual(result.filter, filter);
+    assert.equal(result.sumTotal, 53);
+    assert.deepEqual(result.shares[0], { column: '중국', sum: 4, share: 4 / 53 });
+    assert.equal(result.perColumn[1].excludedRows, 1); assert.equal(result.perColumn[2].excludedRows, 1);
+    assert.equal(result.perColumn[1].statistics.sum, 2);
+    const single = await call({ type: 'summary', columns: ['중국'], filter });
+    assert.deepEqual(single, { type: 'summary', columns: ['중국'], totalRows: 3, excludedRows: 0,
+        statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2 });
+    const zero = await call({ type: 'summary', columns: ['중국', '홍콩'], filter: [{ column: '기간', op: 'eq', value: 'none' }] });
+    assert.equal(zero.sumTotal, 0); assert.deepEqual(zero.shares.map(item => item.share), [null, null]);
+});
+test('sorts rows before pagination with stable ties and blanks last', async () => {
+    const p = provider('연월,네온_달러kg,문자\na,10,banana\nb,2,apple\nc,10,apple\nd,,\ne,3,cherry');
+    const call = async analysis => p.callTool('eda_analyze', { path: 'data.csv', analysis });
+    const top = (await call({ type: 'rows', columns: ['연월', '네온_달러kg'], sort_by: '네온_달러kg', sort: 'desc', limit: 1 })).structuredContent;
+    assert.deepEqual(top.rows[0].values, ['a', '10']); assert.equal(top.sortedBy, '네온_달러kg'); assert.equal(top.sort, 'desc');
+    const numeric = (await call({ type: 'rows', columns: ['연월'], sort_by: '네온_달러kg' })).structuredContent;
+    assert.deepEqual(numeric.rows.map(row => row.rowNumber), [2, 5, 1, 3, 4]);
+    const text = (await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort: 'desc' })).structuredContent;
+    assert.deepEqual(text.rows.map(row => row.rowNumber), [5, 1, 2, 3, 4]);
+    const error = await call({ type: 'rows', columns: ['연월'], sort: 'desc', limit: 1 });
+    assert.match(error.content[0].text, /rows에서 sort를 쓰려면 sort_by에 열 이름을 줄 것/);
+    assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '없음' })).content[0].text, /Unknown column/);
+    for (const sort of ['label', 'original']) assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort })).content[0].text, /asc or desc/);
+});
 test('profiles quoted CSV, missing values, numeric summaries and categories', async () => {
     const p = provider('age,score,name\r\n20,5,"a,b"\r\n30,,"a,b"\r\n40,15,"line\nbreak"\r\n');
     const result = await p.callTool('eda_profile', { path: 'data.csv' });

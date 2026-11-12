@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.10.6
+
+- Support summaries of multiple columns and sorted row inspection.
+- The updated tool descriptor changes its digest, so hosts must reapprove the provider.
+
 ## 0.10.5
 
 - Add filtered CSV analysis, summary sums, and paginated row inspection.

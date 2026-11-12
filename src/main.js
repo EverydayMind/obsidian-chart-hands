@@ -408,7 +408,7 @@ const AGENT_TOOLS = [
     },
     {
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
-        description: 'Analyze a vault CSV. filter applies up to four AND conditions: eq, ne, gt, gte, lt, lte, prefix, contains. For gt/gte/lt/lte/eq/ne, compare as numbers if both sides are numeric, otherwise as strings. For a period use {"column":"연월","op":"gte","value":"2025-01"} and {"column":"연월","op":"lte","value":"2025-12"}. summary gives count, sum, mean, min, max for matching rows; summary and histogram take one numeric column; correlation takes two. aggregate groups columns[0] and reduces columns[1] by sum, mean, count, min, max or median; count may omit the value column. Sort by desc, asc, label or original; label and original also give the change from the previous group. Groups include rows, value, share of the total for sum and count, and chart labels/values (default 60 groups, maximum 100). rows returns selected cells (capped at 200 characters) and original row numbers; paginate with limit (default 50, maximum 100) and offset. Exact thousands separators (1,234) are numeric. Reports exclusions and undefined values.',
+        description: 'Analyze a vault CSV. filter combines up to four conditions with AND: eq, ne, gt, gte, lt, lte, prefix, contains. Comparisons use numbers when both sides are numeric, otherwise strings. For a period use {"column":"연월","op":"gte","value":"2025-01"} and {"column":"연월","op":"lte","value":"2025-12"}. summary accepts 1–8 numeric columns and reports statistics, sums and shares; histogram takes one column, correlation two. aggregate groups columns[0] and reduces columns[1] by sum, mean, count, min, max or median; count may omit the value column. Sort by desc, asc, label or original; label and original also give the change from the previous group. Groups include shares for sum and count and chart data (default 60, maximum 100). rows returns cells (200 characters max) and original row numbers; sort_by names a column and sort is asc or desc; paginate with limit (default 50, maximum 100) and offset. Exact thousands separators (1,234) are numeric. Reports exclusions and undefined values.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
@@ -418,7 +418,8 @@ const AGENT_TOOLS = [
                 method: { type: 'string', enum: ['pearson'] },
                 bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
                 function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without.' },
-                sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate only. Default desc.' },
+                sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by.' },
+                sort_by: { type: 'string', description: 'rows only. Sort by this CSV column before pagination.' },
                 limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate or rows. Defaults to 60 groups or 50 rows.' },
                 offset: { type: 'integer', minimum: 0, description: 'rows only. Zero-based offset, default 0.' }
             } }

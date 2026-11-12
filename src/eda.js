@@ -139,12 +139,12 @@ function aggregate(dataset, spec) {
 export function analyze(dataset, spec) {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
     if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
-    const allowed = { summary: [], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset'] };
+    const allowed = { summary: [], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
     const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
     const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
     if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
     const cols = spec.columns;
-    const max = spec.type === 'rows' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
+    const max = spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
     const min = spec.type === 'correlation' ? 2 : 1;
     if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
     const indexes = cols.map(c => indexOf(dataset, c));
@@ -184,9 +184,22 @@ export function analyze(dataset, spec) {
         const limit = spec.limit ?? 50, offset = spec.offset ?? 0;
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('rows limit must be an integer from 1 to 100.');
         if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
+        if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error('rows에서 sort를 쓰려면 sort_by에 열 이름을 줄 것');
+        if (spec.sort_by !== undefined) {
+            if (typeof spec.sort_by !== 'string') throw new Error('rows sort_by must be a column name.');
+            const sortIndex = indexOf(dataset, spec.sort_by), direction = spec.sort ?? 'asc';
+            if (!['asc', 'desc'].includes(direction)) throw new Error('rows sort must be asc or desc.');
+            const numeric = selected.every(({ row }) => missing(row[sortIndex]) || number(row[sortIndex]) !== null);
+            selected.sort((a, b) => {
+                const x = a.row[sortIndex], y = b.row[sortIndex];
+                if (missing(x) || missing(y)) return missing(x) === missing(y) ? a.rowNumber - b.rowNumber : missing(x) ? 1 : -1;
+                const comparison = numeric ? number(x) - number(y) : x.trim().localeCompare(y.trim());
+                return (direction === 'desc' ? -comparison : comparison) || a.rowNumber - b.rowNumber;
+            });
+        }
         const page = selected.slice(offset, offset + limit);
         const truncated = offset + page.length < selected.length;
-        result = { type: 'rows', columns: cols, matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
+        result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc' } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
             const truncatedColumns = cols.filter((_, j) => row[indexes[j]].length > 200);
             return { rowNumber, values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
         }), truncated, nextOffset: truncated ? offset + page.length : null };
@@ -204,10 +217,26 @@ function analyzeSelected(dataset, spec) {
     }
     if (spec.function !== undefined || spec.sort !== undefined || spec.limit !== undefined) throw new Error('function, sort and limit apply only to aggregate.');
     const cols = spec.columns;
-    if (!Array.isArray(cols) || cols.length !== (spec.type === 'correlation' ? 2 : 1) || cols.some(c => typeof c !== 'string')) throw new Error('summary and histogram need one column; correlation needs two columns.');
+    if (!Array.isArray(cols) || (spec.type === 'summary' ? cols.length < 1 || cols.length > 8 : cols.length !== (spec.type === 'correlation' ? 2 : 1)) || cols.some(c => typeof c !== 'string')) throw new Error('summary needs one to eight columns; histogram needs one; correlation needs two.');
     if (spec.method !== undefined && (spec.type !== 'correlation' || spec.method !== 'pearson')) throw new Error('Only Pearson correlation is supported.');
     if (spec.bins !== undefined && (spec.type !== 'histogram' || !Number.isInteger(spec.bins) || spec.bins < 1 || spec.bins > 50)) throw new Error('Histogram bins must be an integer from 1 to 50.');
     const indexes = cols.map(c => indexOf(dataset, c));
+    if (spec.type === 'summary' && cols.length > 1) {
+        const perColumn = indexes.map((index, i) => {
+            const values = dataset.rows.map(row => number(row[index])).filter(value => value !== null);
+            const statistics = summary(values);
+            if (values.length) { const sum = values.reduce((a, b) => a + b, 0); statistics.sum = Number.isFinite(sum) ? sum : null; }
+            return { column: cols[i], excludedRows: dataset.rows.length - values.length, statistics };
+        });
+        const total = perColumn.reduce((sum, entry) => sum + (entry.statistics.sum === null ? Infinity : entry.statistics.sum ?? 0), 0);
+        const sumTotal = Number.isFinite(total) ? total : null;
+        const shares = perColumn.map(({ column, statistics }) => {
+            const sum = statistics.sum === undefined ? 0 : statistics.sum;
+            const share = sum !== null && sumTotal !== null && sumTotal !== 0 ? sum / sumTotal : null;
+            return { column, sum, share: Number.isFinite(share) && share !== null ? share : null };
+        });
+        return { type: 'summary', columns: cols, totalRows: dataset.rows.length, perColumn, sumTotal, shares };
+    }
     let excluded = 0;
     const pairs = [];
     for (const row of dataset.rows) {
