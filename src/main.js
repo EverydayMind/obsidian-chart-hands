@@ -403,7 +403,7 @@ const AGENT_TOOLS = [
         description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
-            from: { type: 'integer', minimum: 1, description: '1-based column number; defaults to 1.' }
+            from: { type: 'integer', minimum: 1, description: '1-based first column of this page; defaults to 1. When more columns remain, the result gives nextFrom: call again with from set to it.' }
         } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
     },
     {
@@ -435,7 +435,7 @@ const AGENT_TOOLS = [
             additionalProperties: false,
             required: ['source'],
             properties: {
-                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the fence lines: data and layout on separate lines, or one JSON object.' }
+                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {"data":[…],"layout":{…}}. Do not join keys with commas on one line.' }
             }
         },
         annotations: { readOnlyHint: true },
