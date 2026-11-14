@@ -5,7 +5,7 @@ const Module = require('node:module');
 const path = require('node:path');
 const load = Module._load;
 Module._load = function (name, ...args) {
-    if (name === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {} };
+    if (name === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'ko' } };
     return load.call(this, name, ...args);
 };
 const bundle = new Module(path.join(__dirname, 'eda-plugin.js'), module);

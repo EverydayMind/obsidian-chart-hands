@@ -1,0 +1,3404 @@
+{
+  "descriptor": {
+    "provider": {
+      "id": "chart-hands",
+      "name": "Chart Hands",
+      "version": "test",
+      "description": "Analyze CSV data and build, check and read Plotly charts"
+    },
+    "instructions": "For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups, change between periods), histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours (\"#2563EB\") and date-like strings; use no functions or variables. Write titles as objects: title: {text: \"...\"}. Choose charts for the question (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI. Use Plotly's advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host's note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly's rules, not how the chart looks on screen.",
+    "tools": [
+      {
+        "name": "eda_profile",
+        "title": "Profile a CSV dataset",
+        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path."
+            },
+            "from": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "1-based first column of this page; defaults to 1. When more columns remain, the result gives nextFrom: call again with from set to it."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "eda_analyze",
+        "title": "Analyze a CSV dataset",
+        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus an lte condition. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have sum/count shares and chart data (default 60, max 100). rows: cells and row numbers; sort_by names a column, sort is asc or desc; limit and offset paginate. 1,234 is numeric.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "analysis"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path."
+            },
+            "analysis": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "columns"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "summary",
+                    "histogram",
+                    "correlation",
+                    "aggregate",
+                    "rows"
+                  ]
+                },
+                "columns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 8,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "filter": {
+                  "type": "array",
+                  "description": "Up to four conditions combined with AND before analysis.",
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "column",
+                      "op",
+                      "value"
+                    ],
+                    "properties": {
+                      "column": {
+                        "type": "string",
+                        "description": "CSV column to compare."
+                      },
+                      "op": {
+                        "type": "string",
+                        "description": "Comparison operator.",
+                        "enum": [
+                          "eq",
+                          "ne",
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "prefix",
+                          "contains"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "Value to compare against the cell."
+                      }
+                    }
+                  }
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "pearson"
+                  ]
+                },
+                "bins": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "description": "Histogram bin count, default 10; intervals are left-closed, right-open except the last."
+                },
+                "function": {
+                  "type": "string",
+                  "enum": [
+                    "sum",
+                    "mean",
+                    "count",
+                    "min",
+                    "max",
+                    "median"
+                  ],
+                  "description": "aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic."
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": [
+                    "desc",
+                    "asc",
+                    "label",
+                    "original"
+                  ],
+                  "description": "aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by."
+                },
+                "sort_by": {
+                  "type": "string",
+                  "description": "rows only. Sort by this CSV column before pagination."
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "description": "aggregate or rows. Defaults to 60 groups or 50 rows."
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "rows only. Zero-based offset, default 0."
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "check_chart",
+        "title": "Check a Plotly chart",
+        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000,
+              "description": "The content that goes inside a plotly code block, without the fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {\"data\":[…],\"layout\":{…}}. Do not join keys with commas on one line."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "read_charts",
+        "title": "Read the Plotly charts in a note",
+        "description": "Find the plotly code blocks in a note and return, for each chart, its line range, trace types and point counts, title, and the problems found by the check. Returns at most 20 charts per call and gives the next from value when there are more. Charts drawn with dataviewjs are counted but not checked.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative path of a Markdown note."
+            },
+            "from": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "description": "Start reading at this chart number. Defaults to 1."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "get_chart_guide",
+        "title": "Plotly chart writing guide",
+        "description": "Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "topic": {
+              "type": "string",
+              "enum": [
+                "basics",
+                "style",
+                "examples",
+                "statistical",
+                "hierarchy",
+                "timeseries",
+                "scientific",
+                "maps",
+                "layout",
+                "dataviewjs",
+                "errors"
+              ],
+              "description": "Guide topic. Defaults to basics."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "build_chart",
+        "title": "Build a Plotly chart block",
+        "description": "Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host's note-editing tools. Does not change any note.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "series"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "line",
+                "area",
+                "bar",
+                "barh",
+                "combo",
+                "scatter",
+                "bubble",
+                "pie",
+                "donut",
+                "treemap",
+                "sunburst",
+                "waterfall",
+                "funnel",
+                "histogram",
+                "box",
+                "violin",
+                "heatmap",
+                "radar",
+                "indicator"
+              ],
+              "description": "Chart type."
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Chart title."
+            },
+            "labels": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "description": "Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator."
+            },
+            "parents": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "description": "treemap and sunburst: the parent label of each label, \"\" for a top-level item."
+            },
+            "measure": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "relative",
+                  "total",
+                  "absolute"
+                ]
+              },
+              "description": "waterfall: per label, relative (a change, the default), total (running total; its value is ignored) or absolute (sets the level)."
+            },
+            "series": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "description": "Data series.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "values"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Series name, shown in the legend."
+                  },
+                  "values": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin."
+                  },
+                  "x": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "scatter and bubble: the x value of each point."
+                  },
+                  "size": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "description": "bubble: the size measure of each point (drawn as area)."
+                  },
+                  "text": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "description": "scatter and bubble: a hover label for each point."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "bar",
+                      "line",
+                      "area"
+                    ],
+                    "description": "combo: how to draw this series. Defaults to bar for the first series and line for the others."
+                  },
+                  "secondary": {
+                    "type": "boolean",
+                    "description": "line, area, bar, combo: draw this series against a right-hand y axis (a different unit)."
+                  }
+                }
+              }
+            },
+            "x_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Horizontal axis title. Include the unit."
+            },
+            "y_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Vertical axis title. Include the unit."
+            },
+            "y2_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Right-hand axis title, for series with secondary. Include the unit."
+            },
+            "stacked": {
+              "type": "boolean",
+              "description": "Stack several bar, area or histogram series instead of grouping or overlaying them."
+            },
+            "bins": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "histogram: the maximum number of bins."
+            },
+            "range_slider": {
+              "type": "boolean",
+              "description": "line, area, bar, combo, scatter, bubble: add a range slider under the x axis for long series."
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "clean",
+                "plain"
+              ],
+              "description": "clean (default) applies the palette and tidy layout; plain adds nothing beyond the data."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      }
+    ]
+  },
+  "calls": [
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "data.csv"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"rowCount\":2,\"columnCount\":3,\"columns\":[{\"name\":\"month\",\"type\":\"text\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"top\":[{\"value\":\"2025-01\",\"count\":1},{\"value\":\"2025-02\",\"count\":1}]},{\"name\":\"value\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951}},{\"name\":\"other\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":3,\"q1\":3.75,\"median\":4.5,\"q3\":5.25,\"max\":6,\"mean\":4.5,\"stddevSample\":2.1213203435596424}}],\"from\":1,\"to\":3,\"complete\":true}"
+          }
+        ],
+        "structuredContent": {
+          "rowCount": 2,
+          "columnCount": 3,
+          "columns": [
+            {
+              "name": "month",
+              "type": "text",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "top": [
+                {
+                  "value": "2025-01",
+                  "count": 1
+                },
+                {
+                  "value": "2025-02",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "name": "value",
+              "type": "number",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "statistics": {
+                "count": 2,
+                "min": 2,
+                "q1": 2.5,
+                "median": 3,
+                "q3": 3.5,
+                "max": 4,
+                "mean": 3,
+                "stddevSample": 1.4142135623730951
+              }
+            },
+            {
+              "name": "other",
+              "type": "number",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "statistics": {
+                "count": 2,
+                "min": 3,
+                "q1": 3.75,
+                "median": 4.5,
+                "q3": 5.25,
+                "max": 6,
+                "mean": 4.5,
+                "stddevSample": 2.1213203435596424
+              }
+            }
+          ],
+          "from": 1,
+          "to": 3,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "empty.csv"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"rowCount\":0,\"columnCount\":3,\"columns\":[{\"name\":\"month\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]},{\"name\":\"value\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]},{\"name\":\"other\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]}],\"from\":1,\"to\":3,\"complete\":true}"
+          }
+        ],
+        "structuredContent": {
+          "rowCount": 0,
+          "columnCount": 3,
+          "columns": [
+            {
+              "name": "month",
+              "type": "empty",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 0,
+              "top": []
+            },
+            {
+              "name": "value",
+              "type": "empty",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 0,
+              "top": []
+            },
+            {
+              "name": "other",
+              "type": "empty",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 0,
+              "top": []
+            }
+          ],
+          "from": 1,
+          "to": 3,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "bad.csv"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "CSV requires 1–100 unique, nonempty column names of at most 100 characters."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "missing.csv"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "File not found in the vault: missing.csv"
+          }
+        ],
+        "structuredContent": {
+          "code": "NOT_FOUND",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "NOT_FOUND",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "file.pdf"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Only CSV files (.csv) can be analyzed."
+          }
+        ],
+        "structuredContent": {
+          "code": "UNSUPPORTED_FORMAT",
+          "retryable": false
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "UNSUPPORTED_FORMAT",
+            "retryable": false
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "data.csv",
+        "from": 20
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "from must identify a column, starting at 1."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6}}"
+          }
+        ],
+        "structuredContent": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 2,
+          "excludedRows": 0,
+          "statistics": {
+            "count": 2,
+            "min": 2,
+            "q1": 2.5,
+            "median": 3,
+            "q3": 3.5,
+            "max": 4,
+            "mean": 3,
+            "stddevSample": 1.4142135623730951,
+            "sum": 6
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "empty.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":0,\"excludedRows\":0,\"statistics\":{\"count\":0}}"
+          }
+        ],
+        "structuredContent": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 0,
+          "excludedRows": 0,
+          "statistics": {
+            "count": 0
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "unknown"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Unknown column: unknown"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "histogram",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"histogram\",\"columns\":[\"value\"],\"totalRows\":2,\"validRows\":2,\"excludedRows\":0,\"bins\":[{\"lower\":2,\"upper\":2.2,\"count\":1},{\"lower\":2.2,\"upper\":2.4000000000000004,\"count\":0},{\"lower\":2.4000000000000004,\"upper\":2.5999999999999996,\"count\":0},{\"lower\":2.5999999999999996,\"upper\":2.8,\"count\":0},{\"lower\":2.8,\"upper\":3,\"count\":0},{\"lower\":3,\"upper\":3.2,\"count\":0},{\"lower\":3.2,\"upper\":3.4,\"count\":0},{\"lower\":3.4,\"upper\":3.6,\"count\":0},{\"lower\":3.6,\"upper\":3.8,\"count\":0},{\"lower\":3.8,\"upper\":4,\"count\":1}]}"
+          }
+        ],
+        "structuredContent": {
+          "type": "histogram",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 2,
+          "validRows": 2,
+          "excludedRows": 0,
+          "bins": [
+            {
+              "lower": 2,
+              "upper": 2.2,
+              "count": 1
+            },
+            {
+              "lower": 2.2,
+              "upper": 2.4000000000000004,
+              "count": 0
+            },
+            {
+              "lower": 2.4000000000000004,
+              "upper": 2.5999999999999996,
+              "count": 0
+            },
+            {
+              "lower": 2.5999999999999996,
+              "upper": 2.8,
+              "count": 0
+            },
+            {
+              "lower": 2.8,
+              "upper": 3,
+              "count": 0
+            },
+            {
+              "lower": 3,
+              "upper": 3.2,
+              "count": 0
+            },
+            {
+              "lower": 3.2,
+              "upper": 3.4,
+              "count": 0
+            },
+            {
+              "lower": 3.4,
+              "upper": 3.6,
+              "count": 0
+            },
+            {
+              "lower": 3.6,
+              "upper": 3.8,
+              "count": 0
+            },
+            {
+              "lower": 3.8,
+              "upper": 4,
+              "count": 1
+            }
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "empty.csv",
+        "analysis": {
+          "type": "histogram",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"histogram\",\"columns\":[\"value\"],\"totalRows\":0,\"validRows\":0,\"excludedRows\":0,\"bins\":[]}"
+          }
+        ],
+        "structuredContent": {
+          "type": "histogram",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 0,
+          "validRows": 0,
+          "excludedRows": 0,
+          "bins": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "histogram",
+          "columns": [
+            "unknown"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Unknown column: unknown"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "correlation",
+          "columns": [
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"correlation\",\"columns\":[\"value\",\"other\"],\"method\":\"pearson\",\"totalRows\":2,\"validPairs\":2,\"excludedRows\":0,\"correlation\":1}"
+          }
+        ],
+        "structuredContent": {
+          "type": "correlation",
+          "columns": [
+            "value",
+            "other"
+          ],
+          "method": "pearson",
+          "totalRows": 2,
+          "validPairs": 2,
+          "excludedRows": 0,
+          "correlation": 1
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "empty.csv",
+        "analysis": {
+          "type": "correlation",
+          "columns": [
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"correlation\",\"columns\":[\"value\",\"other\"],\"method\":\"pearson\",\"totalRows\":0,\"validPairs\":0,\"excludedRows\":0,\"correlation\":null}"
+          }
+        ],
+        "structuredContent": {
+          "type": "correlation",
+          "columns": [
+            "value",
+            "other"
+          ],
+          "method": "pearson",
+          "totalRows": 0,
+          "validPairs": 0,
+          "excludedRows": 0,
+          "correlation": null
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "correlation",
+          "columns": [
+            "unknown"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "correlation needs 2 columns as strings in analysis.columns."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "aggregate",
+          "columns": [
+            "month",
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"aggregate\",\"columns\":[\"month\",\"value\"],\"function\":\"sum\",\"sort\":\"desc\",\"totalRows\":2,\"validRows\":2,\"excludedRows\":0,\"missingGroupRows\":0,\"groupCount\":2,\"truncated\":false,\"total\":6,\"groups\":[{\"group\":\"2025-02\",\"rows\":1,\"value\":4,\"share\":0.6666666666666666},{\"group\":\"2025-01\",\"rows\":1,\"value\":2,\"share\":0.3333333333333333}],\"chart\":{\"labels\":[\"2025-02\",\"2025-01\"],\"values\":[4,2]}}"
+          }
+        ],
+        "structuredContent": {
+          "type": "aggregate",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "function": "sum",
+          "sort": "desc",
+          "totalRows": 2,
+          "validRows": 2,
+          "excludedRows": 0,
+          "missingGroupRows": 0,
+          "groupCount": 2,
+          "truncated": false,
+          "total": 6,
+          "groups": [
+            {
+              "group": "2025-02",
+              "rows": 1,
+              "value": 4,
+              "share": 0.6666666666666666
+            },
+            {
+              "group": "2025-01",
+              "rows": 1,
+              "value": 2,
+              "share": 0.3333333333333333
+            }
+          ],
+          "chart": {
+            "labels": [
+              "2025-02",
+              "2025-01"
+            ],
+            "values": [
+              4,
+              2
+            ]
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "empty.csv",
+        "analysis": {
+          "type": "aggregate",
+          "columns": [
+            "month",
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"aggregate\",\"columns\":[\"month\",\"value\"],\"function\":\"sum\",\"sort\":\"desc\",\"totalRows\":0,\"validRows\":0,\"excludedRows\":0,\"missingGroupRows\":0,\"groupCount\":0,\"truncated\":false,\"total\":0,\"groups\":[],\"chart\":{\"labels\":[],\"values\":[]}}"
+          }
+        ],
+        "structuredContent": {
+          "type": "aggregate",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "function": "sum",
+          "sort": "desc",
+          "totalRows": 0,
+          "validRows": 0,
+          "excludedRows": 0,
+          "missingGroupRows": 0,
+          "groupCount": 0,
+          "truncated": false,
+          "total": 0,
+          "groups": [],
+          "chart": {
+            "labels": [],
+            "values": []
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "aggregate",
+          "columns": [
+            "unknown"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Unknown column: unknown"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":2,\"rows\":[{\"rowNumber\":1,\"values\":[\"2\"]},{\"rowNumber\":2,\"values\":[\"4\"]}],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2}"
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 2,
+          "rows": [
+            {
+              "rowNumber": 1,
+              "values": [
+                "2"
+              ]
+            },
+            {
+              "rowNumber": 2,
+              "values": [
+                "4"
+              ]
+            }
+          ],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 2
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "empty.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":0}"
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 0,
+          "rows": [],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 0
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "unknown"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Unknown column: unknown"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "sort": "asc"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: \"sort_by\":\"value\",\"sort\":\"asc\" (sort는 그대로 두고 sort_by를 더한다)"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "offset": 20
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":2,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2}"
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 2,
+          "rows": [],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 2
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ],
+          "function": "sum"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6},\"note\":\"summary returns count, sum, mean, min, max and quartiles together; function is not needed.\"}"
+          }
+        ],
+        "structuredContent": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 2,
+          "excludedRows": 0,
+          "statistics": {
+            "count": 2,
+            "min": 2,
+            "q1": 2.5,
+            "median": 3,
+            "q3": 3.5,
+            "max": 4,
+            "mean": 3,
+            "stddevSample": 1.4142135623730951,
+            "sum": 6
+          },
+          "note": "summary returns count, sum, mean, min, max and quartiles together; function is not needed."
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "filter": [
+            {
+              "column": "month",
+              "op": "eq",
+              "value": "none"
+            }
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2,\"filter\":[{\"column\":\"month\",\"op\":\"eq\",\"value\":\"none\"}],\"filteredRows\":0}"
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 0,
+          "rows": [],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 2,
+          "filter": [
+            {
+              "column": "month",
+              "op": "eq",
+              "value": "none"
+            }
+          ],
+          "filteredRows": 0
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[{\"y\":[1,2]}]}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "No problems · traces: 1(scatter 2 points)"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "traces": 1
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[]}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "1 problem(s) · traces: 0\n  - data is empty."
+          }
+        ],
+        "structuredContent": {
+          "valid": false,
+          "problems": 1,
+          "traces": 0
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "1 problem(s) · traces: 0\n  - data is missing. Put the list of traces in data."
+          }
+        ],
+        "structuredContent": {
+          "valid": false,
+          "problems": 1,
+          "traces": 0
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "1 problem(s) · traces: 0\n  - Cannot parse as YAML/JSON: Expected property name or '}' in JSON at position 1 (line 1 column 2)"
+          }
+        ],
+        "structuredContent": {
+          "valid": false,
+          "problems": 1,
+          "traces": 0
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[{\"type\":\"sankey\"}]}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "1 problem(s) · traces: 1(sankey)\n  - Trace 1: a sankey needs link.source, link.target and link.value arrays of the same length."
+          }
+        ],
+        "structuredContent": {
+          "valid": false,
+          "problems": 1,
+          "traces": 1
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "note.md"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems"
+          }
+        ],
+        "structuredContent": {
+          "charts": 1,
+          "from": 1,
+          "to": 1,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "note.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "empty.md"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Note empty.md · 0 plotly chart(s)"
+          }
+        ],
+        "structuredContent": {
+          "charts": 0,
+          "from": 1,
+          "to": 0,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "empty.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "missing.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Note not found in the vault: missing.md"
+          }
+        ],
+        "structuredContent": {
+          "code": "NOT_FOUND",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "NOT_FOUND",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "file.pdf"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Only Markdown notes (.md) can be read."
+          }
+        ],
+        "structuredContent": {
+          "code": "UNSUPPORTED_FORMAT",
+          "retryable": false
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "UNSUPPORTED_FORMAT",
+            "retryable": false
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "note.md",
+        "from": 20
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "from must be between 1 and 1."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "basics"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Chart Hands renders a fenced code block whose language is \"plotly\". The block content is YAML (or JSON) with these top-level keys only: data, layout, config, fit. Any other key stops the chart from drawing.\n\n- data: list of Plotly traces. Give every trace a \"type\" and its value arrays.\n- layout: title, axis titles, legend, barmode, margins and other static display settings.\n- config: static UI settings such as responsive: true and displaylogo: false.\n- fit: off, shrink or fill. Controls width fitting for this chart. Leave it out unless asked.\n\nYAML rules that matter:\n- Quote every colour: color: \"#2563EB\". An unquoted # starts a YAML comment and the value becomes null.\n- Quote date-like strings (\"2026-01-01\") so they stay strings.\n- Quote strings that contain a colon.\n- Write titles as objects: title: {text: \"Monthly sales\"}, also for axes (xaxis: {title: {text: \"Month\"}}) and colour bars. This Plotly version does not show a title given as a plain string.\n- Quote single letters used as values, such as overlaying: \"y\", so no YAML parser reads them as booleans.\n- Write arrays as YAML lists or flow lists ([1, 2, 3]). Convert JSON examples into YAML indentation instead of pasting them.\n- Use only static values: no JavaScript functions, callbacks, variables, template expressions or undefined.\n\nChoosing a chart type. Pick by the question the chart answers, not by habit; [name] is the build_chart type, (topic) is the get_chart_guide topic with a hand-written example.\n- Trend over time: line [line]. Volume or part-to-whole over time: stacked area [area]. Long daily or price series: add range_slider, or candlestick/ohlc (timeseries).\n- Compare categories: bar [bar]; long labels or more than about 8 items: horizontal bar [barh], sorted by value. Two measures with different units: bars plus a line on a secondary y axis [combo].\n- Share of a whole: pie or donut [pie, donut], only with up to 6 parts; otherwise a sorted bar. Nested shares: treemap or sunburst [treemap, sunburst], icicle (hierarchy).\n- How a total builds up from gains and losses: waterfall [waterfall]. Drop-off through stages: funnel [funnel]. Flows between groups or stages: sankey (hierarchy).\n- Distribution of raw values: histogram [histogram]. Compare distributions across groups: box or violin [box, violin]. Two-variable density: histogram2dcontour (statistical).\n- Relationship between two measures: scatter [scatter]; a third measure as point size: bubble [bubble]; many variables at once: splom or parcoords (statistical, scientific). Uncertainty: error bars or a confidence band (statistical).\n- Values on a grid such as weekday by hour, or a correlation matrix: heatmap [heatmap]. A function of two variables: contour or surface (scientific).\n- Profile of items across several criteria: radar [radar]. Direction and magnitude: barpolar wind rose (scientific). Three parts that sum to a constant: scatterternary (scientific).\n- One headline number with its change: indicator [indicator]; a gauge or a KPI row (timeseries, layout).\n- Places: scattergeo or choropleth, tile maps with scattermap (maps).\n- Several panels, a secondary axis, buttons, sliders, reference lines or rich hover text: (layout).\n\nPrefer the simplest chart that answers the question. Use an advanced type when the data really has that shape (hierarchy, flow, distribution, matrix), not for decoration, and say in one line why you chose it.\n\nKeep the user's units and order. If a unit is unclear, do not convert it; show the original unit in an axis title.\n\nWorkflow: write the block, call check_chart with the block content (without the fence lines), fix every problem it reports, then insert the block into the note with the host's note-editing tools. These tools never change notes themselves. build_chart produces a checked block for every [name] type above; write the other types by hand from the topic examples.\n\nOther topics: style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "basics",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "style"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Apply this only when the user asks for a polished, clean or report-ready look. These are structure hints, not a finished chart: rewrite the real data, units, titles, hover text and annotations every time.\n\nPalette (always quoted in YAML): primary \"#2563EB\", highlight \"#C2410C\", neutral \"#64748B\", grid \"#E2E8F0\", text \"#334155\", title \"#0F172A\", series 2 \"#0F766E\", series 3 \"#7C3AED\". Do not tell series apart by colour alone: also vary the line dash, marker symbol or labels.\n\nlayout:\n  margin: {l: 50, r: 30, t: 90, b: 50, autoexpand: true}\n  xaxis: {automargin: true, showgrid: false, showline: false, zeroline: false}\n  yaxis: {automargin: true, showgrid: true, gridcolor: \"#E2E8F0\", griddash: \"dot\", showline: false, zeroline: false}\nconfig:\n  responsive: true\n  displaylogo: false\n\nNotes:\n- Automatic margins belong on axes and titles (automargin) and in margin.autoexpand, not at the top level of layout.\n- Skip a fixed height and a horizontal legend for long titles or narrow panes.\n- hovermode \"x unified\" suits series that share an x axis.\n- Bar value labels: texttemplate \"%{y:,.12~g}\" for vertical bars, \"%{x:,.12~g}\" for horizontal bars preserves meaningful decimals. Match the format and units to the data; with textposition \"outside\" and cliponaxis false, check margins and negative values.\n- Annotations: use only when needed (1 to 3), set xref and yref, and base causes or events on the user's material, never on the data alone.\n- Plotly.js draws a white background and does not inherit the Obsidian theme. State a white background only for report or print requests; for a dark look set explicit colours for paper_bgcolor, plot_bgcolor, font and grid.\n- When editing an existing chart, keep its data, layout, config, colours, axis ranges and uirevision and merge only the style properties you need.\n\nOther topics: basics, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "style",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "examples"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Line chart:\n```plotly\ndata:\n  - x: [\"Jan\", \"Feb\", \"Mar\", \"Apr\"]\n    y: [120, 150, 135, 180]\n    type: scatter\n    mode: lines+markers\n    name: \"Sales\"\n    line:\n      color: \"#2563EB\"\nlayout:\n  title:\n    text: \"Monthly sales\"\n  xaxis:\n    title:\n      text: \"Month\"\n  yaxis:\n    title:\n      text: \"Sales (10k KRW)\"\nconfig:\n  responsive: true\n```\n\nBar chart:\n```plotly\ndata:\n  - x: [\"Q1\", \"Q2\", \"Q3\", \"Q4\"]\n    y: [120, 200, 150, 180]\n    type: bar\n    name: \"Result\"\nlayout:\n  title:\n    text: \"Quarterly results\"\n  barmode: group\n  yaxis:\n    title:\n      text: \"Amount (10k KRW)\"\n```\n\nPie chart:\n```plotly\ndata:\n  - type: pie\n    labels: [\"A\", \"B\", \"C\", \"D\"]\n    values: [40, 25, 20, 15]\nlayout:\n  title:\n    text: \"Share by item\"\n```\n\nOther topics: basics, style, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "examples",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "statistical"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Distributions, uncertainty and relationships. Replace the sample numbers with the user's data.\n\nOverlaid histograms (raw values, Plotly does the binning; barmode overlay plus opacity keeps both visible; histnorm \"percent\" compares groups of different size):\n```plotly\ndata:\n  - {type: histogram, x: [52, 61, 58, 70, 66, 59, 73, 64, 68, 55], name: \"Class A\", nbinsx: 8, opacity: 0.6, marker: {color: \"#2563EB\"}}\n  - {type: histogram, x: [48, 57, 62, 51, 60, 54, 49, 63, 58, 50], name: \"Class B\", nbinsx: 8, opacity: 0.6, marker: {color: \"#C2410C\"}}\nlayout:\n  title: {text: \"Score distribution\"}\n  barmode: overlay\n  xaxis: {title: {text: \"Score\"}}\n  yaxis: {title: {text: \"Students\"}}\n```\n\nBox or violin by group: one trace per series; for groups inside each series give x as a category per point and set layout.boxmode (violinmode) to group. boxpoints \"all\" with jitter 0.3 shows every point when there are few. Violin: box: {visible: true}, meanline: {visible: true}, side \"positive\" for half violins.\n```plotly\ndata:\n  - {type: box, name: \"Plant 1\", y: [4.1, 4.5, 3.9, 5.2, 4.8, 6.9], boxmean: sd, boxpoints: all, jitter: 0.3}\n  - {type: violin, name: \"Plant 2\", y: [5.0, 5.4, 4.7, 5.9, 5.1, 5.6], box: {visible: true}, meanline: {visible: true}}\nlayout:\n  title: {text: \"Cycle time by plant\"}\n  yaxis: {title: {text: \"Minutes\"}}\n  showlegend: false\n```\n\nCorrelation matrix heatmap: fixed zmin -1, zmax 1 and a diverging scale centred on 0 (reversescale puts positive values in blue); texttemplate prints the value in each cell; autorange reversed keeps the first row on top.\n```plotly\ndata:\n  - type: heatmap\n    x: [\"Price\", \"Ads\", \"Visits\", \"Sales\"]\n    y: [\"Price\", \"Ads\", \"Visits\", \"Sales\"]\n    z: [[1, -0.2, -0.4, -0.5], [-0.2, 1, 0.7, 0.6], [-0.4, 0.7, 1, 0.8], [-0.5, 0.6, 0.8, 1]]\n    zmin: -1\n    zmax: 1\n    colorscale: RdBu\n    reversescale: true\n    texttemplate: \"%{z:.2f}\"\n    xgap: 2\n    ygap: 2\nlayout:\n  title: {text: \"Correlation\"}\n  yaxis: {autorange: reversed}\n```\n\nDensity of many points: histogram2dcontour (or histogram2d) with x and y arrays, ncontours 15, colorscale Blues, optionally under a scatter trace with small translucent markers.\n\nScatter matrix (splom) for 3 to 6 numeric variables:\n```plotly\ndata:\n  - type: splom\n    dimensions:\n      - {label: \"Height (cm)\", values: [160, 172, 181, 168, 175]}\n      - {label: \"Weight (kg)\", values: [55, 70, 82, 63, 74]}\n      - {label: \"Age\", values: [23, 35, 41, 29, 38]}\n    text: [\"A\", \"B\", \"C\", \"D\", \"E\"]\n    marker: {size: 7, color: \"#2563EB\", line: {color: \"#FFFFFF\", width: 0.5}}\n    diagonal: {visible: false}\n    showupperhalf: false\nlayout:\n  title: {text: \"Body measures\"}\n```\n\nUncertainty:\n- Error bars: error_y: {type: data, array: [0.4, 0.3, 0.5], visible: true}; asymmetric with symmetric: false and arrayminus. error_x works the same way.\n- Confidence band: an upper trace with line width 0, then a lower trace with fill tonexty and fillcolor \"rgba(37, 99, 235, 0.15)\", then the mean line. Set showlegend: false on the band traces.\n\nTrend lines and moving averages: Plotly does not fit them. Compute the fitted or averaged values from the user's data yourself, add them as an extra line trace (dash \"dash\") and say how they were computed.\n\nOther topics: basics, style, examples, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "statistical",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "hierarchy"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Hierarchies, flows and step-by-step totals.\n\nTreemap, sunburst and icicle take the same data: labels (unique; use ids when two nodes share a name), parents (\"\" for a top-level node) and values. branchvalues \"total\" means a parent's value is the sum of its children; it draws nothing when a parent is smaller than its children, so leave branchvalues out (remainder: a parent's value is added to its children) unless the parent values are exact sums. Use maxdepth 2 for deep trees, and textinfo \"label+value+percent parent\". Change type to sunburst or icicle without changing the data; icicle takes tiling: {orientation: v} for a top-down layout.\n```plotly\ndata:\n  - type: treemap\n    labels: [\"Total\", \"Hardware\", \"Software\", \"Services\", \"Laptops\", \"Phones\", \"Licences\", \"Cloud\"]\n    parents: [\"\", \"Total\", \"Total\", \"Total\", \"Hardware\", \"Hardware\", \"Software\", \"Software\"]\n    values: [100, 45, 35, 20, 25, 20, 15, 20]\n    branchvalues: total\n    textinfo: \"label+value+percent parent\"\n    marker: {line: {color: \"#FFFFFF\", width: 2}}\nlayout:\n  title: {text: \"Revenue by segment (100M KRW)\"}\n  margin: {l: 10, r: 10, t: 60, b: 10}\n```\n\nSankey for flows between groups or stages: node.label lists every node once; link.source and link.target are 0-based indexes into node.label; link.value is the size of each flow. All three link arrays must have the same length. Give node colours and translucent link colours; arrangement snap lets the user drag nodes.\n```plotly\ndata:\n  - type: sankey\n    arrangement: snap\n    node:\n      label: [\"Visitors\", \"Sign-up\", \"Bounce\", \"Paid\", \"Free\"]\n      color: [\"#64748B\", \"#2563EB\", \"#C2410C\", \"#0F766E\", \"#7C3AED\"]\n      pad: 18\n      thickness: 16\n    link:\n      source: [0, 0, 1, 1]\n      target: [1, 2, 3, 4]\n      value: [620, 380, 140, 480]\n      color: [\"rgba(37, 99, 235, 0.3)\", \"rgba(194, 65, 12, 0.3)\", \"rgba(15, 118, 110, 0.3)\", \"rgba(124, 58, 237, 0.3)\"]\nlayout:\n  title: {text: \"Visitor flow\"}\n```\n\nWaterfall for how a starting value becomes an ending value: measure lists relative (a change), total (draws the running total; its y is ignored, use 0) or absolute (resets the level) for each x.\n```plotly\ndata:\n  - type: waterfall\n    x: [\"Revenue\", \"Cost of sales\", \"Gross profit\", \"Opex\", \"Tax\", \"Net profit\"]\n    measure: [absolute, relative, total, relative, relative, total]\n    y: [500, -210, 0, -150, -35, 0]\n    texttemplate: \"%{delta:,.0f}\"\n    textposition: outside\n    increasing: {marker: {color: \"#0F766E\"}}\n    decreasing: {marker: {color: \"#C2410C\"}}\n    totals: {marker: {color: \"#2563EB\"}}\n    connector: {line: {color: \"#64748B\", dash: dot}}\nlayout:\n  title: {text: \"Profit bridge (M KRW)\"}\n  showlegend: false\n```\n\nFunnel for drop-off through ordered stages: y holds the stages top to bottom, x the counts; textinfo \"value+percent initial\" (or \"percent previous\"). Several funnel traces with layout.funnelmode group compare segments side by side. funnelarea draws a proportional funnel from labels and values, like a pie.\n\nParallel categories (parcats) shows how records split across several categorical dimensions: dimensions: [{label: \"Plan\", values: [...]}, {label: \"Region\", values: [...]}], one value per record in every dimension; colour by a number with line: {color: [...], colorscale: Blues}.\n\nPrefer a sorted bar chart when there is only one level, and a sankey only when the flows really connect stages.\n\nOther topics: basics, style, examples, statistical, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "hierarchy",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "timeseries"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Dates, prices, events and KPI numbers.\n\nDate axes: quote ISO dates (\"2026-03-01\" or \"2026-03-01 09:30\"). Plotly detects a date axis; set xaxis.type date only if it does not. Format ticks with tickformat \"%b %Y\" and hover with hoverformat \"%Y-%m-%d\". Hide weekends or closed hours with rangebreaks: [{pattern: \"day of week\", bounds: [6, 1]}, {pattern: hour, bounds: [18, 9]}] (6 to 1 skips Saturday and Sunday).\n\nRange slider and range buttons for long series:\n```plotly\ndata:\n  - {type: scatter, mode: lines, name: \"Visits\", x: [\"2026-01-01\", \"2026-02-01\", \"2026-03-01\", \"2026-04-01\", \"2026-05-01\", \"2026-06-01\"], y: [1200, 1350, 1280, 1610, 1720, 1690], line: {color: \"#2563EB\", width: 2}}\nlayout:\n  title: {text: \"Monthly visits\"}\n  xaxis:\n    rangeslider: {visible: true}\n    rangeselector:\n      buttons:\n        - {count: 3, label: \"3M\", step: month, stepmode: backward}\n        - {count: 1, label: \"YTD\", step: year, stepmode: todate}\n        - {step: all, label: \"All\"}\n  yaxis: {title: {text: \"Visits\"}}\n```\n\nCandlestick (or ohlc) for prices: x, open, high, low and close arrays of the same length. The range slider is on by default; turn it off with xaxis.rangeslider.visible false when there are few points.\n```plotly\ndata:\n  - type: candlestick\n    name: \"ABC\"\n    x: [\"2026-03-02\", \"2026-03-03\", \"2026-03-04\", \"2026-03-05\", \"2026-03-06\"]\n    open: [101, 104, 103, 107, 106]\n    high: [105, 106, 108, 109, 108]\n    low: [99, 102, 101, 104, 102]\n    close: [104, 103, 107, 106, 103]\n    increasing: {line: {color: \"#0F766E\"}}\n    decreasing: {line: {color: \"#C2410C\"}}\nlayout:\n  title: {text: \"ABC daily price\"}\n  xaxis: {rangeslider: {visible: false}, rangebreaks: [{pattern: \"day of week\", bounds: [6, 1]}]}\n  yaxis: {title: {text: \"Price (USD)\"}}\n```\nAdd volume as a bar trace on yaxis y2 with layout.yaxis.domain [0.3, 1] and layout.yaxis2.domain [0, 0.25] (see layout for subplots).\n\nEvent periods and reference dates: layout.shapes with xref x and yref paper span the full height.\n  shapes:\n    - {type: rect, xref: x, yref: paper, x0: \"2026-02-01\", x1: \"2026-03-01\", y0: 0, y1: 1, fillcolor: \"rgba(100, 116, 139, 0.12)\", line: {width: 0}, layer: below}\n    - {type: line, xref: x, yref: paper, x0: \"2026-04-01\", x1: \"2026-04-01\", y0: 0, y1: 1, line: {color: \"#C2410C\", dash: dot}}\nLabel them with an annotation (xref x, yref paper, y 1, showarrow false) and base the label on the user's material.\n\nKPI indicator with change and gauge:\n```plotly\ndata:\n  - type: indicator\n    mode: \"number+delta+gauge\"\n    value: 87\n    title: {text: \"Satisfaction (%)\"}\n    delta: {reference: 82, increasing: {color: \"#0F766E\"}, decreasing: {color: \"#C2410C\"}}\n    gauge:\n      axis: {range: [0, 100]}\n      bar: {color: \"#2563EB\"}\n      threshold: {value: 90, line: {color: \"#C2410C\", width: 3}, thickness: 0.8}\nlayout:\n  margin: {l: 30, r: 30, t: 60, b: 20}\n  height: 260\n```\nmode \"number+delta\" alone gives a plain KPI tile; delta.relative true with valueformat \".1%\" shows the change in percent. Several indicators in one chart: give each trace domain: {row: 0, column: 0} and set layout.grid: {rows: 1, columns: 3}.\n\nOther topics: basics, style, examples, statistical, hierarchy, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "timeseries",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "scientific"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "3D, contour, polar, ternary and multivariate charts.\n\nSurface or contour from a grid: z is a list of rows (one list per y value); x and y give the grid coordinates. contour takes contours: {coloring: heatmap, showlabels: true}; a surface sits in layout.scene with xaxis, yaxis and zaxis titles.\n```plotly\ndata:\n  - type: contour\n    x: [0, 1, 2, 3, 4]\n    y: [0, 1, 2, 3]\n    z: [[1, 2, 3, 2, 1], [2, 4, 6, 4, 2], [3, 6, 9, 6, 3], [2, 4, 6, 4, 2]]\n    colorscale: Viridis\n    contours: {coloring: heatmap, showlabels: true}\n    colorbar: {title: {text: \"Yield\"}}\nlayout:\n  title: {text: \"Yield by temperature and pressure\"}\n  xaxis: {title: {text: \"Temperature step\"}}\n  yaxis: {title: {text: \"Pressure step\"}}\n```\nFor 3D change type to surface and use layout.scene: {xaxis: {title: {text: \"...\"}}, yaxis: {...}, zaxis: {...}, camera: {eye: {x: 1.6, y: 1.6, z: 0.9}}}. scatter3d takes x, y, z arrays with mode markers or lines; mesh3d takes vertex arrays. Use 3D only when the third dimension matters: a heatmap or contour is easier to read.\n\nWind rose or cyclic categories with barpolar (several traces stack by direction):\n```plotly\ndata:\n  - {type: barpolar, name: \"0-5 m/s\", r: [8, 5, 4, 6, 9, 7, 5, 6], theta: [\"N\", \"NE\", \"E\", \"SE\", \"S\", \"SW\", \"W\", \"NW\"], marker: {color: \"#93C5FD\"}}\n  - {type: barpolar, name: \"5-10 m/s\", r: [4, 3, 2, 3, 6, 5, 3, 2], theta: [\"N\", \"NE\", \"E\", \"SE\", \"S\", \"SW\", \"W\", \"NW\"], marker: {color: \"#2563EB\"}}\nlayout:\n  title: {text: \"Wind direction (%)\"}\n  polar:\n    angularaxis: {direction: clockwise, rotation: 90}\n    radialaxis: {ticksuffix: \"%\"}\n```\nscatterpolar with fill toself makes a radar chart (build_chart type radar); repeat the first point at the end to close the outline.\n\nTernary for three parts that sum to a constant (soil, mixtures, budget splits):\n```plotly\ndata:\n  - type: scatterternary\n    mode: \"markers+text\"\n    a: [40, 20, 60]\n    b: [30, 50, 10]\n    c: [30, 30, 30]\n    text: [\"S1\", \"S2\", \"S3\"]\n    textposition: \"top center\"\n    marker: {size: 10, color: \"#2563EB\"}\nlayout:\n  title: {text: \"Mixture composition (%)\"}\n  ternary:\n    sum: 100\n    aaxis: {title: {text: \"Sand\"}}\n    baxis: {title: {text: \"Silt\"}}\n    caxis: {title: {text: \"Clay\"}}\n```\n\nParallel coordinates for many numeric columns of the same records:\n```plotly\ndata:\n  - type: parcoords\n    line: {color: [1, 2, 3, 4], colorscale: Viridis, showscale: true}\n    dimensions:\n      - {label: \"Price\", values: [12, 18, 9, 15]}\n      - {label: \"Rating\", values: [4.2, 4.6, 3.8, 4.4], range: [1, 5]}\n      - {label: \"Delivery (days)\", values: [3, 5, 2, 4]}\nlayout:\n  title: {text: \"Supplier comparison\"}\n```\n\nA table trace shows exact numbers next to a chart: header: {values: [\"Item\", \"Qty\"]}, cells: {values: [[\"A\", \"B\"], [3, 5]]} (cells.values holds columns, not rows).\n\nWebGL traces (scattergl, scatter3d, surface, mesh3d, splom, parcoords) need WebGL; browsers allow only a limited number of WebGL charts on one page, so keep them few in a note. Use scattergl instead of scatter only above roughly 10,000 points.\n\nOther topics: basics, style, examples, statistical, hierarchy, timeseries, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "scientific",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "maps"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Maps need an internet connection: geo traces download country outlines and tile maps download map tiles. Say so when you add one, and offer a bar chart of the same values for offline use.\n\nChoropleth or bubble map of countries (geo): locations are ISO-3 codes with locationmode ISO-3.\n```plotly\ndata:\n  - type: choropleth\n    locationmode: ISO-3\n    locations: [\"KOR\", \"JPN\", \"USA\", \"DEU\", \"FRA\"]\n    z: [52, 41, 77, 63, 58]\n    text: [\"Korea\", \"Japan\", \"United States\", \"Germany\", \"France\"]\n    colorscale: Blues\n    colorbar: {title: {text: \"Index\"}}\n    marker: {line: {color: \"#FFFFFF\", width: 0.5}}\nlayout:\n  title: {text: \"Index by country\"}\n  geo: {projection: {type: \"natural earth\"}, showframe: false, showcoastlines: false, showland: true, landcolor: \"#F1F5F9\"}\n```\nscattergeo takes lat and lon (or locations) and marker.size for bubbles; layout.geo.scope (asia, europe, usa, ...) zooms to a region, and fitbounds locations zooms to the data.\n\nTile maps (MapLibre): scattermap, densitymap and choroplethmap with layout.map. The free styles open-street-map, carto-positron and carto-darkmatter need no token.\n```plotly\ndata:\n  - type: scattermap\n    lat: [37.5665, 35.1796, 35.8714]\n    lon: [126.978, 129.0756, 128.6014]\n    text: [\"Seoul\", \"Busan\", \"Daegu\"]\n    mode: \"markers+text\"\n    textposition: \"top right\"\n    marker: {size: [18, 12, 10], color: \"#2563EB\"}\nlayout:\n  title: {text: \"Offices\"}\n  map: {style: carto-positron, center: {lat: 36.3, lon: 127.8}, zoom: 5.5}\n  margin: {l: 0, r: 0, t: 50, b: 0}\n```\nchoroplethmap needs geojson: a URL string to a GeoJSON file, with featureidkey matching locations. The mapbox traces (scattermapbox, choroplethmapbox, densitymapbox) and layout.mapbox no longer exist in this Plotly version; use the map ones.\n\nOther topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "maps",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "layout"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Combining views, interaction and annotation in one chart.\n\nSubplots: layout.grid places axes in rows and columns; each trace picks its axes with xaxis x2 and yaxis y2 (x3/y3, ...), and each axis is styled as xaxis2, yaxis2. Pie, indicator, sunburst and other non-axis traces use domain: {row: 0, column: 1} instead.\n```plotly\ndata:\n  - {type: bar, x: [\"Q1\", \"Q2\", \"Q3\", \"Q4\"], y: [120, 150, 170, 160], name: \"Revenue\", marker: {color: \"#2563EB\"}}\n  - {type: scatter, mode: \"lines+markers\", x: [\"Q1\", \"Q2\", \"Q3\", \"Q4\"], y: [8.1, 9.4, 10.2, 9.8], name: \"Margin\", xaxis: x2, yaxis: y2, line: {color: \"#C2410C\"}}\nlayout:\n  title: {text: \"Revenue and margin\"}\n  grid: {rows: 1, columns: 2, pattern: independent}\n  yaxis: {title: {text: \"Revenue (M KRW)\"}}\n  yaxis2: {title: {text: \"Margin (%)\"}}\n  showlegend: false\n```\nFor panels that share an x axis use grid pattern coupled, or set yaxis.domain and yaxis2.domain by hand (e.g. [0.35, 1] and [0, 0.3]) with both traces on x.\n\nSecondary y axis (two units on one plot): put the second trace on yaxis y2 and set\n  yaxis2: {title: {text: \"Rate (%)\"}, overlaying: \"y\", side: right, showgrid: false, tickmode: auto}\ntickmode auto keeps round tick values; without it the second axis aligns its ticks to the first axis grid.\nUse it for two different units only, never to make two series of the same unit look alike.\n\nRich hover: hovertemplate \"%{x}<br>Sales %{y:,.0f} KRW<extra></extra>\" (<extra></extra> hides the trace name box). Pass extra columns with customdata (a list of lists, one per point) and refer to them as %{customdata[0]}. hovermode \"x unified\" compares series at one x.\n\nReference lines and bands: layout.shapes with type line or rect. xref paper with x0 0 and x1 1 spans the full width:\n  shapes:\n    - {type: line, xref: paper, x0: 0, x1: 1, y0: 100, y1: 100, line: {color: \"#C2410C\", dash: dash, width: 1.5}}\n    - {type: rect, xref: paper, x0: 0, x1: 1, y0: 80, y1: 120, fillcolor: \"rgba(15, 118, 110, 0.08)\", line: {width: 0}, layer: below}\n  annotations:\n    - {xref: paper, x: 1, y: 100, text: \"Target\", showarrow: false, xanchor: right, yanchor: bottom}\n\nButtons (updatemenus) switch series or settings without code: method restyle changes traces, relayout changes the layout, update does both. args are static values.\n```plotly\ndata:\n  - {type: bar, name: \"2025\", x: [\"A\", \"B\", \"C\"], y: [3, 5, 2], marker: {color: \"#64748B\"}}\n  - {type: bar, name: \"2026\", x: [\"A\", \"B\", \"C\"], y: [4, 6, 3], marker: {color: \"#2563EB\"}}\nlayout:\n  title: {text: \"Sales by item\"}\n  updatemenus:\n    - type: buttons\n      direction: right\n      x: 0\n      y: 1.15\n      xanchor: left\n      buttons:\n        - {label: \"Both\", method: restyle, args: [{visible: [true, true]}]}\n        - {label: \"2025\", method: restyle, args: [{visible: [true, false]}]}\n        - {label: \"2026\", method: restyle, args: [{visible: [false, true]}]}\n    - type: buttons\n      direction: right\n      x: 1\n      y: 1.15\n      xanchor: right\n      buttons:\n        - {label: \"Linear\", method: relayout, args: [{\"yaxis.type\": linear}]}\n        - {label: \"Log\", method: relayout, args: [{\"yaxis.type\": log}]}\n```\ntype dropdown gives a menu instead of buttons. Quote keys that contain a dot (\"yaxis.type\").\n\nSliders step through views (a year, a scenario): layout.sliders: [{active: 0, currentvalue: {prefix: \"Year: \"}, steps: [{label: \"2025\", method: restyle, args: [{visible: [true, false]}]}, {label: \"2026\", method: restyle, args: [{visible: [false, true]}]}]}], with one trace per step.\n\nAnimations are not available: the block allows only data, layout, config and fit, so there are no frames. Use a slider or buttons instead.\n\nLegends: legendgroup ties traces that toggle together; legend.groupclick togglegroup; showlegend false hides helper traces such as bands. Put a horizontal legend above the plot with legend: {orientation: h, y: 1.02, yanchor: bottom, x: 0}.\n\nOther topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "layout",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "dataviewjs"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Use DataviewJS only when the user explicitly wants a chart computed from dynamic vault data and the Dataview plugin is enabled. Present the block for the user to run; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.\n\n```dataviewjs\n// Compute data, layout and config yourself, then call:\nawait window.renderPlotly(this.container, data, layout, config);\n```\n\nCode that reads window.Plotly or window.d3 directly must first run: const { Plotly, d3 } = await window.loadPlotlyLibraries();\nwindow.renderPlotly waits for the libraries by itself. Plotly.newPlot does not work inside DataviewJS; use window.renderPlotly. The read_charts tool counts dataviewjs chart blocks but does not check them.\n\nOther topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "dataviewjs",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "errors"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "- The block shows as plain code: the Chart Hands plugin is disabled, or the code fence language is not exactly \"plotly\".\n- \"Couldn't render plot\": check that the top-level keys are only data, layout, config and fit, and that YAML indentation, quotes and list syntax are valid. Run check_chart on the block content.\n- A colour is ignored or null: it was written without quotes. Write color: \"#2563EB\".\n- A date axis shows odd values: quote the date strings.\n- Nothing is drawn and no error is shown: the code fence may be unclosed; read_charts reports blocks without a closing fence.\n- The chart is clipped in PDF export: the plugin setting \"Fit the page width when exporting to PDF\" can be turned on.\n- A treemap, sunburst or icicle is empty: every parent must be one of the labels (or \"\"), labels must be unique (or use ids), and with branchvalues total a parent must not be smaller than the sum of its children. Remove branchvalues to fall back to remainder.\n- A sankey shows no links: link.source and link.target are 0-based indexes into node.label, and source, target and value need the same length.\n- A heatmap, contour or surface is blank: z must be a list of rows (a list of lists), with one entry per x in each row.\n- A map stays empty: maps need an internet connection; mapbox trace types do not exist in this Plotly version (use scattermap, choroplethmap, densitymap with layout.map).\n- A 3D or WebGL chart is blank: WebGL may be unavailable, or the note has too many WebGL charts.\n- check_chart reports a title \"must be linked to an object container\": write title: {text: \"...\"} instead of a plain string.\n- \"frames\" is reported as an unsupported key: animations are not available; use layout.sliders or updatemenus.\n- After inserting, ask the user to confirm the block renders as a chart in reading view, or use read_charts to confirm it is found with no problems.\n\nOther topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs."
+          }
+        ],
+        "structuredContent": {
+          "topic": "errors",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "invalid"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "topic must be one of: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": ""
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "topic must be one of: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "line",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines+markers\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"dash\": \"solid\",\n        \"width\": 2\n      },\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"size\": 7\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines+markers\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"dash\": \"solid\",\n        \"width\": 2\n      },\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"size\": 7\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"line\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "area",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines\",\n      \"fill\": \"tozeroy\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"width\": 2\n      },\n      \"fillcolor\": \"rgba(37, 99, 235, 0.18)\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines\",\n      \"fill\": \"tozeroy\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"width\": 2\n      },\n      \"fillcolor\": \"rgba(37, 99, 235, 0.18)\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"area\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "barh",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{x:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{x:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"barh\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "combo",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"combo\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "scatter",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"size\": 8,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"size\": 8,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"scatter\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bubble",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"marker\": {\n        \"size\": [\n          2,\n          3\n        ],\n        \"sizemode\": \"area\",\n        \"sizeref\": 0.00375,\n        \"sizemin\": 4,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"opacity\": 0.7,\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      },\n      \"name\": \"Series\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"marker\": {\n        \"size\": [\n          2,\n          3\n        ],\n        \"sizemode\": \"area\",\n        \"sizeref\": 0.00375,\n        \"sizemin\": 4,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"opacity\": 0.7,\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      },\n      \"name\": \"Series\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bubble\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "pie",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "donut",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"hole\": 0.55,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"hole\": 0.55,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"donut\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "treemap",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ],
+        "parents": [
+          "",
+          "A"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"treemap\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+value+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"treemap\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+value+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"treemap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}],\"parents\":[\"\",\"A\"]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "sunburst",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ],
+        "parents": [
+          "",
+          "A"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"sunburst\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"sunburst\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"sunburst\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}],\"parents\":[\"\",\"A\"]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "waterfall",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"waterfall\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"measure\": [\n        \"relative\",\n        \"relative\"\n      ],\n      \"name\": \"Series\",\n      \"texttemplate\": [\n        \"%{delta:+,.12~g}\",\n        \"%{delta:+,.12~g}\"\n      ],\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"increasing\": {\n        \"marker\": {\n          \"color\": \"#0F766E\"\n        }\n      },\n      \"decreasing\": {\n        \"marker\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"totals\": {\n        \"marker\": {\n          \"color\": \"#2563EB\"\n        }\n      },\n      \"connector\": {\n        \"line\": {\n          \"color\": \"#64748B\",\n          \"dash\": \"dot\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"waterfall\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"measure\": [\n        \"relative\",\n        \"relative\"\n      ],\n      \"name\": \"Series\",\n      \"texttemplate\": [\n        \"%{delta:+,.12~g}\",\n        \"%{delta:+,.12~g}\"\n      ],\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"increasing\": {\n        \"marker\": {\n          \"color\": \"#0F766E\"\n        }\n      },\n      \"decreasing\": {\n        \"marker\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"totals\": {\n        \"marker\": {\n          \"color\": \"#2563EB\"\n        }\n      },\n      \"connector\": {\n        \"line\": {\n          \"color\": \"#64748B\",\n          \"dash\": \"dot\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"waterfall\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "funnel",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"funnel\",\n      \"textinfo\": \"value+percent initial\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"funnel\",\n      \"textinfo\": \"value+percent initial\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"funnel\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "histogram",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"type\": \"histogram\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"type\": \"histogram\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"histogram\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "box",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"box\",\n      \"boxmean\": true,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"box\",\n      \"boxmean\": true,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"box\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "violin",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"violin\",\n      \"box\": {\n        \"visible\": true\n      },\n      \"meanline\": {\n        \"visible\": true\n      },\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"violin\",\n      \"box\": {\n        \"visible\": true\n      },\n      \"meanline\": {\n        \"visible\": true\n      },\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"violin\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "heatmap",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"heatmap\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        \"Series\"\n      ],\n      \"z\": [\n        [\n          1,\n          2\n        ]\n      ],\n      \"colorscale\": [\n        [\n          0,\n          \"#EFF6FF\"\n        ],\n        [\n          0.5,\n          \"#60A5FA\"\n        ],\n        [\n          1,\n          \"#1E3A8A\"\n        ]\n      ],\n      \"xgap\": 2,\n      \"ygap\": 2,\n      \"texttemplate\": \"%{z:,}\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"autorange\": \"reversed\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"heatmap\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        \"Series\"\n      ],\n      \"z\": [\n        [\n          1,\n          2\n        ]\n      ],\n      \"colorscale\": [\n        [\n          0,\n          \"#EFF6FF\"\n        ],\n        [\n          0.5,\n          \"#60A5FA\"\n        ],\n        [\n          1,\n          \"#1E3A8A\"\n        ]\n      ],\n      \"xgap\": 2,\n      \"ygap\": 2,\n      \"texttemplate\": \"%{z:,}\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"autorange\": \"reversed\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"heatmap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "radar",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "a radar chart needs at least 3 labels (one per axis)."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "indicator",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "name": "Series",
+            "values": [
+              1,
+              2
+            ],
+            "x": [
+              1,
+              2
+            ],
+            "size": [
+              2,
+              3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"number+delta\",\n      \"value\": 1,\n      \"delta\": {\n        \"reference\": 2,\n        \"relative\": true,\n        \"valueformat\": \".1%\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"title\": {\n        \"text\": \"Series\"\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"number+delta\",\n      \"value\": 1,\n      \"delta\": {\n        \"reference\": 2,\n        \"relative\": true,\n        \"valueformat\": \".1%\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"title\": {\n        \"text\": \"Series\"\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"indicator\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [],
+        "series": []
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "labels is required for this chart type (categories, slice or node names, heatmap columns or radar axes)."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "invalid",
+        "series": []
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "type must be one of: line, area, bar, barh, combo, scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar, indicator."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": []
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[0].values must be a non-empty array of numbers."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "pie",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          },
+          {
+            "values": [
+              2
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nA pie chart shows one series; only the first was used.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\"\n      ],\n      \"values\": [\n        1\n      ],\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\"\n      ],\n      \"values\": [\n        1\n      ],\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]},{\"values\":[2]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "unknown",
+      "args": {},
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Unknown tool: unknown"
+          }
+        ],
+        "structuredContent": {
+          "code": "UNKNOWN_TOOL",
+          "retryable": false
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "UNKNOWN_TOOL",
+            "retryable": false
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "../outside.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "path must be a vault-relative path."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {},
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The call was cancelled."
+          }
+        ],
+        "structuredContent": {
+          "code": "CANCELLED",
+          "retryable": false
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "CANCELLED",
+            "retryable": false
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {},
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "The plugin has been unloaded."
+          }
+        ],
+        "structuredContent": {
+          "code": "DISPOSED",
+          "retryable": false
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "DISPOSED",
+            "retryable": false
+          }
+        }
+      }
+    }
+  ],
+  "ui": [
+    {
+      "kind": "command",
+      "values": [
+        "add-plotly-example",
+        "New Plotly chart"
+      ]
+    },
+    {
+      "kind": "command",
+      "values": [
+        "add-plotly-dataviewjs-example",
+        "New Plotly chart (Dataviewjs)"
+      ]
+    },
+    {
+      "kind": "name",
+      "values": [
+        "Fit chart width"
+      ]
+    },
+    {
+      "kind": "description",
+      "values": [
+        "Fit charts to the note width. Add \"fit: off\", \"fit: shrink\" or \"fit: fill\" to a code block to override this for that chart."
+      ]
+    },
+    {
+      "kind": "option",
+      "values": [
+        "shrink",
+        "Shrink only when wider"
+      ]
+    },
+    {
+      "kind": "option",
+      "values": [
+        "fill",
+        "Always fill the width"
+      ]
+    },
+    {
+      "kind": "option",
+      "values": [
+        "off",
+        "Off (original size)"
+      ]
+    },
+    {
+      "kind": "name",
+      "values": [
+        "Keep aspect ratio when shrinking"
+      ]
+    },
+    {
+      "kind": "description",
+      "values": [
+        "Scale the height along with the width. When off, the height stays as set."
+      ]
+    },
+    {
+      "kind": "name",
+      "values": [
+        "Fit the page width when exporting to PDF"
+      ]
+    },
+    {
+      "kind": "description",
+      "values": [
+        "Scale charts wider than the page down to the page width when exporting to PDF or printing, so they are not clipped."
+      ]
+    },
+    {
+      "kind": "notice",
+      "values": [
+        "Chart Hands: loading Plotly and D3…",
+        0
+      ]
+    },
+    {
+      "kind": "notice",
+      "values": [
+        "Chart Hands: could not load Plotly. It will retry on next use.\nSynthetic loader failure",
+        8000
+      ]
+    },
+    {
+      "kind": "notice",
+      "values": [
+        "Chart Hands: loading Plotly and D3…",
+        0
+      ]
+    },
+    {
+      "kind": "notice",
+      "values": [
+        "Chart Hands: could not load Plotly. It will retry on next use.\nSynthetic loader failure",
+        8000
+      ]
+    },
+    {
+      "kind": "render-error",
+      "values": [
+        "Couldn't render plot:Error: Synthetic loader failure"
+      ]
+    }
+  ]
+}

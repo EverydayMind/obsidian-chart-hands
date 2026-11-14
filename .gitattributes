@@ -1,2 +1,4 @@
 # Deployed files must stay byte-identical to what is committed.
 * -text
+test/fixtures/locale-ko.json -text
+test/fixtures/locale-ko-coverage.json -text

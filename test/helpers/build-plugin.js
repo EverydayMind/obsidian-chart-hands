@@ -16,5 +16,6 @@ module.exports = function buildPlugin() {
         logLevel: 'silent'
     });
     // esbuild keeps import() of external packages; a vm context has no dynamic import callback.
-    return result.outputFiles[0].text.replace(/import\((["'][^"']+["'])\)/g, 'Promise.resolve().then(() => require($1))');
+    return result.outputFiles[0].text.replace(/import\((["'][^"']+["'])\)/g, 'Promise.resolve().then(() => require($1))')
+        + '\nmodule.exports.setLocaleForTests?.("ko");\n';
 };

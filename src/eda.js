@@ -138,7 +138,7 @@ function aggregate(dataset, spec) {
         ...(additive ? { total: finite(total) } : { overall: finite(overall) }), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
 }
 
-export function analyze(dataset, spec) {
+export function analyze(dataset, spec, locale = 'ko') {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
     if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
     const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
@@ -188,7 +188,9 @@ export function analyze(dataset, spec) {
         if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('rows limit must be an integer from 1 to 100.');
         if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
         if (spec.sort !== undefined && !['asc', 'desc'].includes(spec.sort)) throw new Error('rows sort must be asc or desc.');
-        if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error(`rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (sort는 그대로 두고 sort_by를 더한다)`);
+        if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error(locale === 'ko'
+            ? `rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (sort는 그대로 두고 sort_by를 더한다)`
+            : `To use sort with rows, also provide a column name in sort_by. Example: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (keep sort as it is and add sort_by)`);
         if (spec.sort_by !== undefined) {
             if (typeof spec.sort_by !== 'string') throw new Error('rows sort_by must be a column name.');
             const sortIndex = indexOf(dataset, spec.sort_by), direction = spec.sort ?? 'asc';

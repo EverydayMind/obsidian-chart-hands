@@ -3,6 +3,7 @@ import { parseDataset, profile, analyze, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } 
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
+import { getLocale, initLocale } from './locale.js';
 
 // Plotly.js and D3 are bundled into main.js by esbuild, but each import() below becomes a lazy
 // module: its code only runs on the first call, so the vault opens without evaluating either.
@@ -397,7 +398,8 @@ const agentMeta = (effect) => ({
 });
 const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': EDA_KEYWORDS });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
-const AGENT_TOOLS = [
+const createAgentTools = (locale) => {
+const tools = [
     {
         name: 'eda_profile', title: 'Profile a CSV dataset',
         description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
@@ -518,6 +520,20 @@ const AGENT_TOOLS = [
         _meta: agentMeta('pure')
     }
 ];
+if (locale === 'en') {
+    const translations = {
+        '차트': 'chart', '그래프': 'graph', '도표': 'diagram', '시각화': 'visualization', '파이': 'pie', '막대': 'bar',
+        '분포': 'distribution', '히트맵': 'heatmap', '산점도': 'scatterplot', '대시보드': 'dashboard',
+        '데이터': 'data', '분석': 'analysis', '통계': 'statistics', '집계': 'aggregate', '합계': 'sum',
+        '평균': 'average', '상관': 'correlation', '추이': 'trend', '인사이트': 'insight', '계산': 'calculation', '누계': 'cumulative'
+    };
+    for (const tool of tools) {
+        tool._meta['dev.agentinterop/keywords'] = [...new Set(tool._meta['dev.agentinterop/keywords'].map(keyword => translations[keyword] || keyword))];
+        if (tool.name === 'eda_analyze') tool.description = tool.description.replace('연월', 'year_month');
+    }
+}
+return tools;
+};
 const AGENT_INSTRUCTIONS = 'For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups, change between periods), histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose charts for the question (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI. Use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not how the chart looks on screen.';
 
 class AgentToolError extends Error {
@@ -760,7 +776,7 @@ const normalizeAgentPath = (value) => {
     }
     return parts.filter(part => part && part !== '.').join('/');
 };
-const createAgentProvider = (plugin) => {
+const createAgentProvider = (plugin, locale = getLocale()) => {
     const descriptor = {
         provider: {
             id: plugin.manifest.id,
@@ -769,7 +785,7 @@ const createAgentProvider = (plugin) => {
             description: 'Analyze CSV data and build, check and read Plotly charts'
         },
         instructions: AGENT_INSTRUCTIONS,
-        tools: AGENT_TOOLS
+        tools: createAgentTools(locale)
     };
     let disposed = false;
     const readDataset = async (rawPath) => {
@@ -796,7 +812,7 @@ const createAgentProvider = (plugin) => {
         eda_analyze: async (args) => {
             const { path, dataset } = await readDataset(args.path);
             let result;
-            try { result = analyze(dataset, args.analysis); }
+            try { result = analyze(dataset, args.analysis, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
             return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
@@ -978,6 +994,7 @@ class ChartHandsSettingTab extends obsidian.PluginSettingTab {
 class ChartHandsPlugin extends obsidian.Plugin {
     onload() {
         return __awaiter(this, void 0, void 0, function* () {
+            initLocale();
             this.unloaded = false;
                         this.librariesPromise = null;
             this.layoutReady = new Promise(resolve => {
@@ -1123,5 +1140,6 @@ ${error.message}`, 8000);
 export default ChartHandsPlugin;
 // For tests outside Obsidian; Obsidian itself only uses the default export.
 export { createAgentProvider };
+export { getLocale, resolveLocale, setLocaleForTests } from './locale.js';
 
 

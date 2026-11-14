@@ -1,0 +1,1086 @@
+{
+  "descriptor": {
+    "provider": {
+      "id": "chart-hands",
+      "name": "Chart Hands",
+      "version": "test",
+      "description": "Analyze CSV data and build, check and read Plotly charts"
+    },
+    "instructions": "For CSV exploration use eda_profile to inspect schema and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups, change between periods), histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. Use results to choose charts; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a fenced code block with language plotly. Its content is YAML or JSON whose only top-level keys are data (list of traces), layout, config and fit. Quote colours (\"#2563EB\") and date-like strings; use no functions or variables. Write titles as objects: title: {text: \"...\"}. Choose charts for the question (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI. Use Plotly's advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Workflow: call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). Use build_chart for its 19 types, or write the block yourself from the topic examples. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host's note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly's rules, not how the chart looks on screen.",
+    "tools": [
+      {
+        "name": "eda_profile",
+        "title": "Profile a CSV dataset",
+        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path."
+            },
+            "from": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "1-based first column of this page; defaults to 1. When more columns remain, the result gives nextFrom: call again with from set to it."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "eda_analyze",
+        "title": "Analyze a CSV dataset",
+        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus an lte condition. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have sum/count shares and chart data (default 60, max 100). rows: cells and row numbers; sort_by names a column, sort is asc or desc; limit and offset paginate. 1,234 is numeric.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path",
+            "analysis"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path."
+            },
+            "analysis": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "type",
+                "columns"
+              ],
+              "properties": {
+                "type": {
+                  "type": "string",
+                  "enum": [
+                    "summary",
+                    "histogram",
+                    "correlation",
+                    "aggregate",
+                    "rows"
+                  ]
+                },
+                "columns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 8,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "filter": {
+                  "type": "array",
+                  "description": "Up to four conditions combined with AND before analysis.",
+                  "maxItems": 4,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "column",
+                      "op",
+                      "value"
+                    ],
+                    "properties": {
+                      "column": {
+                        "type": "string",
+                        "description": "CSV column to compare."
+                      },
+                      "op": {
+                        "type": "string",
+                        "description": "Comparison operator.",
+                        "enum": [
+                          "eq",
+                          "ne",
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "prefix",
+                          "contains"
+                        ]
+                      },
+                      "value": {
+                        "type": "string",
+                        "description": "Value to compare against the cell."
+                      }
+                    }
+                  }
+                },
+                "method": {
+                  "type": "string",
+                  "enum": [
+                    "pearson"
+                  ]
+                },
+                "bins": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50,
+                  "description": "Histogram bin count, default 10; intervals are left-closed, right-open except the last."
+                },
+                "function": {
+                  "type": "string",
+                  "enum": [
+                    "sum",
+                    "mean",
+                    "count",
+                    "min",
+                    "max",
+                    "median"
+                  ],
+                  "description": "aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic."
+                },
+                "sort": {
+                  "type": "string",
+                  "enum": [
+                    "desc",
+                    "asc",
+                    "label",
+                    "original"
+                  ],
+                  "description": "aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by."
+                },
+                "sort_by": {
+                  "type": "string",
+                  "description": "rows only. Sort by this CSV column before pagination."
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 100,
+                  "description": "aggregate or rows. Defaults to 60 groups or 50 rows."
+                },
+                "offset": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "description": "rows only. Zero-based offset, default 0."
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "check_chart",
+        "title": "Check a Plotly chart",
+        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "source"
+          ],
+          "properties": {
+            "source": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 20000,
+              "description": "The content that goes inside a plotly code block, without the fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {\"data\":[…],\"layout\":{…}}. Do not join keys with commas on one line."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "read_charts",
+        "title": "Read the Plotly charts in a note",
+        "description": "Find the plotly code blocks in a note and return, for each chart, its line range, trace types and point counts, title, and the problems found by the check. Returns at most 20 charts per call and gives the next from value when there are more. Charts drawn with dataviewjs are counted but not checked.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative path of a Markdown note."
+            },
+            "from": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "description": "Start reading at this chart number. Defaults to 1."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "get_chart_guide",
+        "title": "Plotly chart writing guide",
+        "description": "Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "topic": {
+              "type": "string",
+              "enum": [
+                "basics",
+                "style",
+                "examples",
+                "statistical",
+                "hierarchy",
+                "timeseries",
+                "scientific",
+                "maps",
+                "layout",
+                "dataviewjs",
+                "errors"
+              ],
+              "description": "Guide topic. Defaults to basics."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      },
+      {
+        "name": "build_chart",
+        "title": "Build a Plotly chart block",
+        "description": "Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host's note-editing tools. Does not change any note.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "type",
+            "series"
+          ],
+          "properties": {
+            "type": {
+              "type": "string",
+              "enum": [
+                "line",
+                "area",
+                "bar",
+                "barh",
+                "combo",
+                "scatter",
+                "bubble",
+                "pie",
+                "donut",
+                "treemap",
+                "sunburst",
+                "waterfall",
+                "funnel",
+                "histogram",
+                "box",
+                "violin",
+                "heatmap",
+                "radar",
+                "indicator"
+              ],
+              "description": "Chart type."
+            },
+            "title": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Chart title."
+            },
+            "labels": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "description": "Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator."
+            },
+            "parents": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "maxLength": 100
+              },
+              "description": "treemap and sunburst: the parent label of each label, \"\" for a top-level item."
+            },
+            "measure": {
+              "type": "array",
+              "maxItems": 200,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "relative",
+                  "total",
+                  "absolute"
+                ]
+              },
+              "description": "waterfall: per label, relative (a change, the default), total (running total; its value is ignored) or absolute (sets the level)."
+            },
+            "series": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "description": "Data series.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "values"
+                ],
+                "properties": {
+                  "name": {
+                    "type": "string",
+                    "maxLength": 100,
+                    "description": "Series name, shown in the legend."
+                  },
+                  "values": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin."
+                  },
+                  "x": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number"
+                    },
+                    "description": "scatter and bubble: the x value of each point."
+                  },
+                  "size": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "number",
+                      "minimum": 0
+                    },
+                    "description": "bubble: the size measure of each point (drawn as area)."
+                  },
+                  "text": {
+                    "type": "array",
+                    "maxItems": 2000,
+                    "items": {
+                      "type": "string",
+                      "maxLength": 100
+                    },
+                    "description": "scatter and bubble: a hover label for each point."
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "bar",
+                      "line",
+                      "area"
+                    ],
+                    "description": "combo: how to draw this series. Defaults to bar for the first series and line for the others."
+                  },
+                  "secondary": {
+                    "type": "boolean",
+                    "description": "line, area, bar, combo: draw this series against a right-hand y axis (a different unit)."
+                  }
+                }
+              }
+            },
+            "x_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Horizontal axis title. Include the unit."
+            },
+            "y_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Vertical axis title. Include the unit."
+            },
+            "y2_title": {
+              "type": "string",
+              "maxLength": 100,
+              "description": "Right-hand axis title, for series with secondary. Include the unit."
+            },
+            "stacked": {
+              "type": "boolean",
+              "description": "Stack several bar, area or histogram series instead of grouping or overlaying them."
+            },
+            "bins": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "description": "histogram: the maximum number of bins."
+            },
+            "range_slider": {
+              "type": "boolean",
+              "description": "line, area, bar, combo, scatter, bubble: add a range slider under the x axis for long series."
+            },
+            "style": {
+              "type": "string",
+              "enum": [
+                "clean",
+                "plain"
+              ],
+              "description": "clean (default) applies the palette and tidy layout; plain adds nothing beyond the data."
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/group": "chart",
+          "dev.agentinterop/resourceTypes": [
+            ".md"
+          ],
+          "dev.agentinterop/keywords": [
+            "plotly",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "diagram",
+            "histogram",
+            "heatmap",
+            "treemap",
+            "sankey",
+            "dashboard",
+            "차트",
+            "그래프",
+            "도표",
+            "시각화",
+            "파이",
+            "막대",
+            "분포",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 8000
+        }
+      }
+    ]
+  },
+  "digest": "b5f758e551b58c3038d99a4a4dff03e51e845cc3b7dbc0e3083f8b11ee931727",
+  "results": [
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "data.csv"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"rowCount\":2,\"columnCount\":2,\"columns\":[{\"name\":\"month\",\"type\":\"text\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"top\":[{\"value\":\"2025-01\",\"count\":1},{\"value\":\"2025-02\",\"count\":1}]},{\"name\":\"value\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951}}],\"from\":1,\"to\":2,\"complete\":true}"
+          }
+        ],
+        "structuredContent": {
+          "rowCount": 2,
+          "columnCount": 2,
+          "columns": [
+            {
+              "name": "month",
+              "type": "text",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "top": [
+                {
+                  "value": "2025-01",
+                  "count": 1
+                },
+                {
+                  "value": "2025-02",
+                  "count": 1
+                }
+              ]
+            },
+            {
+              "name": "value",
+              "type": "number",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "statistics": {
+                "count": 2,
+                "min": 2,
+                "q1": 2.5,
+                "median": 3,
+                "q3": 3.5,
+                "max": 4,
+                "mean": 3,
+                "stddevSample": 1.4142135623730951
+              }
+            }
+          ],
+          "from": 1,
+          "to": 2,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "missing.csv"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "File not found in the vault: missing.csv"
+          }
+        ],
+        "structuredContent": {
+          "code": "NOT_FOUND",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "NOT_FOUND",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6}}"
+          }
+        ],
+        "structuredContent": {
+          "type": "summary",
+          "columns": [
+            "value"
+          ],
+          "totalRows": 2,
+          "excludedRows": 0,
+          "statistics": {
+            "count": 2,
+            "min": 2,
+            "q1": 2.5,
+            "median": 3,
+            "q3": 3.5,
+            "max": 4,
+            "mean": 3,
+            "stddevSample": 1.4142135623730951,
+            "sum": 6
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "sort": "asc"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: \"sort_by\":\"value\",\"sort\":\"asc\" (sort는 그대로 두고 sort_by를 더한다)"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "filter": [
+            {
+              "column": "month",
+              "op": "eq",
+              "value": "none"
+            }
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2,\"filter\":[{\"column\":\"month\",\"op\":\"eq\",\"value\":\"none\"}],\"filteredRows\":0}"
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 0,
+          "rows": [],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 2,
+          "filter": [
+            {
+              "column": "month",
+              "op": "eq",
+              "value": "none"
+            }
+          ],
+          "filteredRows": 0
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[{\"y\":[1,2]}]}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "No problems · traces: 1(scatter 2 points)"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "traces": 1
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "1 problem(s) · traces: 0\n  - data is missing. Put the list of traces in data."
+          }
+        ],
+        "structuredContent": {
+          "valid": false,
+          "problems": 1,
+          "traces": 0
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "note.md"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems"
+          }
+        ],
+        "structuredContent": {
+          "charts": 1,
+          "from": 1,
+          "to": 1,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "note.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "missing.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "Note not found in the vault: missing.md"
+          }
+        ],
+        "structuredContent": {
+          "code": "NOT_FOUND",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "NOT_FOUND",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {},
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Chart Hands renders a fenced code block whose language is \"plotly\". The block content is YAML (or JSON) with these top-level keys only: data, layout, config, fit. Any other key stops the chart from drawing.\n\n- data: list of Plotly traces. Give every trace a \"type\" and its value arrays.\n- layout: title, axis titles, legend, barmode, margins and other static display settings.\n- config: static UI settings such as responsive: true and displaylogo: false.\n- fit: off, shrink or fill. Controls width fitting for this chart. Leave it out unless asked.\n\nYAML rules that matter:\n- Quote every colour: color: \"#2563EB\". An unquoted # starts a YAML comment and the value becomes null.\n- Quote date-like strings (\"2026-01-01\") so they stay strings.\n- Quote strings that contain a colon.\n- Write titles as objects: title: {text: \"Monthly sales\"}, also for axes (xaxis: {title: {text: \"Month\"}}) and colour bars. This Plotly version does not show a title given as a plain string.\n- Quote single letters used as values, such as overlaying: \"y\", so no YAML parser reads them as booleans.\n- Write arrays as YAML lists or flow lists ([1, 2, 3]). Convert JSON examples into YAML indentation instead of pasting them.\n- Use only static values: no JavaScript functions, callbacks, variables, template expressions or undefined.\n\nChoosing a chart type. Pick by the question the chart answers, not by habit; [name] is the build_chart type, (topic) is the get_chart_guide topic with a hand-written example.\n- Trend over time: line [line]. Volume or part-to-whole over time: stacked area [area]. Long daily or price series: add range_slider, or candlestick/ohlc (timeseries).\n- Compare categories: bar [bar]; long labels or more than about 8 items: horizontal bar [barh], sorted by value. Two measures with different units: bars plus a line on a secondary y axis [combo].\n- Share of a whole: pie or donut [pie, donut], only with up to 6 parts; otherwise a sorted bar. Nested shares: treemap or sunburst [treemap, sunburst], icicle (hierarchy).\n- How a total builds up from gains and losses: waterfall [waterfall]. Drop-off through stages: funnel [funnel]. Flows between groups or stages: sankey (hierarchy).\n- Distribution of raw values: histogram [histogram]. Compare distributions across groups: box or violin [box, violin]. Two-variable density: histogram2dcontour (statistical).\n- Relationship between two measures: scatter [scatter]; a third measure as point size: bubble [bubble]; many variables at once: splom or parcoords (statistical, scientific). Uncertainty: error bars or a confidence band (statistical).\n- Values on a grid such as weekday by hour, or a correlation matrix: heatmap [heatmap]. A function of two variables: contour or surface (scientific).\n- Profile of items across several criteria: radar [radar]. Direction and magnitude: barpolar wind rose (scientific). Three parts that sum to a constant: scatterternary (scientific).\n- One headline number with its change: indicator [indicator]; a gauge or a KPI row (timeseries, layout).\n- Places: scattergeo or choropleth, tile maps with scattermap (maps).\n- Several panels, a secondary axis, buttons, sliders, reference lines or rich hover text: (layout).\n\nPrefer the simplest chart that answers the question. Use an advanced type when the data really has that shape (hierarchy, flow, distribution, matrix), not for decoration, and say in one line why you chose it.\n\nKeep the user's units and order. If a unit is unclear, do not convert it; show the original unit in an axis title.\n\nWorkflow: write the block, call check_chart with the block content (without the fence lines), fix every problem it reports, then insert the block into the note with the host's note-editing tools. These tools never change notes themselves. build_chart produces a checked block for every [name] type above; write the other types by hand from the topic examples.\n\nOther topics: style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "basics",
+          "topics": [
+            "basics",
+            "style",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ]
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "invalid"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "topic must be one of: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "invalid",
+        "series": []
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "type must be one of: line, area, bar, barh, combo, scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar, indicator."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    }
+  ],
+  "ui": [
+    "const NEW_PLOTLY_CHART_NAME = \"New Plotly chart\";",
+    "const NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME = \"New Plotly chart (Dataviewjs)\";",
+    ".setName('Fit chart width')",
+    ".setDesc('Fit charts to the note width. Add \"fit: off\", \"fit: shrink\" or \"fit: fill\" to a code block to override this for that chart.')",
+    ".addOption('shrink', 'Shrink only when wider')",
+    ".addOption('fill', 'Always fill the width')",
+    ".addOption('off', 'Off (original size)')",
+    ".setName('Keep aspect ratio when shrinking')",
+    ".setDesc('Scale the height along with the width. When off, the height stays as set.')",
+    ".setName('Fit the page width when exporting to PDF')",
+    ".setDesc('Scale charts wider than the page down to the page width when exporting to PDF or printing, so they are not clipped.')",
+    "new obsidian.Notice('Chart Hands: loading Plotly and D3…', 0);",
+    "new obsidian.Notice(`Chart Hands: could not load Plotly. It will retry on next use."
+  ]
+}
