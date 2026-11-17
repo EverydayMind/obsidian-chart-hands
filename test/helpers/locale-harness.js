@@ -129,6 +129,8 @@ async function captureExtended(code, locale) {
         const base = { type: 'bar', source: { path: 'data.csv', labels: 'month' }, series: [{ column: 'value' }] };
         for (const args of [base,
             { ...base, source: { ...base.source, extra: 1 } },
+            { ...base, source: { ...base.source, sort: {} } },
+            { ...base, source: { ...base.source, limit: 0 } },
             { ...base, labels: ['A'] },
             { ...base, source: { ...base.source, filter: [{ column: 'month', op: 'eq', value: 'none' }] } },
             { ...base, series: [{}] },

@@ -438,7 +438,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads CSV rows (1–200 after filtering and limit). For a top-N chart pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -532,6 +532,33 @@
                       }
                     }
                   }
+                },
+                "sort": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "column"
+                  ],
+                  "properties": {
+                    "column": {
+                      "type": "string",
+                      "description": "Numeric CSV column to sort."
+                    },
+                    "order": {
+                      "type": "string",
+                      "enum": [
+                        "desc",
+                        "asc"
+                      ],
+                      "description": "Sort order; defaults to desc."
+                    }
+                  }
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "description": "Maximum rows after filtering and sorting."
                 }
               }
             },
@@ -715,7 +742,7 @@
       }
     ]
   },
-  "digest": "f45656e5ee6daf35d1b8ee0e8f0e5cac098d15cabc0bfd70e29888d38da436b2",
+  "digest": "1a75fc398b0f50e0f6e7239e57f7e69bc93355648379794eeef2c929a2ef5a55",
   "results": [
     {
       "name": "eda_profile",

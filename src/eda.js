@@ -242,9 +242,11 @@ export function analyze(dataset, spec, locale = 'ko') {
 export function validateChartSource(args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = args.source;
-    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'labels', 'x', 'filter'].includes(k))) {
-        fail('source는 path, labels, x, filter만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, labels, x, filter. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
+    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'labels', 'x', 'filter', 'sort', 'limit'].includes(k))) {
+        fail('source는 path, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
+    if (source.sort !== undefined && (!source.sort || typeof source.sort !== 'object' || Array.isArray(source.sort) || typeof source.sort.column !== 'string' || !source.sort.column || Object.keys(source.sort).some(k => !['column', 'order'].includes(k)) || (source.sort.order !== undefined && !['desc', 'asc'].includes(source.sort.order)))) fail('source.sort는 column과 선택적 order(desc 또는 asc)가 필요합니다.', 'source.sort requires column and an optional order (desc or asc).');
+    if (source.limit !== undefined && (!Number.isInteger(source.limit) || source.limit < 1 || source.limit > 200)) fail('source.limit은 1~200의 정수여야 합니다.', 'source.limit must be an integer from 1 to 200.');
     if (Object.hasOwn(args, 'labels') || !Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || typeof s !== 'object' || ['values', 'x', 'size'].some(k => Object.hasOwn(s, k)))) {
         fail('source를 쓰면 labels 또는 series[].values/x/size 직접 배열 대신 series[].column으로 하나 이상의 계열을 주세요. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'With source provide at least one series with column instead of labels or series[].values/x/size arrays. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
@@ -255,13 +257,30 @@ export function validateChartSource(args, locale = 'ko') {
 export function resolveChartSource(dataset, args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = validateChartSource(args, locale);
-    const selected = selectRows(dataset, source.filter, locale, 'source.filter');
-    if (!selected.length || selected.length > 200) fail('source의 필터 결과는 1~200행이어야 합니다. source.filter를 고쳐 범위를 줄이거나 일치하는 행을 선택하세요.', 'source must match 1–200 rows. Change source.filter to reduce the range or select matching rows.');
-    const column = (name, where, numeric) => {
-        if (typeof name !== 'string' || !name) fail(`${where}에 CSV 열 이름을 주세요. 예: source:{path:"data.csv",labels:"month",x:"x"},series:[{column:"value",sizeColumn:"size"}]`, `Provide a CSV column name in ${where}. Example: source:{path:"data.csv",labels:"month",x:"x"},series:[{column:"value",sizeColumn:"size"}]`);
+    let selected = selectRows(dataset, source.filter, locale, 'source.filter');
+    const numericIndex = name => {
         const i = indexOf(dataset, name, locale);
-        // Validate the full column, including rows excluded by the filter.
-        if (numeric && dataset.rows.some(row => !missing(row[i]) && number(row[i]) === null)) fail(`열 ${name}에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요.`, `Column ${name} contains non-numeric values. Choose a numeric column.`);
+        if (dataset.rows.some(row => !missing(row[i]) && number(row[i]) === null)) fail(`열 ${name}에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요.`, `Column ${name} contains non-numeric values. Choose a numeric column.`);
+        return i;
+    };
+    if (source.sort) {
+        const i = numericIndex(source.sort.column);
+        const direction = source.sort.order === 'asc' ? 1 : -1;
+        selected.sort((a, b) => {
+            const av = missing(a.row[i]) ? null : number(a.row[i]);
+            const bv = missing(b.row[i]) ? null : number(b.row[i]);
+            return av === null ? (bv === null ? 0 : 1) : bv === null ? -1 : direction * (av - bv);
+        });
+    }
+    if (source.limit !== undefined) selected = selected.slice(0, source.limit);
+    if (!selected.length || selected.length > 200) fail('source의 결과는 1~200행이어야 합니다. source.filter 또는 source.limit을 고치세요.', 'source must match 1–200 rows. Change source.filter or source.limit.');
+    const column = (name, where, numeric) => {
+        const ordinary = 'source:{path:"data.csv",labels:"month"},series:[{column:"value"}]';
+        const scatter = 'type:"scatter",source:{path:"data.csv",x:"x"},series:[{column:"y"}]';
+        const bubble = 'type:"bubble",source:{path:"data.csv",x:"x"},series:[{column:"y",sizeColumn:"size"}]';
+        const example = where === 'source.x' ? scatter : where === 'series[].sizeColumn' ? bubble : where === 'series[].column' && args.type === 'scatter' ? scatter : where === 'series[].column' && args.type === 'bubble' ? bubble : ordinary;
+        if (typeof name !== 'string' || !name) fail(`${where}에 CSV 열 이름을 주세요. 예: ${example}`, `Provide a CSV column name in ${where}. Example: ${example}`);
+        const i = numeric ? numericIndex(name) : indexOf(dataset, name, locale);
         return selected.map(({ row }) => numeric ? (missing(row[i]) ? null : number(row[i])) : row[i]);
     };
     const resolved = { ...args };

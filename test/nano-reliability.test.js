@@ -19,6 +19,54 @@ function provider(files = { 'data.csv': csv }, locale = 'en') {
 const plain = value => JSON.parse(JSON.stringify(value));
 const definition = result => JSON.parse(result.structuredContent.block.split('\n').slice(1, -1).join('\n'));
 
+test('CH7 ranks distinct normalized name fragments in both scopes', async () => {
+    const files = Object.fromEntries([...Array.from({ length: 10 }, (_, i) => `dir/a${i}.csv`), 'dir/SALES-report.csv', 'else/sales-re.csv', 'else/sales.csv', 'else/unrelated.csv', 'else/école.csv', 'else/aaaa.csv', 'else/aaab.csv'].map(path => [path, 'x\n1']));
+    const p = provider(files);
+    const nearby = (await p.callTool('eda_profile', { path: 'dir/sales-report-missing.csv' })).content[0].text;
+    assert.ok(nearby.indexOf('dir/SALES-report.csv') < nearby.indexOf('dir/a0.csv'));
+    const fallback = (await p.callTool('eda_profile', { path: 'missing/SALES.csv' })).content[0].text;
+    assert.ok(fallback.indexOf('else/sales-re.csv') < fallback.indexOf('else/sales.csv'));
+    assert.ok(!fallback.includes('unrelated.csv'));
+    assert.match((await p.callTool('eda_profile', { path: 'missing/E\u0301COLE.csv' })).content[0].text, /école.csv/);
+    const repeated = (await p.callTool('eda_profile', { path: 'missing/aaaaab.csv' })).content[0].text;
+    assert.ok(repeated.indexOf('else/aaab.csv') < repeated.indexOf('else/aaaa.csv'));
+});
+
+test('CH8 sorts filtered rows stably with gaps last and applies limit', async () => {
+    const p = provider({ 'data.csv': 'label,value,group\na,2,yes\nb,,yes\nc,5,yes\nd,2,yes\ne,9,no' });
+    const base = { type: 'bar', source: { path: 'data.csv', labels: 'label', filter: [{ column: 'group', op: 'eq', value: 'yes' }] }, series: [{ column: 'value' }] };
+    for (const [sort, expected] of [[{ column: 'value' }, ['c', 'a', 'd', 'b']], [{ column: 'value', order: 'asc' }, ['a', 'd', 'c', 'b']]]) {
+        const result = await p.callTool('build_chart', { ...base, source: { ...base.source, sort } });
+        assert.deepEqual(definition(result).data[0].x, expected);
+        assert.deepEqual(plain(result.structuredContent.source.sort), sort);
+    }
+    const top = await p.callTool('build_chart', { ...base, source: { ...base.source, sort: { column: 'value' }, limit: 2 } });
+    assert.deepEqual(definition(top).data[0].x, ['c', 'a']);
+    assert.equal(top.structuredContent.source.limit, 2);
+    assert.deepEqual(definition(await p.callTool('build_chart', { ...base, source: { ...base.source, limit: 2 } })).data[0].x, ['a', 'b']);
+    const many = provider({ 'data.csv': 'label,value\n' + Array.from({ length: 201 }, (_, i) => `r${i},${i}`).join('\n') });
+    const args = { type: 'bar', source: { path: 'data.csv', labels: 'label' }, series: [{ column: 'value' }] };
+    assert.ok((await many.callTool('build_chart', args)).isError);
+    assert.equal((await many.callTool('build_chart', { ...args, source: { ...args.source, limit: 200 } })).structuredContent.source.rows, 200);
+    assert.ok((await p.callTool('build_chart', { ...base, source: { ...base.source, sort: { column: 'group' } } })).isError);
+    const bad = provider({ 'data.csv': 'label,value\na,1\nb,bad' });
+    assert.ok((await bad.callTool('build_chart', { ...args, source: { ...args.source, filter: [{ column: 'label', op: 'eq', value: 'a' }], sort: { column: 'value' } } })).isError);
+    for (const limit of [0, 201, 1.5]) assert.ok((await p.callTool('build_chart', { ...base, source: { ...base.source, limit } })).isError);
+});
+
+test('CH9 missing column examples produce valid calls for each chart type and locale', async () => {
+    for (const locale of ['ko', 'en']) {
+        const p = provider({ 'data.csv': 'month,x,y,value,size\na,1,2,3,4' }, locale);
+        for (const args of [{ type: 'bar', source: { path: 'data.csv' }, series: [{ column: 'value' }] }, { type: 'scatter', source: { path: 'data.csv' }, series: [{ column: 'y' }] }, ...['bar', 'scatter', 'bubble'].map(type => ({ type, source: { path: 'data.csv', ...(type === 'bar' ? { labels: 'month' } : { x: 'x' }) }, series: [{}] })), { type: 'bubble', source: { path: 'data.csv', x: 'x' }, series: [{ column: 'y' }] }]) {
+            const error = await p.callTool('build_chart', args);
+            const example = error.content[0].text.split(locale === 'ko' ? '예: ' : 'Example: ')[1];
+            assert.ok(example, JSON.stringify(error));
+            const fixed = Function(`return ({${example}})`)();
+            assert.ok(!(await p.callTool('build_chart', { type: args.type, ...fixed })).isError, example);
+        }
+    }
+});
+
 test('CH1 CSV values, gaps, row order, shared filters and frozen HWPX source', async () => {
     const p = provider();
     const filter = [{ column: 'month', op: 'prefix', value: '2026-0' }];

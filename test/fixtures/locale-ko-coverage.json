@@ -438,7 +438,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads CSV rows (1–200 after filtering and limit). For a top-N chart pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -532,6 +532,33 @@
                       }
                     }
                   }
+                },
+                "sort": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "column"
+                  ],
+                  "properties": {
+                    "column": {
+                      "type": "string",
+                      "description": "Numeric CSV column to sort."
+                    },
+                    "order": {
+                      "type": "string",
+                      "enum": [
+                        "desc",
+                        "asc"
+                      ],
+                      "description": "Sort order; defaults to desc."
+                    }
+                  }
+                },
+                "limit": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 200,
+                  "description": "Maximum rows after filtering and sorting."
                 }
               }
             },
@@ -3416,7 +3443,77 @@
         "content": [
           {
             "type": "text",
-            "text": "source는 path, labels, x, filter만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+            "text": "source는 path, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "sort": {}
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.sort는 column과 선택적 order(desc 또는 asc)가 필요합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "limit": 0
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.limit은 1~200의 정수여야 합니다."
           }
         ],
         "structuredContent": {
@@ -3494,7 +3591,7 @@
         "content": [
           {
             "type": "text",
-            "text": "source의 필터 결과는 1~200행이어야 합니다. source.filter를 고쳐 범위를 줄이거나 일치하는 행을 선택하세요."
+            "text": "source의 결과는 1~200행이어야 합니다. source.filter 또는 source.limit을 고치세요."
           }
         ],
         "structuredContent": {
@@ -3526,7 +3623,7 @@
         "content": [
           {
             "type": "text",
-            "text": "series[].column에 CSV 열 이름을 주세요. 예: source:{path:\"data.csv\",labels:\"month\",x:\"x\"},series:[{column:\"value\",sizeColumn:\"size\"}]"
+            "text": "series[].column에 CSV 열 이름을 주세요. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
           }
         ],
         "structuredContent": {

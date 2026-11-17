@@ -476,7 +476,7 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.',
+        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads CSV rows (1–200 after filtering and limit). For a top-N chart pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -490,7 +490,9 @@ const tools = [
                     x: { type: 'string', description: 'Numeric CSV x column; required for scatter and bubble.' },
                     filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
                         column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' }
-                    } } }
+                    } } },
+                    sort: { type: 'object', additionalProperties: false, required: ['column'], properties: { column: { type: 'string', description: 'Numeric CSV column to sort.' }, order: { type: 'string', enum: ['desc', 'asc'], description: 'Sort order; defaults to desc.' } } },
+                    limit: { type: 'integer', minimum: 1, maximum: 200, description: 'Maximum rows after filtering and sorting.' }
                 } },
                 labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator.' },
                 parents: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'treemap and sunburst: the parent label of each label, "" for a top-level item.' },
@@ -802,12 +804,13 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
         const files = (plugin.app.vault.getFiles?.() ?? []).filter(f => f.extension?.toLowerCase() === 'csv');
         const nearby = files.filter(f => (f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '') === folder);
         const stem = path.split('/').pop().replace(/\.[^.]*$/, '').normalize('NFC').toLowerCase();
-        const parts = Array.from({ length: Math.max(0, stem.length - 2) }, (_, i) => stem.slice(i, i + 3));
-        const candidates = nearby.length || sameFolderOnly ? nearby : files.filter(f => {
+        const parts = [...new Set(Array.from({ length: Math.max(0, stem.length - 2) }, (_, i) => stem.slice(i, i + 3)))];
+        const score = f => {
             const name = f.path.split('/').pop().replace(/\.[^.]*$/, '').normalize('NFC').toLowerCase();
-            return parts.some(part => name.includes(part));
-        });
-        return candidates.map(f => f.path).sort().slice(0, 5);
+            return parts.filter(part => name.includes(part)).length;
+        };
+        const candidates = nearby.length || sameFolderOnly ? nearby : files.filter(f => score(f) > 0);
+        return candidates.map(f => ({ path: f.path, score: score(f) })).sort((a, b) => b.score - a.score || (a.path < b.path ? -1 : a.path > b.path ? 1 : 0)).slice(0, 5).map(f => f.path);
     };
     const candidateText = (paths) => locale === 'ko'
         ? ` CSV 후보: ${paths.length ? paths.join(', ') : '(없음)'}. 후보의 path로 다시 호출하세요.`
@@ -860,10 +863,11 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const { path, dataset } = await readDataset(args.source?.path);
+                const requestedSource = args.source;
                 try { args = resolveChartSource(dataset, args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const labels = args.labels ?? args.series[0].x ?? [];
-                source = { path, rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {} };
+                source = { path, rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
             } else if (Array.isArray(args.series) && args.series.some(s => s && (Object.hasOwn(s, 'column') || Object.hasOwn(s, 'sizeColumn')))) {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요.' : 'series[].column/sizeColumn requires source. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. For direct input use values:[1,2] instead of column.', true);
             } else if (!Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || !Array.isArray(s.values) || !s.values.length)) {
