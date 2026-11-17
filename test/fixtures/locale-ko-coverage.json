@@ -3299,105 +3299,117 @@
       "kind": "command",
       "values": [
         "add-plotly-example",
-        "New Plotly chart"
+        "새 Plotly 차트"
       ]
     },
     {
       "kind": "command",
       "values": [
         "add-plotly-dataviewjs-example",
-        "New Plotly chart (Dataviewjs)"
+        "새 Plotly 차트 (Dataviewjs)"
       ]
     },
     {
       "kind": "name",
       "values": [
-        "Fit chart width"
+        "차트 너비 맞추기"
       ]
     },
     {
       "kind": "description",
       "values": [
-        "Fit charts to the note width. Add \"fit: off\", \"fit: shrink\" or \"fit: fill\" to a code block to override this for that chart."
+        "차트를 노트 너비에 맞춥니다. 코드 블록에 \"fit: off\", \"fit: shrink\" 또는 \"fit: fill\"을 추가하여 해당 차트의 설정을 바꿀 수 있습니다."
       ]
     },
     {
       "kind": "option",
       "values": [
         "shrink",
-        "Shrink only when wider"
+        "더 넓을 때만 축소"
       ]
     },
     {
       "kind": "option",
       "values": [
         "fill",
-        "Always fill the width"
+        "항상 너비에 맞추기"
       ]
     },
     {
       "kind": "option",
       "values": [
         "off",
-        "Off (original size)"
+        "끄기 (원래 크기)"
       ]
     },
     {
       "kind": "name",
       "values": [
-        "Keep aspect ratio when shrinking"
+        "축소할 때 가로세로 비율 유지"
       ]
     },
     {
       "kind": "description",
       "values": [
-        "Scale the height along with the width. When off, the height stays as set."
+        "너비와 함께 높이도 조절합니다. 끄면 높이는 설정된 값으로 유지됩니다."
       ]
     },
     {
       "kind": "name",
       "values": [
-        "Fit the page width when exporting to PDF"
+        "PDF로 내보낼 때 페이지 너비에 맞추기"
       ]
     },
     {
       "kind": "description",
       "values": [
-        "Scale charts wider than the page down to the page width when exporting to PDF or printing, so they are not clipped."
+        "PDF로 내보내거나 인쇄할 때 페이지보다 넓은 차트를 페이지 너비로 축소하여 잘리지 않게 합니다."
       ]
     },
     {
       "kind": "notice",
       "values": [
-        "Chart Hands: loading Plotly and D3…",
+        "Chart Hands: Plotly와 D3를 불러오는 중…",
         0
       ]
     },
     {
       "kind": "notice",
       "values": [
-        "Chart Hands: could not load Plotly. It will retry on next use.\nSynthetic loader failure",
+        "Chart Hands: Plotly를 불러오지 못했습니다. 다음 사용 시 다시 시도합니다.\nSynthetic loader failure",
         8000
       ]
     },
     {
       "kind": "notice",
       "values": [
-        "Chart Hands: loading Plotly and D3…",
+        "Chart Hands: Plotly와 D3를 불러오는 중…",
         0
       ]
     },
     {
       "kind": "notice",
       "values": [
-        "Chart Hands: could not load Plotly. It will retry on next use.\nSynthetic loader failure",
+        "Chart Hands: Plotly를 불러오지 못했습니다. 다음 사용 시 다시 시도합니다.\nSynthetic loader failure",
         8000
       ]
     },
     {
       "kind": "render-error",
       "values": [
-        "Couldn't render plot:Error: Synthetic loader failure"
+        "차트를 표시할 수 없습니다: Error: Synthetic loader failure"
+      ]
+    },
+    {
+      "kind": "render-error",
+      "values": [
+        "차트를 표시할 수 없습니다: 이 블록에 유효한 JSON이 있어야 합니다."
+      ]
+    },
+    {
+      "kind": "render-error",
+      "values": [
+        "차트를 표시할 수 없습니다: 사용할 수 있는 키는 data, layout, config, fit뿐입니다."
       ]
     }
   ]

@@ -40,6 +40,7 @@ async function setup() {
         ResizeObserver: class { observe() {} disconnect() {} } });
     vm.runInContext('Array.prototype.contains = Array.prototype.includes;', context);
     vm.runInContext(code, context);
+    module.exports.setLocaleForTests('en');
     const plugin = new module.exports.default();
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0' };
     plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {} } };
@@ -57,8 +58,16 @@ async function setup() {
         commands[name].editorCallback({ getDoc: () => ({ getCursor: () => 0, replaceRange: text => { inserted = text; } }) });
         return inserted;
     };
-    return { plugin, render, insert };
+    return { plugin, render, insert, setLocale: module.exports.setLocaleForTests };
 }
+
+test('Korean chart validation errors are shown in Korean', async () => {
+    const h = await setup();
+    h.setLocale('ko');
+    assert.match((await h.render('null')).errors[0], /이 블록에 유효한 JSON이 있어야 합니다/);
+    assert.match((await h.render('other: 1')).errors[0], /사용할 수 있는 키는 data, layout, config, fit뿐입니다/);
+    h.plugin.onunload();
+});
 
 test('New Plotly chart inserts a block that parses and draws', async () => {
     const h = await setup();

@@ -93,7 +93,7 @@ test('load failure hides notice and allows retry', async () => {
     await h.ready();
     await rejected;
     assert.equal(h.notices[0].hidden, true);
-    assert.match(h.notices.at(-1).message, /retry/);
+    assert.match(h.notices.at(-1).message, /다시 시도/);
     const retry = h.plugin.ensureLibraries();
     await h.flush(); await h.ready(); await retry;
     h.plugin.onunload();

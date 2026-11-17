@@ -87,6 +87,8 @@ async function captureExtended(code, locale) {
     const el = { children: [], appendChild(child) { this.children.push(child); },
         ownerDocument: { createElement: () => ({ style: {} }) } };
     await h.processors.plotly('{}', el, { addChild() {} });
+    plugin.ensureLibraries = async () => ({});
+    for (const source of ['null', '{"other":1}']) await h.processors.plotly(source, el, { addChild() {} });
     for (const child of el.children) if (child.textContent) h.ui.push({ kind: 'render-error', values: [child.textContent] });
     const p = h.exports.createAgentProvider({ manifest: plugin.manifest, app: plugin.app }, locale);
     const descriptor = await p.describe();

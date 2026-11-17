@@ -39,7 +39,9 @@ async function capture(locale = 'ko', factory = createAgentProvider, originalSou
     const results = [];
     for (const [name, args] of cases) results.push({ name, args, result: await p.callTool(name, args) });
     const source = originalSource ?? fs.readFileSync(path.join(__dirname, '..', 'src', 'main.js'), 'utf8');
-    const ui = source.match(/\.(?:setName|setDesc|addOption)\([^\n]+|new obsidian\.Notice\([^\n]+|const NEW_PLOTLY_CHART[^\n]+/g);
+    const ui = locale === 'en'
+        ? (await require('./helpers/locale-harness').captureExtended(require('./helpers/build-plugin')(), locale)).ui
+        : source.match(/\.(?:setName|setDesc|addOption)\([^\n]+|new obsidian\.Notice\([^\n]+|const NEW_PLOTLY_CHART[^\n]+/g);
     return { descriptor, digest: crypto.createHash('sha256').update(JSON.stringify(descriptor)).digest('hex'), results, ui };
 }
 test('Korean output remains byte-identical to the original snapshot', async () => {

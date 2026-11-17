@@ -282,7 +282,7 @@ class PlotlyChart {
 
 const showError = (el, error) => {
     let errorDiv = document.createElement('div');
-    errorDiv.textContent = "Couldn't render plot:" + error;
+    errorDiv.textContent = (getLocale() === 'ko' ? '차트를 표시할 수 없습니다: ' : "Couldn't render plot:") + error;
     el.appendChild(errorDiv);
 };
 // YAML forbids tabs as indentation, but the New Plotly chart template up to 0.9.6 (and
@@ -318,11 +318,11 @@ const preprocessor = (content, el, ctx) => {
 const allowValues = ["data", "layout", "config", "fit"];
 const validate = (json, el) => {
     if (!json) {
-        throw "There should be a valid JSON in this block.";
+        throw getLocale() === 'ko' ? '이 블록에 유효한 JSON이 있어야 합니다.' : "There should be a valid JSON in this block.";
     }
     Object.keys(json).forEach(key => {
         if (!allowValues.contains(key)) {
-            throw "The only valid keys are data, layout, config and fit.";
+            throw getLocale() === 'ko' ? '사용할 수 있는 키는 data, layout, config, fit뿐입니다.' : "The only valid keys are data, layout, config and fit.";
         }
     });
 };
@@ -339,7 +339,7 @@ const basicPlotlyChart = [
     '    y: [0, 1, 0]',
     '```\n'
 ].join('\n');
-const NEW_PLOTLY_CHART_NAME = "New Plotly chart";
+const NEW_PLOTLY_CHART_NAME = () => getLocale() === 'ko' ? '새 Plotly 차트' : "New Plotly chart";
 const newPlotlyChart = (editor) => {
     let doc = editor.getDoc();
     let cursor = doc.getCursor();
@@ -362,7 +362,7 @@ const dataviewjsPlotlyChart = [
     'window.renderPlotly(this.container, data, layout, config)',
     '```'
 ].join('\n');
-const NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME = "New Plotly chart (Dataviewjs)";
+const NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME = () => getLocale() === 'ko' ? '새 Plotly 차트 (Dataviewjs)' : "New Plotly chart (Dataviewjs)";
 const newPlotlyChartByDataviewjs = (editor) => {
     let doc = editor.getDoc();
     let cursor = doc.getCursor();
@@ -967,25 +967,26 @@ class ChartHandsSettingTab extends obsidian.PluginSettingTab {
     }
     display() {
         const { containerEl } = this;
+        const ko = getLocale() === 'ko';
         containerEl.empty();
         new obsidian.Setting(containerEl)
-            .setName('Fit chart width')
-            .setDesc('Fit charts to the note width. Add "fit: off", "fit: shrink" or "fit: fill" to a code block to override this for that chart.')
+            .setName(ko ? '차트 너비 맞추기' : 'Fit chart width')
+            .setDesc(ko ? '차트를 노트 너비에 맞춥니다. 코드 블록에 "fit: off", "fit: shrink" 또는 "fit: fill"을 추가하여 해당 차트의 설정을 바꿀 수 있습니다.' : 'Fit charts to the note width. Add "fit: off", "fit: shrink" or "fit: fill" to a code block to override this for that chart.')
             .addDropdown(dropdown => dropdown
-            .addOption('shrink', 'Shrink only when wider')
-            .addOption('fill', 'Always fill the width')
-            .addOption('off', 'Off (original size)')
+            .addOption('shrink', ko ? '더 넓을 때만 축소' : 'Shrink only when wider')
+            .addOption('fill', ko ? '항상 너비에 맞추기' : 'Always fill the width')
+            .addOption('off', ko ? '끄기 (원래 크기)' : 'Off (original size)')
             .setValue(settings.fitWidth)
             .onChange(value => this.plugin.updateSetting('fitWidth', value)));
         new obsidian.Setting(containerEl)
-            .setName('Keep aspect ratio when shrinking')
-            .setDesc('Scale the height along with the width. When off, the height stays as set.')
+            .setName(ko ? '축소할 때 가로세로 비율 유지' : 'Keep aspect ratio when shrinking')
+            .setDesc(ko ? '너비와 함께 높이도 조절합니다. 끄면 높이는 설정된 값으로 유지됩니다.' : 'Scale the height along with the width. When off, the height stays as set.')
             .addToggle(toggle => toggle
             .setValue(settings.keepAspectRatio)
             .onChange(value => this.plugin.updateSetting('keepAspectRatio', value)));
         new obsidian.Setting(containerEl)
-            .setName('Fit the page width when exporting to PDF')
-            .setDesc('Scale charts wider than the page down to the page width when exporting to PDF or printing, so they are not clipped.')
+            .setName(ko ? 'PDF로 내보낼 때 페이지 너비에 맞추기' : 'Fit the page width when exporting to PDF')
+            .setDesc(ko ? 'PDF로 내보내거나 인쇄할 때 페이지보다 넓은 차트를 페이지 너비로 축소하여 잘리지 않게 합니다.' : 'Scale charts wider than the page down to the page width when exporting to PDF or printing, so they are not clipped.')
             .addToggle(toggle => toggle
             .setValue(settings.printFit)
             .onChange(value => this.plugin.updateSetting('printFit', value)));
@@ -1047,12 +1048,12 @@ class ChartHandsPlugin extends obsidian.Plugin {
             });
             this.addCommand({
                 id: "add-plotly-example",
-                name: NEW_PLOTLY_CHART_NAME,
+                name: NEW_PLOTLY_CHART_NAME(),
                 editorCallback: (editor, view) => newPlotlyChart(editor)
             });
             this.addCommand({
                 id: "add-plotly-dataviewjs-example",
-                name: NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME,
+                name: NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME(),
                 editorCallback: (editor, view) => newPlotlyChartByDataviewjs(editor)
             });
             this.addSettingTab(new ChartHandsSettingTab(this.app, this));
@@ -1074,7 +1075,7 @@ class ChartHandsPlugin extends obsidian.Plugin {
             this.librariesPromise = (async () => {
                 await this.layoutReady;
                 if (this.unloaded) throw new Error('Chart Hands is unloaded.');
-                const notice = new obsidian.Notice('Chart Hands: loading Plotly and D3…', 0);
+                const notice = new obsidian.Notice(getLocale() === 'ko' ? 'Chart Hands: Plotly와 D3를 불러오는 중…' : 'Chart Hands: loading Plotly and D3…', 0);
                 this.loadingNotice = notice;
                 try {
                     // Yield once so the ready layout and loading notice can be painted.
@@ -1085,7 +1086,7 @@ class ChartHandsPlugin extends obsidian.Plugin {
                     return Plotly;
                 }
                 catch (error) {
-                    if (!this.unloaded) new obsidian.Notice(`Chart Hands: could not load Plotly. It will retry on next use.
+                    if (!this.unloaded) new obsidian.Notice((getLocale() === 'ko' ? 'Chart Hands: Plotly를 불러오지 못했습니다. 다음 사용 시 다시 시도합니다.' : 'Chart Hands: could not load Plotly. It will retry on next use.') + `
 ${error.message}`, 8000);
                     throw error;
                 }
