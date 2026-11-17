@@ -78,6 +78,7 @@ async function captureExtended(code, locale) {
     const plugin = new h.exports.default();
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: 'test' };
     plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {} }, vault: {
+        getFiles: () => Object.keys(files).map(path => ({ path, extension: path.split('.').pop() })),
         getAbstractFileByPath: p => Object.hasOwn(files, p) ? { path: p, extension: p.split('.').pop() } : null,
         cachedRead: async file => files[file.path]
     } };
@@ -122,6 +123,19 @@ async function captureExtended(code, locale) {
     for (const args of [{ type: 'bar', labels: [], series: [] }, { type: 'invalid', series: [] },
         { type: 'bar', labels: ['A'], series: [{ values: [] }] },
         { type: 'pie', labels: ['A'], series: [{ values: [1] }, { values: [2] }] }]) await call('build_chart', args);
+    {
+        await call('eda_profile', { path: 'absent/xy.csv' });
+        await call('eda_analyze', { path: 'data.csv', analysis: { type: 'rows', columns: ['value'], limit: 200 } });
+        const base = { type: 'bar', source: { path: 'data.csv', labels: 'month' }, series: [{ column: 'value' }] };
+        for (const args of [base,
+            { ...base, source: { ...base.source, extra: 1 } },
+            { ...base, labels: ['A'] },
+            { ...base, source: { ...base.source, filter: [{ column: 'month', op: 'eq', value: 'none' }] } },
+            { ...base, series: [{}] },
+            { ...base, series: [{ column: 'month' }] },
+            { type: 'bar', labels: ['A'], series: [{ column: 'value' }] }
+        ]) await call('build_chart', args);
+    }
     await call('unknown', {});
     await call('read_charts', { path: '../outside.md' });
     await call('get_chart_guide', {}, { signal: { aborted: true } });

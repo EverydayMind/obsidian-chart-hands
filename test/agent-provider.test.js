@@ -70,7 +70,7 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     const description = descriptor.tools.find(tool => tool.name === 'eda_analyze').description;
     for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows']) assert.ok(description.includes(phrase));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
-    assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'pure']]);
+    assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'read']]);
     for (const tool of descriptor.tools) {
         assert.match(tool.name, /^[a-z][a-z0-9_]{1,40}$/);
         assert.ok(`plg__chart-hands__${tool.name}`.length <= 64);

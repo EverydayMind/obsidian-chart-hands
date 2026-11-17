@@ -32,6 +32,7 @@ test('summarizes multiple columns independently and preserves the single-column 
     assert.equal(result.perColumn[1].statistics.sum, 2);
     const single = await call({ type: 'summary', columns: ['중국'], filter });
     assert.deepEqual(single, { type: 'summary', columns: ['중국'], totalRows: 3, excludedRows: 0,
+        matched: { 기간: { first: '2025', last: '2025', rows: 2 } }, shareOf: 'sum of the listed columns', unlistedNumericColumns: ['대만', '베트남', '미국', '일본', '기타', '기간'],
         statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2 });
     const note = 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.';
     for (const fn of ['count', 'sum', 'mean', 'min', 'max', 'median']) {
@@ -56,7 +57,7 @@ test('sorts rows before pagination with stable ties and blanks last', async () =
         const error = await call({ type: 'rows', columns: ['연월', '네온_달러kg'], sort, limit: 1 });
         assert.ok(error.content[0].text.includes(`rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":"네온_달러kg","sort":"${sort}" (sort는 그대로 두고 sort_by를 더한다)`));
     }
-    assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '없음' })).content[0].text, /Unknown column/);
+    assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '없음' })).content[0].text, /모르는 열/);
     for (const sort of ['label', 'original']) assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort })).content[0].text, /asc or desc/);
     assert.match((await call({ type: 'rows', columns: ['연월'], sort: 'invalid' })).content[0].text, /rows sort must be asc or desc/);
 });
@@ -82,11 +83,11 @@ test('rejects malformed CSV, invalid paths and unknown columns and pages profile
         const res = await provider(csv).callTool('eda_profile', { path: 'data.csv' });
         assert.equal(res.structuredContent.code, 'INVALID_ARGUMENT');
     }
-    const p = provider('a,b,c,d,e,f\n1,2,3,4,5,6');
+    const p = provider('a,b,c,d,e,f,g,h,i,j,k\n1,2,3,4,5,6,7,8,9,10,11');
     const first = await p.callTool('eda_profile', { path: 'data.csv' });
-    assert.equal(first.structuredContent.nextFrom, 6);
-    const last = await p.callTool('eda_profile', { path: 'data.csv', from: 6 });
-    assert.equal(last.structuredContent.columns[0].name, 'f'); assert.equal(last.structuredContent.complete, true);
+    assert.equal(first.structuredContent.nextFrom, 11);
+    const last = await p.callTool('eda_profile', { path: 'data.csv', from: 11 });
+    assert.equal(last.structuredContent.columns[0].name, 'k'); assert.equal(last.structuredContent.complete, true);
     assert.equal((await p.callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'summary', columns: ['z'] } })).structuredContent.code, 'INVALID_ARGUMENT');
     assert.equal((await p.callTool('eda_profile', { path: '../data.csv' })).structuredContent.code, 'INVALID_ARGUMENT');
 });
@@ -211,7 +212,7 @@ test('analysis errors identify invalid keys and explain accepted values', async 
         [{ type: 'bad', columns: ['x'] }, [/summary/, /rows/]],
         [{ type: 'summary', columns: ['x'], offset: 1 }, [/offset/, /summary/, /type, columns, filter/]],
         [{ type: 'correlation', columns: ['x'] }, [/correlation/, /2/]],
-        [{ type: 'rows', columns: ['x'], limit: 0 }, [/limit/, /1 to 100/]],
+        [{ type: 'rows', columns: ['x'], limit: 0 }, [/limit/, /1 to 1000/]],
         [{ type: 'rows', columns: ['x'], offset: -1 }, [/offset/, /0 to/]],
         [{ type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'eq', value: '1' }, { column: 'x', op: 'eq', value: '1', typo: 1 }] }, [/condition 2/, /typo/]],
         [{ type: 'rows', columns: ['x'], filter: [{ column: 'x', op: 'bad', value: '1' }] }, [/condition 1/, /bad/, /prefix/, /contains/]],

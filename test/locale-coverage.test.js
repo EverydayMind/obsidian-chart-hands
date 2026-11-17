@@ -1,6 +1,7 @@
 'use strict';
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
+const Module = require('node:module');
 const path = require('node:path');
 const test = require('node:test');
 const { buildHead, captureExtended, loadHarness } = require('./helpers/locale-harness');
@@ -21,7 +22,14 @@ function assertPure(producer, value) {
 
 test('expanded Korean golden matches HEAD and current runtime without normalization', async () => {
     const expected = fs.readFileSync(golden);
-    assert.deepEqual(bytes(await captureExtended(await buildHead(), 'ko')), expected, 'HEAD baseline');
+    const { headSource } = require('./helpers/locale-harness');
+    // Keep each full snapshot paired with its own capture cases, including after a future commit.
+    const filename = path.join(__dirname, 'helpers', 'locale-harness.js');
+    const baseline = new Module(filename, module);
+    baseline.filename = filename;
+    baseline.paths = Module._nodeModulePaths(path.dirname(filename));
+    baseline._compile(headSource('test/helpers/locale-harness.js'), filename);
+    assert.deepEqual(bytes(await baseline.exports.captureExtended(await buildHead(), 'ko')), Buffer.from(headSource('test/fixtures/locale-ko-coverage.json')), 'HEAD baseline');
     assert.deepEqual(bytes(await captureExtended(buildPlugin(), 'ko')), expected, 'current Korean output');
 });
 
@@ -116,5 +124,5 @@ test('English output preserves Korean user file names, column names and document
     assert.match(note.content[0].text, /사용자 제목/);
     const csv = await p.callTool('eda_profile', { path: '자료.csv' });
     assert.ok(!csv.isError);
-    assert.match(csv.content[0].text, /사용자 열/);
+    assert.match(csv.structuredContent.columns[0].name, /사용자 열/);
 });

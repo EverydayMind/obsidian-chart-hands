@@ -26,7 +26,8 @@ const BUBBLE_MAX_PX = 40;
 const fail = (message) => {
     throw new Error(message);
 };
-const isNumberList = (value) => Array.isArray(value) && value.every(item => typeof item === 'number' && Number.isFinite(item));
+// CSV blanks are gaps, never zeroes.
+const isNumberList = (value) => Array.isArray(value) && value.every(item => item === null || typeof item === 'number' && Number.isFinite(item));
 const translucent = (hex, alpha) => {
     const value = parseInt(hex.slice(1), 16);
     return `rgba(${value >> 16}, ${(value >> 8) & 255}, ${value & 255}, ${alpha})`;

@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.14
+
+- Build charts directly from vault CSV columns with shared EDA filters, numeric validation and frozen values for HWPX export.
+- Return EDA JSON once, report matched filter ranges and unlisted numeric columns, and cap row pages at 100 with continuation guidance.
+- Suggest CSV paths and column names on errors; profile ten columns per page.
+- The updated tool descriptor declares CSV reads and changes its digest, so hosts must reapprove the provider.
+
 ## 0.10.9
 
 - Clarify when to use summary and return overall values for non-additive grouped aggregates.

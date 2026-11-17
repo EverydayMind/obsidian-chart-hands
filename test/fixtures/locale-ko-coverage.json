@@ -11,7 +11,7 @@
       {
         "name": "eda_profile",
         "title": "Profile a CSV dataset",
-        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
+        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -201,8 +201,8 @@
                 "limit": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 100,
-                  "description": "aggregate or rows. Defaults to 60 groups or 50 rows."
+                  "maximum": 1000,
+                  "description": "aggregate: default 60, maximum 100 groups (larger values are rejected). rows: default 50; requests above 100 are capped at 100 with limitApplied and offset guidance."
                 },
                 "offset": {
                   "type": "integer",
@@ -438,7 +438,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host's note-editing tools. Does not change any note.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -476,6 +476,64 @@
               "type": "string",
               "maxLength": 200,
               "description": "Chart title."
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Vault-relative CSV path."
+                },
+                "labels": {
+                  "type": "string",
+                  "description": "CSV category column; required for per-label chart types."
+                },
+                "x": {
+                  "type": "string",
+                  "description": "Numeric CSV x column; required for scatter and bubble."
+                },
+                "filter": {
+                  "type": "array",
+                  "maxItems": 4,
+                  "description": "Same AND conditions as eda_analyze; applied before charting, without pagination.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "column",
+                      "op",
+                      "value"
+                    ],
+                    "properties": {
+                      "column": {
+                        "type": "string"
+                      },
+                      "op": {
+                        "type": "string",
+                        "enum": [
+                          "eq",
+                          "ne",
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "prefix",
+                          "contains"
+                        ]
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
             },
             "labels": {
               "type": "array",
@@ -516,10 +574,15 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "values"
-                ],
                 "properties": {
+                  "column": {
+                    "type": "string",
+                    "description": "Numeric CSV column; required with source. Without source provide values instead."
+                  },
+                  "sizeColumn": {
+                    "type": "string",
+                    "description": "Numeric CSV size column; required for bubble with source."
+                  },
                   "name": {
                     "type": "string",
                     "maxLength": 100,
@@ -619,10 +682,10 @@
           "readOnlyHint": true
         },
         "_meta": {
-          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/effect": "read",
           "dev.agentinterop/group": "chart",
           "dev.agentinterop/resourceTypes": [
-            ".md"
+            ".csv"
           ],
           "dev.agentinterop/keywords": [
             "plotly",
@@ -662,7 +725,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"rowCount\":2,\"columnCount\":3,\"columns\":[{\"name\":\"month\",\"type\":\"text\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"top\":[{\"value\":\"2025-01\",\"count\":1},{\"value\":\"2025-02\",\"count\":1}]},{\"name\":\"value\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951}},{\"name\":\"other\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":3,\"q1\":3.75,\"median\":4.5,\"q3\":5.25,\"max\":6,\"mean\":4.5,\"stddevSample\":2.1213203435596424}}],\"from\":1,\"to\":3,\"complete\":true}"
+            "text": "CSV data.csv: 2행, 3열. 열 1~3을 반환했습니다."
           }
         ],
         "structuredContent": {
@@ -741,7 +804,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"rowCount\":0,\"columnCount\":3,\"columns\":[{\"name\":\"month\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]},{\"name\":\"value\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]},{\"name\":\"other\",\"type\":\"empty\",\"missing\":0,\"missingRate\":0,\"distinct\":0,\"top\":[]}],\"from\":1,\"to\":3,\"complete\":true}"
+            "text": "CSV empty.csv: 0행, 3열. 열 1~3을 반환했습니다."
           }
         ],
         "structuredContent": {
@@ -819,7 +882,7 @@
         "content": [
           {
             "type": "text",
-            "text": "File not found in the vault: missing.csv"
+            "text": "File not found in the vault: missing.csv CSV 후보: bad.csv, data.csv, empty.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -844,17 +907,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Only CSV files (.csv) can be analyzed."
+            "text": "CSV가 아닙니다. CSV 파일(.csv)만 분석할 수 있습니다. CSV 후보: bad.csv, data.csv, empty.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
           "code": "UNSUPPORTED_FORMAT",
-          "retryable": false
+          "retryable": true
         },
         "_meta": {
           "dev.agentinterop/error": {
             "code": "UNSUPPORTED_FORMAT",
-            "retryable": false
+            "retryable": true
           }
         }
       }
@@ -900,7 +963,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6}}"
+            "text": "CSV data.csv: summary 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -920,7 +983,11 @@
             "mean": 3,
             "stddevSample": 1.4142135623730951,
             "sum": 6
-          }
+          },
+          "shareOf": "sum of the listed columns",
+          "unlistedNumericColumns": [
+            "other"
+          ]
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -944,7 +1011,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":0,\"excludedRows\":0,\"statistics\":{\"count\":0}}"
+            "text": "CSV empty.csv: summary 분석, 전체 0행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -956,7 +1023,9 @@
           "excludedRows": 0,
           "statistics": {
             "count": 0
-          }
+          },
+          "shareOf": "sum of the listed columns",
+          "unlistedNumericColumns": []
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -981,7 +1050,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Unknown column: unknown"
+            "text": "모르는 열: unknown. 사용 가능한 열: month, value, other. 이 열 이름 중 하나로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1011,7 +1080,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"histogram\",\"columns\":[\"value\"],\"totalRows\":2,\"validRows\":2,\"excludedRows\":0,\"bins\":[{\"lower\":2,\"upper\":2.2,\"count\":1},{\"lower\":2.2,\"upper\":2.4000000000000004,\"count\":0},{\"lower\":2.4000000000000004,\"upper\":2.5999999999999996,\"count\":0},{\"lower\":2.5999999999999996,\"upper\":2.8,\"count\":0},{\"lower\":2.8,\"upper\":3,\"count\":0},{\"lower\":3,\"upper\":3.2,\"count\":0},{\"lower\":3.2,\"upper\":3.4,\"count\":0},{\"lower\":3.4,\"upper\":3.6,\"count\":0},{\"lower\":3.6,\"upper\":3.8,\"count\":0},{\"lower\":3.8,\"upper\":4,\"count\":1}]}"
+            "text": "CSV data.csv: histogram 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1097,7 +1166,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"histogram\",\"columns\":[\"value\"],\"totalRows\":0,\"validRows\":0,\"excludedRows\":0,\"bins\":[]}"
+            "text": "CSV empty.csv: histogram 분석, 전체 0행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1133,7 +1202,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Unknown column: unknown"
+            "text": "모르는 열: unknown. 사용 가능한 열: month, value, other. 이 열 이름 중 하나로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1164,7 +1233,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"correlation\",\"columns\":[\"value\",\"other\"],\"method\":\"pearson\",\"totalRows\":2,\"validPairs\":2,\"excludedRows\":0,\"correlation\":1}"
+            "text": "CSV data.csv: correlation 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1202,7 +1271,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"correlation\",\"columns\":[\"value\",\"other\"],\"method\":\"pearson\",\"totalRows\":0,\"validPairs\":0,\"excludedRows\":0,\"correlation\":null}"
+            "text": "CSV empty.csv: correlation 분석, 전체 0행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1271,7 +1340,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"aggregate\",\"columns\":[\"month\",\"value\"],\"function\":\"sum\",\"sort\":\"desc\",\"totalRows\":2,\"validRows\":2,\"excludedRows\":0,\"missingGroupRows\":0,\"groupCount\":2,\"truncated\":false,\"total\":6,\"groups\":[{\"group\":\"2025-02\",\"rows\":1,\"value\":4,\"share\":0.6666666666666666},{\"group\":\"2025-01\",\"rows\":1,\"value\":2,\"share\":0.3333333333333333}],\"chart\":{\"labels\":[\"2025-02\",\"2025-01\"],\"values\":[4,2]}}"
+            "text": "CSV data.csv: aggregate 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1337,7 +1406,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"aggregate\",\"columns\":[\"month\",\"value\"],\"function\":\"sum\",\"sort\":\"desc\",\"totalRows\":0,\"validRows\":0,\"excludedRows\":0,\"missingGroupRows\":0,\"groupCount\":0,\"truncated\":false,\"total\":0,\"groups\":[],\"chart\":{\"labels\":[],\"values\":[]}}"
+            "text": "CSV empty.csv: aggregate 분석, 전체 0행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1384,7 +1453,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Unknown column: unknown"
+            "text": "모르는 열: unknown. 사용 가능한 열: month, value, other. 이 열 이름 중 하나로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1414,7 +1483,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":2,\"rows\":[{\"rowNumber\":1,\"values\":[\"2\"]},{\"rowNumber\":2,\"values\":[\"4\"]}],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2}"
+            "text": "CSV data.csv: rows 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1463,7 +1532,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":0}"
+            "text": "CSV empty.csv: rows 분석, 전체 0행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1500,7 +1569,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Unknown column: unknown"
+            "text": "모르는 열: unknown. 사용 가능한 열: month, value, other. 이 열 이름 중 하나로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1563,7 +1632,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":2,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2}"
+            "text": "CSV data.csv: rows 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1600,7 +1669,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6},\"note\":\"summary returns count, sum, mean, min, max and quartiles together; function is not needed.\"}"
+            "text": "CSV data.csv: summary 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1621,6 +1690,10 @@
             "stddevSample": 1.4142135623730951,
             "sum": 6
           },
+          "shareOf": "sum of the listed columns",
+          "unlistedNumericColumns": [
+            "other"
+          ],
           "note": "summary returns count, sum, mean, min, max and quartiles together; function is not needed."
         },
         "_meta": {
@@ -1652,7 +1725,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2,\"filter\":[{\"column\":\"month\",\"op\":\"eq\",\"value\":\"none\"}],\"filteredRows\":0}"
+            "text": "CSV data.csv: rows 분석, 전체 2행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -1664,6 +1737,11 @@
           "rows": [],
           "truncated": false,
           "nextOffset": null,
+          "matched": {
+            "month": {
+              "rows": 0
+            }
+          },
           "totalRows": 2,
           "filter": [
             {
@@ -3090,7 +3168,7 @@
         "content": [
           {
             "type": "text",
-            "text": "labels is required for this chart type (categories, slice or node names, heatmap columns or radar axes)."
+            "text": "source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:[\"A\"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요."
           }
         ],
         "structuredContent": {
@@ -3116,7 +3194,7 @@
         "content": [
           {
             "type": "text",
-            "text": "type must be one of: line, area, bar, barh, combo, scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar, indicator."
+            "text": "source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:[\"A\"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요."
           }
         ],
         "structuredContent": {
@@ -3149,7 +3227,7 @@
         "content": [
           {
             "type": "text",
-            "text": "series[0].values must be a non-empty array of numbers."
+            "text": "source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:[\"A\"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요."
           }
         ],
         "structuredContent": {
@@ -3196,6 +3274,337 @@
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\"\n      ],\n      \"values\": [\n        1\n      ],\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
           "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]},{\"values\":[2]}]}\n```"
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "absent/xy.csv"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "File not found in the vault: absent/xy.csv CSV 후보: (없음). 후보의 path로 다시 호출하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "NOT_FOUND",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "NOT_FOUND",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "limit": 200
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "CSV data.csv: rows 분석, 전체 2행 중 2행을 선택했습니다."
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "value"
+          ],
+          "matchedRows": 2,
+          "rows": [
+            {
+              "rowNumber": 1,
+              "values": [
+                "2"
+              ]
+            },
+            {
+              "rowNumber": 2,
+              "values": [
+                "4"
+              ]
+            }
+          ],
+          "truncated": false,
+          "nextOffset": null,
+          "limitApplied": 100,
+          "note": "100행까지만 반환합니다. 이어 받으려면 offset에 nextOffset을 주세요.",
+          "totalRows": 2
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"]}\n```",
+          "source": {
+            "path": "data.csv",
+            "rows": 2,
+            "labels": {
+              "first": "2025-01",
+              "last": "2025-02"
+            }
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "extra": 1
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source는 path, labels, x, filter만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ],
+        "labels": [
+          "A"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source를 쓰면 labels 또는 series[].values/x/size 직접 배열 대신 series[].column으로 하나 이상의 계열을 주세요. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "filter": [
+            {
+              "column": "month",
+              "op": "eq",
+              "value": "none"
+            }
+          ]
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source의 필터 결과는 1~200행이어야 합니다. source.filter를 고쳐 범위를 줄이거나 일치하는 행을 선택하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {}
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[].column에 CSV 열 이름을 주세요. 예: source:{path:\"data.csv\",labels:\"month\",x:\"x\"},series:[{column:\"value\",sizeColumn:\"size\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "month"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "열 month에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
         }
       }
     },

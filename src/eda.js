@@ -53,12 +53,12 @@ function summary(values) {
     const finite = n => Number.isFinite(n) ? n : null;
     return { count: values.length, min: sorted[0], q1: finite(quantile(sorted, .25)), median: finite(quantile(sorted, .5)), q3: finite(quantile(sorted, .75)), max: sorted.at(-1), mean: finite(mean), stddevSample: values.length > 1 ? finite(Math.sqrt(m2 / (values.length - 1))) : null };
 }
-function indexOf(dataset, name) {
+function indexOf(dataset, name, locale = 'en') {
     const index = dataset.headers.indexOf(name);
-    if (index < 0) throw new Error(`Unknown column: ${name}`);
+    if (index < 0) throw new Error(locale === 'ko' ? `모르는 열: ${name}. 사용 가능한 열: ${dataset.headers.slice(0, 30).join(', ')}. 이 열 이름 중 하나로 다시 호출하세요.` : `Unknown column: ${name}. Available columns: ${dataset.headers.slice(0, 30).join(', ')}. Use one of these column names.`);
     return index;
 }
-export function profile(dataset, from = 0, limit = 5) {
+export function profile(dataset, from = 0, limit = 10) {
     return { rowCount: dataset.rows.length, columnCount: dataset.headers.length, columns: dataset.headers.slice(from, from + limit).map((name, offset) => {
         const i = from + offset;
         const values = dataset.rows.map(row => row[i]).filter(v => !missing(v));
@@ -138,30 +138,23 @@ function aggregate(dataset, spec) {
         ...(additive ? { total: finite(total) } : { overall: finite(overall) }), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
 }
 
-export function analyze(dataset, spec, locale = 'ko') {
-    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
-    if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
-    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
-    const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
-    const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
-    if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
-    if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
-    const cols = spec.columns;
-    const max = spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
-    const min = spec.type === 'correlation' ? 2 : 1;
-    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
-    const indexes = cols.map(c => indexOf(dataset, c));
+// Shared by analysis and CSV chart input. Never paginate or shorten cells here.
+export function selectRows(dataset, filter, locale = 'en', filterName = 'analysis.filter') {
+    const spec = { filter };
     let selected = dataset.rows.map((row, i) => ({ row, rowNumber: i + 1 }));
     if (spec.filter !== undefined) {
-        if (!Array.isArray(spec.filter) || spec.filter.length > 4) throw new Error('analysis.filter must be an array of at most 4 conditions.');
+        if (!Array.isArray(spec.filter) || spec.filter.length > 4) throw new Error(`${filterName} must be an array of at most 4 conditions.`);
         const ops = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'];
         const conditions = spec.filter.map((condition, i) => {
-            const where = `analysis.filter condition ${i + 1}`;
+            const where = `${filterName} condition ${i + 1}`;
             if (!condition || typeof condition !== 'object' || Array.isArray(condition)) throw new Error(`${where} must be an object.`);
             const key = Object.keys(condition).find(k => !['column', 'op', 'value'].includes(k));
             if (key !== undefined) throw new Error(`${where} has unknown key: ${key}.`);
             if (typeof condition.column !== 'string') throw new Error(`${where} column must be a string.`);
-            if (!dataset.headers.includes(condition.column)) throw new Error(`${where} has unknown column: ${condition.column}.`);
+            if (!dataset.headers.includes(condition.column)) {
+                try { indexOf(dataset, condition.column, locale); }
+                catch (error) { throw new Error(`${where}: ${error.message}`); }
+            }
             if (!ops.includes(condition.op)) throw new Error(`${where} has unknown op: ${condition.op}; allowed: ${ops.join(', ')}.`);
             if (typeof condition.value !== 'string') throw new Error(`${where} value must be a string.`);
             return { ...condition, index: indexOf(dataset, condition.column) };
@@ -182,10 +175,32 @@ export function analyze(dataset, spec, locale = 'ko') {
             return left <= right;
         }));
     }
+    return selected;
+}
+
+export function analyze(dataset, spec, locale = 'ko') {
+    if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
+    if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
+    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
+    const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
+    const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
+    if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
+    if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
+    const cols = spec.columns;
+    const max = spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
+    const min = spec.type === 'correlation' ? 2 : 1;
+    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
+    const indexes = cols.map(c => indexOf(dataset, c, locale));
+    const selected = selectRows(dataset, spec.filter, locale);
+    const matched = Object.fromEntries((spec.filter ?? []).map(({ column }) => {
+        const i = indexOf(dataset, column);
+        return [column, selected.length ? { first: selected[0].row[i], last: selected.at(-1).row[i], rows: selected.length } : { rows: 0 }];
+    }));
     let result;
     if (spec.type === 'rows') {
-        const limit = spec.limit ?? 50, offset = spec.offset ?? 0;
-        if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new Error('rows limit must be an integer from 1 to 100.');
+        const requestedLimit = spec.limit ?? 50, offset = spec.offset ?? 0;
+        if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 1000) throw new Error('rows limit must be an integer from 1 to 1000.');
+        const limit = Math.min(requestedLimit, 100);
         if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
         if (spec.sort !== undefined && !['asc', 'desc'].includes(spec.sort)) throw new Error('rows sort must be asc or desc.');
         if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error(locale === 'ko'
@@ -193,7 +208,7 @@ export function analyze(dataset, spec, locale = 'ko') {
             : `To use sort with rows, also provide a column name in sort_by. Example: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (keep sort as it is and add sort_by)`);
         if (spec.sort_by !== undefined) {
             if (typeof spec.sort_by !== 'string') throw new Error('rows sort_by must be a column name.');
-            const sortIndex = indexOf(dataset, spec.sort_by), direction = spec.sort ?? 'asc';
+            const sortIndex = indexOf(dataset, spec.sort_by, locale), direction = spec.sort ?? 'asc';
             const numeric = selected.every(({ row }) => missing(row[sortIndex]) || number(row[sortIndex]) !== null);
             selected.sort((a, b) => {
                 const x = a.row[sortIndex], y = b.row[sortIndex];
@@ -207,11 +222,59 @@ export function analyze(dataset, spec, locale = 'ko') {
         result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc', order: spec.sort === 'desc' ? 'descending (largest first)' : 'ascending (smallest first)' } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
             const truncatedColumns = cols.filter((_, j) => row[indexes[j]].length > 200);
             return { rowNumber, values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
-        }), truncated, nextOffset: truncated ? offset + page.length : null };
+        }), truncated, nextOffset: truncated ? offset + page.length : null,
+        ...(requestedLimit > 100 ? { limitApplied: 100, note: locale === 'ko' ? '100행까지만 반환합니다. 이어 받으려면 offset에 nextOffset을 주세요.' : 'Returns at most 100 rows. To continue, set offset to nextOffset.' } : {}) };
     } else {
         result = analyzeSelected({ ...dataset, rows: selected.map(item => item.row) }, spec);
     }
-    return { ...result, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}), ...(spec.type === 'summary' && Object.hasOwn(spec, 'function') ? { note: 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.' } : {}) };
+    const scope = {};
+    if (['summary', 'aggregate', 'rows'].includes(spec.type) && spec.filter !== undefined) scope.matched = matched;
+    if (spec.type === 'summary') {
+        scope.shareOf = 'sum of the listed columns';
+        scope.unlistedNumericColumns = dataset.headers.filter((name, i) => {
+            const values = dataset.rows.map(row => row[i]).filter(v => !missing(v));
+            return !cols.includes(name) && values.length > 0 && values.every(v => number(v) !== null);
+        });
+    }
+    return { ...result, ...scope, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}), ...(spec.type === 'summary' && Object.hasOwn(spec, 'function') ? { note: 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.' } : {}) };
+}
+
+export function validateChartSource(args, locale = 'ko') {
+    const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
+    const source = args.source;
+    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'labels', 'x', 'filter'].includes(k))) {
+        fail('source는 path, labels, x, filter만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, labels, x, filter. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
+    }
+    if (Object.hasOwn(args, 'labels') || !Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || typeof s !== 'object' || ['values', 'x', 'size'].some(k => Object.hasOwn(s, k)))) {
+        fail('source를 쓰면 labels 또는 series[].values/x/size 직접 배열 대신 series[].column으로 하나 이상의 계열을 주세요. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'With source provide at least one series with column instead of labels or series[].values/x/size arrays. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
+    }
+    return source;
+}
+
+// Resolve trusted CSV cells into the builder's ordinary data shape.
+export function resolveChartSource(dataset, args, locale = 'ko') {
+    const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
+    const source = validateChartSource(args, locale);
+    const selected = selectRows(dataset, source.filter, locale, 'source.filter');
+    if (!selected.length || selected.length > 200) fail('source의 필터 결과는 1~200행이어야 합니다. source.filter를 고쳐 범위를 줄이거나 일치하는 행을 선택하세요.', 'source must match 1–200 rows. Change source.filter to reduce the range or select matching rows.');
+    const column = (name, where, numeric) => {
+        if (typeof name !== 'string' || !name) fail(`${where}에 CSV 열 이름을 주세요. 예: source:{path:"data.csv",labels:"month",x:"x"},series:[{column:"value",sizeColumn:"size"}]`, `Provide a CSV column name in ${where}. Example: source:{path:"data.csv",labels:"month",x:"x"},series:[{column:"value",sizeColumn:"size"}]`);
+        const i = indexOf(dataset, name, locale);
+        // Validate the full column, including rows excluded by the filter.
+        if (numeric && dataset.rows.some(row => !missing(row[i]) && number(row[i]) === null)) fail(`열 ${name}에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요.`, `Column ${name} contains non-numeric values. Choose a numeric column.`);
+        return selected.map(({ row }) => numeric ? (missing(row[i]) ? null : number(row[i])) : row[i]);
+    };
+    const resolved = { ...args };
+    delete resolved.source;
+    const points = ['scatter', 'bubble'].includes(args.type);
+    const needsLabels = !['scatter', 'bubble', 'histogram', 'box', 'violin', 'indicator'].includes(args.type);
+    if (needsLabels || source.labels !== undefined) resolved.labels = column(source.labels, 'source.labels', false);
+    const x = points ? column(source.x, 'source.x', true) : undefined;
+    resolved.series = args.series.map(entry => {
+        const { column: name, sizeColumn, ...rest } = entry;
+        return { ...rest, values: column(name, 'series[].column', true), ...(points ? { x } : {}), ...(args.type === 'bubble' ? { size: column(sizeColumn, 'series[].sizeColumn', true) } : {}) };
+    });
+    return resolved;
 }
 
 function analyzeSelected(dataset, spec) {

@@ -1,5 +1,5 @@
 import * as obsidian from 'obsidian';
-import { parseDataset, profile, analyze, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
+import { parseDataset, profile, analyze, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
@@ -402,7 +402,7 @@ const createAgentTools = (locale) => {
 const tools = [
     {
         name: 'eda_profile', title: 'Profile a CSV dataset',
-        description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
+        description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
             from: { type: 'integer', minimum: 1, description: '1-based first column of this page; defaults to 1. When more columns remain, the result gives nextFrom: call again with from set to it.' }
@@ -422,7 +422,7 @@ const tools = [
                 function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic.' },
                 sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by.' },
                 sort_by: { type: 'string', description: 'rows only. Sort by this CSV column before pagination.' },
-                limit: { type: 'integer', minimum: 1, maximum: 100, description: 'aggregate or rows. Defaults to 60 groups or 50 rows.' },
+                limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'aggregate: default 60, maximum 100 groups (larger values are rejected). rows: default 50; requests above 100 are capped at 100 with limitApplied and offset guidance.' },
                 offset: { type: 'integer', minimum: 0, description: 'rows only. Zero-based offset, default 0.' }
             } }
         } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
@@ -476,7 +476,7 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: 'Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host\'s note-editing tools. Does not change any note.',
+        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -484,6 +484,14 @@ const tools = [
             properties: {
                 type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
                 title: { type: 'string', maxLength: 200, description: 'Chart title.' },
+                source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
+                    path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+                    labels: { type: 'string', description: 'CSV category column; required for per-label chart types.' },
+                    x: { type: 'string', description: 'Numeric CSV x column; required for scatter and bubble.' },
+                    filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
+                        column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' }
+                    } } }
+                } },
                 labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator.' },
                 parents: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'treemap and sunburst: the parent label of each label, "" for a top-level item.' },
                 measure: { type: 'array', maxItems: 200, items: { type: 'string', enum: ['relative', 'total', 'absolute'] }, description: 'waterfall: per label, relative (a change, the default), total (running total; its value is ignored) or absolute (sets the level).' },
@@ -495,8 +503,9 @@ const tools = [
                     items: {
                         type: 'object',
                         additionalProperties: false,
-                        required: ['values'],
                         properties: {
+                            column: { type: 'string', description: 'Numeric CSV column; required with source. Without source provide values instead.' },
+                            sizeColumn: { type: 'string', description: 'Numeric CSV size column; required for bubble with source.' },
                             name: { type: 'string', maxLength: 100, description: 'Series name, shown in the legend.' },
                             values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin.' },
                             x: { type: 'array', maxItems: 2000, items: { type: 'number' }, description: 'scatter and bubble: the x value of each point.' },
@@ -517,7 +526,7 @@ const tools = [
             }
         },
         annotations: { readOnlyHint: true },
-        _meta: agentMeta('pure')
+        _meta: { ...agentMeta('read'), 'dev.agentinterop/resourceTypes': ['.csv'] }
     }
 ];
 if (locale === 'en') {
@@ -788,11 +797,26 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
         tools: createAgentTools(locale)
     };
     let disposed = false;
+    const csvCandidates = (path, sameFolderOnly = false) => {
+        const folder = path.includes('/') ? path.slice(0, path.lastIndexOf('/')) : '';
+        const files = (plugin.app.vault.getFiles?.() ?? []).filter(f => f.extension?.toLowerCase() === 'csv');
+        const nearby = files.filter(f => (f.path.includes('/') ? f.path.slice(0, f.path.lastIndexOf('/')) : '') === folder);
+        const stem = path.split('/').pop().replace(/\.[^.]*$/, '').normalize('NFC').toLowerCase();
+        const parts = Array.from({ length: Math.max(0, stem.length - 2) }, (_, i) => stem.slice(i, i + 3));
+        const candidates = nearby.length || sameFolderOnly ? nearby : files.filter(f => {
+            const name = f.path.split('/').pop().replace(/\.[^.]*$/, '').normalize('NFC').toLowerCase();
+            return parts.some(part => name.includes(part));
+        });
+        return candidates.map(f => f.path).sort().slice(0, 5);
+    };
+    const candidateText = (paths) => locale === 'ko'
+        ? ` CSV 후보: ${paths.length ? paths.join(', ') : '(없음)'}. 후보의 path로 다시 호출하세요.`
+        : ` CSV candidates: ${paths.length ? paths.join(', ') : '(none)'}. Call again with a candidate path.`;
     const readDataset = async (rawPath) => {
         const path = normalizeAgentPath(rawPath);
         const file = plugin.app.vault.getAbstractFileByPath(path);
-        if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}`, true);
-        if (file.extension.toLowerCase() !== 'csv') throw new AgentToolError('UNSUPPORTED_FORMAT', 'Only CSV files (.csv) can be analyzed.');
+        if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}` + candidateText(csvCandidates(path)), true);
+        if (file.extension.toLowerCase() !== 'csv') throw new AgentToolError('UNSUPPORTED_FORMAT', (locale === 'ko' ? 'CSV가 아닙니다. CSV 파일(.csv)만 분석할 수 있습니다.' : 'This is not a CSV. Only CSV files (.csv) can be analyzed.') + candidateText(csvCandidates(path, true)), true);
         if (file.stat && file.stat.size > 5 * 1024 * 1024) throw new AgentToolError('INVALID_ARGUMENT', 'CSV must be at most 5 MiB.', true);
         try { return { path, dataset: parseDataset(await plugin.app.vault.cachedRead(file)) }; }
         catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
@@ -807,14 +831,16 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
             result.to = from + result.columns.length - 1;
             result.complete = result.to === result.columnCount;
             if (!result.complete) result.nextFrom = result.to + 1;
-            return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+            const text = locale === 'ko' ? `CSV ${path}: ${result.rowCount}행, ${result.columnCount}열. 열 ${result.from}~${result.to}을 반환했습니다.` : `CSV ${path}: ${result.rowCount} rows, ${result.columnCount} columns. Returned columns ${result.from}–${result.to}.`;
+            return { content: [{ type: 'text', text }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         eda_analyze: async (args) => {
             const { path, dataset } = await readDataset(args.path);
             let result;
             try { result = analyze(dataset, args.analysis, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
-            return { content: [{ type: 'text', text: JSON.stringify(result) }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+            const text = locale === 'ko' ? `CSV ${path}: ${result.type} 분석, 전체 ${result.totalRows}행 중 ${result.filteredRows ?? result.totalRows}행을 선택했습니다.` : `CSV ${path}: ${result.type} analysis selected ${result.filteredRows ?? result.totalRows} of ${result.totalRows} rows.`;
+            return { content: [{ type: 'text', text }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         get_chart_guide: (args) => {
             const topic = args.topic === undefined ? 'basics' : args.topic;
@@ -829,6 +855,20 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
         },
         build_chart: async (args) => {
             let definition;
+            let source;
+            if (Object.hasOwn(args, 'source')) {
+                try { validateChartSource(args, locale); }
+                catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+                const { path, dataset } = await readDataset(args.source?.path);
+                try { args = resolveChartSource(dataset, args, locale); }
+                catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+                const labels = args.labels ?? args.series[0].x ?? [];
+                source = { path, rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {} };
+            } else if (Array.isArray(args.series) && args.series.some(s => s && (Object.hasOwn(s, 'column') || Object.hasOwn(s, 'sizeColumn')))) {
+                throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요.' : 'series[].column/sizeColumn requires source. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. For direct input use values:[1,2] instead of column.', true);
+            } else if (!Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || !Array.isArray(s.values) || !s.values.length)) {
+                throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:["A"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요.' : 'Without source each series requires a numeric values array. Example: labels:["A"],series:[{values:[1]}]. For CSV use source and series[].column.', true);
+            }
             try {
                 definition = buildChartDefinition(args);
             }
@@ -860,7 +900,8 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
             ].join('\n');
             return {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : {}) }
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : {}), ...(source ? { source } : {}) },
+                ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {

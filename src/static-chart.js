@@ -7,7 +7,7 @@ const SERIES_KEYS = new Set(['name', 'values', 'x', 'size', 'text', 'kind', 'sec
 const text = (value, max) => typeof value === 'string' && value.length <= max
     && !Array.from(value).some(char => char.codePointAt(0) < 32 || char.codePointAt(0) === 127);
 const stringArray = (value, maxItems, maxChars) => Array.isArray(value) && value.length <= maxItems && value.every(item => text(item, maxChars));
-const numberArray = (value) => Array.isArray(value) && value.length <= 2000 && value.every(item => typeof item === 'number' && Number.isFinite(item));
+const numberArray = (value) => Array.isArray(value) && value.length <= 2000 && value.every(item => item === null || typeof item === 'number' && Number.isFinite(item));
 const object = (value, keys) => value !== null && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).every(key => keys.has(key));
 const invalid = () => { throw new Error('Invalid or unsupported static chart data. Use bounded plain JSON without control characters.'); };
 // Plotly interprets HTML-like markup and dollar-delimited math. Encode user text

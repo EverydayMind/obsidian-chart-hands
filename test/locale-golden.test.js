@@ -53,7 +53,7 @@ test('the existing Korean golden also matches unmodified HEAD execution', async 
     const { buildHead, loadHarness, headSource } = require('./helpers/locale-harness');
     const h = loadHarness(await buildHead(), 'ko');
     const actual = Buffer.from(JSON.stringify(await capture('ko', h.exports.createAgentProvider, headSource('src/main.js')), null, 2) + '\n');
-    assert.deepEqual(actual, fs.readFileSync(golden));
+    assert.deepEqual(actual, Buffer.from(headSource('test/fixtures/locale-ko.json')));
 });
 test('app locale takes precedence and fallback accepts only valid language tags', () => {
     const original = Object.getOwnPropertyDescriptor(globalThis, 'navigator');

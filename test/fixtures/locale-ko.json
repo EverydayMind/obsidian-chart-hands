@@ -11,7 +11,7 @@
       {
         "name": "eda_profile",
         "title": "Profile a CSV dataset",
-        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns five columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
+        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -201,8 +201,8 @@
                 "limit": {
                   "type": "integer",
                   "minimum": 1,
-                  "maximum": 100,
-                  "description": "aggregate or rows. Defaults to 60 groups or 50 rows."
+                  "maximum": 1000,
+                  "description": "aggregate: default 60, maximum 100 groups (larger values are rejected). rows: default 50; requests above 100 are capped at 100 with limitApplied and offset guidance."
                 },
                 "offset": {
                   "type": "integer",
@@ -438,7 +438,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "Build a ready-to-insert plotly code block from plain data, apply the Chart Hands palette (style clean) and run basic checks on it; use check_chart for full Plotly schema validation. Per-label types need labels and one values array per series: line, area, bar, barh, combo (bars plus lines, series kind), funnel, radar, heatmap (each series is a row named by its name). pie, donut, waterfall (optional measure), treemap and sunburst (parents required) use labels and the first series. scatter and bubble need x and values per series (bubble also size). histogram, box and violin take raw observations in values. indicator takes values [value] or [value, reference]. series secondary puts a series on a right-hand y axis. Returns the fenced block; for compatible compact inputs also returns staticBlock for HWPX export. Insert with the host's note-editing tools. Does not change any note.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?} reads CSV in row order (1–200 matches). source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -476,6 +476,64 @@
               "type": "string",
               "maxLength": 200,
               "description": "Chart title."
+            },
+            "source": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path"
+              ],
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Vault-relative CSV path."
+                },
+                "labels": {
+                  "type": "string",
+                  "description": "CSV category column; required for per-label chart types."
+                },
+                "x": {
+                  "type": "string",
+                  "description": "Numeric CSV x column; required for scatter and bubble."
+                },
+                "filter": {
+                  "type": "array",
+                  "maxItems": 4,
+                  "description": "Same AND conditions as eda_analyze; applied before charting, without pagination.",
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": [
+                      "column",
+                      "op",
+                      "value"
+                    ],
+                    "properties": {
+                      "column": {
+                        "type": "string"
+                      },
+                      "op": {
+                        "type": "string",
+                        "enum": [
+                          "eq",
+                          "ne",
+                          "gt",
+                          "gte",
+                          "lt",
+                          "lte",
+                          "prefix",
+                          "contains"
+                        ]
+                      },
+                      "value": {
+                        "type": "string"
+                      }
+                    }
+                  }
+                }
+              }
             },
             "labels": {
               "type": "array",
@@ -516,10 +574,15 @@
               "items": {
                 "type": "object",
                 "additionalProperties": false,
-                "required": [
-                  "values"
-                ],
                 "properties": {
+                  "column": {
+                    "type": "string",
+                    "description": "Numeric CSV column; required with source. Without source provide values instead."
+                  },
+                  "sizeColumn": {
+                    "type": "string",
+                    "description": "Numeric CSV size column; required for bubble with source."
+                  },
                   "name": {
                     "type": "string",
                     "maxLength": 100,
@@ -619,10 +682,10 @@
           "readOnlyHint": true
         },
         "_meta": {
-          "dev.agentinterop/effect": "pure",
+          "dev.agentinterop/effect": "read",
           "dev.agentinterop/group": "chart",
           "dev.agentinterop/resourceTypes": [
-            ".md"
+            ".csv"
           ],
           "dev.agentinterop/keywords": [
             "plotly",
@@ -652,7 +715,7 @@
       }
     ]
   },
-  "digest": "b5f758e551b58c3038d99a4a4dff03e51e845cc3b7dbc0e3083f8b11ee931727",
+  "digest": "f45656e5ee6daf35d1b8ee0e8f0e5cac098d15cabc0bfd70e29888d38da436b2",
   "results": [
     {
       "name": "eda_profile",
@@ -663,7 +726,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"rowCount\":2,\"columnCount\":2,\"columns\":[{\"name\":\"month\",\"type\":\"text\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"top\":[{\"value\":\"2025-01\",\"count\":1},{\"value\":\"2025-02\",\"count\":1}]},{\"name\":\"value\",\"type\":\"number\",\"missing\":0,\"missingRate\":0,\"distinct\":2,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951}}],\"from\":1,\"to\":2,\"complete\":true}"
+            "text": "CSV data.csv: 2행, 2열. 열 1~2을 반환했습니다."
           }
         ],
         "structuredContent": {
@@ -726,7 +789,7 @@
         "content": [
           {
             "type": "text",
-            "text": "File not found in the vault: missing.csv"
+            "text": "File not found in the vault: missing.csv CSV 후보: (없음). 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -756,7 +819,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"summary\",\"columns\":[\"value\"],\"totalRows\":2,\"excludedRows\":0,\"statistics\":{\"count\":2,\"min\":2,\"q1\":2.5,\"median\":3,\"q3\":3.5,\"max\":4,\"mean\":3,\"stddevSample\":1.4142135623730951,\"sum\":6}}"
+            "text": "CSV data.csv: summary 분석, 전체 2행 중 2행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -776,7 +839,9 @@
             "mean": 3,
             "stddevSample": 1.4142135623730951,
             "sum": 6
-          }
+          },
+          "shareOf": "sum of the listed columns",
+          "unlistedNumericColumns": []
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -839,7 +904,7 @@
         "content": [
           {
             "type": "text",
-            "text": "{\"type\":\"rows\",\"columns\":[\"value\"],\"matchedRows\":0,\"rows\":[],\"truncated\":false,\"nextOffset\":null,\"totalRows\":2,\"filter\":[{\"column\":\"month\",\"op\":\"eq\",\"value\":\"none\"}],\"filteredRows\":0}"
+            "text": "CSV data.csv: rows 분석, 전체 2행 중 0행을 선택했습니다."
           }
         ],
         "structuredContent": {
@@ -851,6 +916,11 @@
           "rows": [],
           "truncated": false,
           "nextOffset": null,
+          "matched": {
+            "month": {
+              "rows": 0
+            }
+          },
           "totalRows": 2,
           "filter": [
             {
@@ -1052,7 +1122,7 @@
         "content": [
           {
             "type": "text",
-            "text": "type must be one of: line, area, bar, barh, combo, scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar, indicator."
+            "text": "source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:[\"A\"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요."
           }
         ],
         "structuredContent": {
