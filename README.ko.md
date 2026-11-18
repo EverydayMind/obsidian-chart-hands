@@ -660,6 +660,15 @@ dv.paragraph(`n=${s.count}, 평균 ${s.mean?.toFixed(2)}, 중앙값 ${s.median},
 
 agentinterop v1 provider는 AI 에이전트 기능을 수행하는 다른 옵시디언 플러그인에서 MCP-like API를 제공하는 개발자 자체 규약으로, 공인된 표준은 아닙니다. 특정 에이전트 호스트를 몰라도, 에이전트를 실행하는 플러그인이 다른 플러그인의 도구를 찾아 쓸 수 있게 하려는 것입니다.
 
+이 규약의 장점:
+
+- **플러그인끼리 묶이지 않습니다.** provider는 플러그인 인스턴스에 놓인 평범한 객체입니다. 이 플러그인은 어떤 에이전트 플러그인도 가져다 쓰거나 의존하지 않으며, 에이전트 플러그인이 없어도 똑같이 동작합니다.
+- **모든 처리가 내 컴퓨터 안에서 끝납니다.** 도구 호출은 Obsidian 안의 함수 호출입니다. 따로 띄울 서버도, 열어 둘 포트도, 네트워크 요청도 없습니다.
+- **사용자가 결정합니다.** 호스트는 사용자가 승인한 플러그인의 도구만 모델에게 보여 줍니다. 도구마다 효과(이 플러그인은 `pure`·`read`)를 밝히므로, 호스트는 이 플러그인의 어떤 도구도 파일을 바꾸지 않는다는 것을 압니다.
+- **모델이 보는 도구 목록이 짧습니다.** 키워드와 그룹 덕분에 호스트가 요청과 관련 있는 도구만 내놓을 수 있어, 작은 모델에서 특히 도움이 됩니다.
+
+현재 agentinterop v1을 구현한 에이전트 호스트는 **Verbex**뿐입니다: [EverydayMind/obsidian-verbex](https://github.com/EverydayMind/obsidian-verbex).
+
 Chart Hands의 구현 방식:
 
 - 플러그인 인스턴스의 `Symbol.for('dev.agentinterop.capability-provider')` 키에 provider를 둡니다. provider는 `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()`(provider 정보·지침·JSON Schema 입력을 가진 도구 정의 반환), `callTool(name, args)`(`content`와 `structuredContent` 또는 코드가 있는 오류 반환)를 가집니다.

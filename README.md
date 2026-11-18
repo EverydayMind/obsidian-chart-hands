@@ -660,6 +660,15 @@ For a distribution, use `{"type":"histogram","columns":["score"],"bins":10}`; bi
 
 agentinterop v1 is the author's own convention, not an official or widely recognized standard. It lets an Obsidian plugin that runs an AI agent discover tools offered by other plugins through an MCP-like API, without those plugins knowing about any particular agent host.
 
+What this gives you:
+
+- **No coupling between plugins.** The provider is a plain object on the plugin instance. This plugin does not import or depend on any agent plugin, and it works the same when none is installed.
+- **Everything stays local.** A tool call is an in-process function call inside Obsidian. There is no server to start, no port to open and no network request.
+- **You stay in control.** A host shows a plugin's tools to the model only after you approve them. Each tool declares its effect (`pure` or `read` here), so the host knows that nothing in this plugin changes a file.
+- **A short tool list for the model.** Keywords and groups let a host offer a tool only when the request is about it, which matters for small models.
+
+**Verbex** is currently the only agent host that implements agentinterop v1: [EverydayMind/obsidian-verbex](https://github.com/EverydayMind/obsidian-verbex).
+
 How Chart Hands implements it:
 
 - The plugin instance holds the provider under the key `Symbol.for('dev.agentinterop.capability-provider')`. The provider has `protocol: 'agentinterop'`, `protocolVersion: 1`, `describe()` (returns the provider info, instructions and tool definitions with JSON Schema inputs) and `callTool(name, args)` (returns `content` plus `structuredContent`, or an error with a code).
