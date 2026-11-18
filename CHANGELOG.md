@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.10.16
+
+- The "New Plotly chart" commands keep the code fence on its own lines, so inserting mid-sentence or above a heading no longer breaks the chart.
+- The Dataviewjs command tells you when Dataview is not enabled.
+- Add "Insert Plotly chart" to the editor right-click menu.
+- The settings tab starts with how to add a chart.
+
 ## 0.10.14
 
 - Build charts directly from vault CSV columns with shared EDA filters, numeric validation and frozen values for HWPX export.
