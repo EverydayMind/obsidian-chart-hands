@@ -12,11 +12,18 @@ export function validateRelease({ manifest, pkg, versions, tracked }, tag) {
     if (typeof manifest.isDesktopOnly !== 'boolean' || !manifest.description?.endsWith('.') || !manifest.author) throw new Error('Incomplete manifest metadata');
     const forbidden = tracked.filter(path => /(^|\/)(AGENTS|CLAUDE)\.md$|(^|\/)[^/]*(PLAN|REVIEW)[^/]*\.md$|^(\.claude|\.codex|\.cursor|docs|node_modules)\/|(^|\/)data\.json$|^main\.js$|\.map$/i.test(path));
     if (forbidden.length) throw new Error(`Forbidden tracked files: ${forbidden.join(', ')}`);
+    const notes = releaseNotesPath(manifest.version);
+    if (!tracked.includes(notes)) throw new Error(`Missing release notes: ${notes}`);
+}
+
+export function releaseNotesPath(version) {
+    return `release-notes/${version}.md`;
 }
 
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
     const [manifest, pkg, versions] = await Promise.all(['manifest.json', 'package.json', 'versions.json'].map(async path => JSON.parse(await readFile(path, 'utf8'))));
     const tracked = execFileSync('git', ['ls-files', '-z'], { encoding: 'utf8' }).split('\0').filter(Boolean);
     validateRelease({ manifest, pkg, versions, tracked }, process.argv[2]);
+    if (!(await readFile(releaseNotesPath(manifest.version), 'utf8')).trim()) throw new Error('Release notes are empty');
     console.log('Release metadata and tracked-file checks passed.');
 }
