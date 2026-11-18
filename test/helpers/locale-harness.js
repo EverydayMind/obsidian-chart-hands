@@ -24,6 +24,23 @@ function loadHarness(code, locale) {
     const ui = [], processors = {}, commands = [];
     let appLanguage = locale;
     const record = (kind, ...values) => ui.push({ kind, values });
+    const makeEl = () => ({
+        empty() {},
+        createEl(tag, opts, cb) {
+            const text = typeof opts === 'string' ? opts : opts?.text;
+            if (text) record('text', text);
+            const child = makeEl();
+            if (typeof cb === 'function') cb(child);
+            return child;
+        },
+        createDiv(opts, cb) {
+            const text = typeof opts === 'string' ? opts : opts?.text;
+            if (text) record('text', text);
+            const child = makeEl();
+            if (typeof cb === 'function') cb(child);
+            return child;
+        }
+    });
     const component = {
         addOption(...v) { record('option', ...v); return this; },
         setValue() { return this; }, onChange() { return this; }
@@ -35,8 +52,10 @@ function loadHarness(code, locale) {
             registerMarkdownCodeBlockProcessor(name, fn) { processors[name] = fn; }
             addCommand(command) { commands.push(command); record('command', command.id, command.name); }
             addSettingTab(tab) { tab.display(); }
+            registerEvent() {}
         },
-        PluginSettingTab: class { constructor() { this.containerEl = { empty() {} }; } },
+        PluginSettingTab: class { constructor() { this.containerEl = makeEl(); } },
+        getIcon: () => ({}),
         Setting: class {
             setName(value) { record('name', value); return this; }
             setDesc(value) { record('description', value); return this; }
@@ -75,14 +94,35 @@ const files = {
 };
 async function captureExtended(code, locale) {
     const h = loadHarness(code, locale);
+    const events = {};
     const plugin = new h.exports.default();
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: 'test' };
-    plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {} }, vault: {
+    plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {},
+        on(name, fn) { (events[name] ??= []).push(fn); return { name, fn }; } }, vault: {
         getFiles: () => Object.keys(files).map(path => ({ path, extension: path.split('.').pop() })),
         getAbstractFileByPath: p => Object.hasOwn(files, p) ? { path: p, extension: p.split('.').pop() } : null,
         cachedRead: async file => files[file.path]
     } };
     await plugin.onload();
+    const menu = {
+        addItem(fn) {
+            const item = {
+                setTitle(value) { h.ui.push({ kind: 'menu', values: [value] }); return this; },
+                setIcon() { return this; },
+                onClick() { return this; }
+            };
+            fn(item);
+            return this;
+        }
+    };
+    for (const handler of events['editor-menu'] ?? []) handler(menu, {});
+    const dvCommand = h.commands.find(c => c.id === 'add-plotly-dataviewjs-example');
+    if (dvCommand) {
+        dvCommand.editorCallback({
+            getDoc: () => ({ getCursor: () => ({ line: 0, ch: 0 }), replaceRange() {} }),
+            getLine: () => '', lineCount: () => 1, setCursor() {}
+        });
+    }
     // Capture both real Notice paths, including the newline in the failure Notice.
     try { await plugin.ensureLibraries(); } catch { /* Synthetic failure is intentional. */ }
     const el = { children: [], appendChild(child) { this.children.push(child); },

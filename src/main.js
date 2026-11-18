@@ -337,13 +337,46 @@ const basicPlotlyChart = [
     'data:',
     '  - x: [0, 1, 2]',
     '    y: [0, 1, 0]',
-    '```\n'
+    '```'
 ].join('\n');
 const NEW_PLOTLY_CHART_NAME = () => getLocale() === 'ko' ? '새 Plotly 차트' : "New Plotly chart";
+const INSERT_PLOTLY_CHART_NAME = () => getLocale() === 'ko' ? 'Plotly 차트 삽입' : 'Insert Plotly chart';
+// Ensure fenced blocks start on their own line and stay separated from surrounding paragraphs or headings.
+const blockInsertion = (block, lineText = '', ch = 0, nextLineText) => {
+    const line = typeof lineText === 'string' ? lineText : '';
+    const offset = typeof ch === 'number' ? ch : 0;
+    const before = line.slice(0, offset);
+    const after = line.slice(offset);
+    const prefix = /\S/.test(before) ? '\n\n' : '';
+    const hasAfterText = /\S/.test(after);
+    const hasNextLineText = typeof nextLineText === 'string' && /\S/.test(nextLineText);
+    const suffix = hasAfterText || hasNextLineText ? '\n\n' : '\n';
+    return `${prefix}${block}${suffix}`;
+};
+const insertChartBlock = (editor, block) => {
+    const doc = typeof editor.getDoc === 'function' ? editor.getDoc() : editor;
+    const cursor = doc.getCursor();
+    const hasPos = cursor && typeof cursor.line === 'number';
+    const line = hasPos ? cursor.line : 0;
+    const ch = hasPos && typeof cursor.ch === 'number' ? cursor.ch : 0;
+    const getLine = typeof editor.getLine === 'function' ? n => editor.getLine(n) : typeof doc.getLine === 'function' ? n => doc.getLine(n) : null;
+    const lineCount = typeof editor.lineCount === 'function' ? editor.lineCount() : typeof doc.lineCount === 'function' ? doc.lineCount() : 0;
+    const lineText = getLine ? getLine(line) : '';
+    const nextLineText = getLine && line + 1 < lineCount ? getLine(line + 1) : undefined;
+    const insertion = blockInsertion(block, lineText, ch, nextLineText);
+    doc.replaceRange(insertion, cursor);
+    const setCursor = typeof editor.setCursor === 'function' ? pos => editor.setCursor(pos) : typeof doc.setCursor === 'function' ? pos => doc.setCursor(pos) : null;
+    if (setCursor && hasPos) {
+        const prefixLines = insertion.startsWith('\n\n') ? 2 : 0;
+        const lines = block.split('\n');
+        const dataIndex = lines.findIndex((text, index) => index > 0 && /x\s*:/.test(text));
+        if (dataIndex !== -1) {
+            setCursor({ line: line + prefixLines + dataIndex, ch: lines[dataIndex].length });
+        }
+    }
+};
 const newPlotlyChart = (editor) => {
-    let doc = editor.getDoc();
-    let cursor = doc.getCursor();
-    doc.replaceRange(basicPlotlyChart, cursor);
+    insertChartBlock(editor, basicPlotlyChart);
 };
 const dataviewjsPlotlyChart = [
     '```dataviewjs',
@@ -363,10 +396,22 @@ const dataviewjsPlotlyChart = [
     '```'
 ].join('\n');
 const NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME = () => getLocale() === 'ko' ? '새 Plotly 차트 (Dataviewjs)' : "New Plotly chart (Dataviewjs)";
-const newPlotlyChartByDataviewjs = (editor) => {
-    let doc = editor.getDoc();
-    let cursor = doc.getCursor();
-    doc.replaceRange(dataviewjsPlotlyChart, cursor);
+const isDataviewEnabled = (app) => {
+    const plugins = app?.plugins;
+    if (!plugins) return false;
+    try {
+        if (typeof plugins.enabledPlugins?.has === 'function') {
+            return plugins.enabledPlugins.has('dataview');
+        }
+    }
+    catch { /* Fall back to loaded plugin instances when enabledPlugins is inaccessible. */ }
+    return Boolean(plugins.plugins?.dataview);
+};
+const newPlotlyChartByDataviewjs = (editor, app) => {
+    insertChartBlock(editor, dataviewjsPlotlyChart);
+    if (!isDataviewEnabled(app)) {
+        new obsidian.Notice(getLocale() === 'ko' ? '이 블록은 Dataview 플러그인이 켜져 있어야 그려집니다. 지금은 코드만 보입니다.' : 'This block renders only when the Dataview plugin is enabled. For now it shows as code.');
+    }
 };
 // Agent facade (agentinterop v1). An agent host discovers this object on the plugin instance under
 // AGENT_CAPABILITY_PROVIDER and calls describe()/callTool(). It knows nothing about any particular
@@ -1014,6 +1059,13 @@ class ChartHandsSettingTab extends obsidian.PluginSettingTab {
         const { containerEl } = this;
         const ko = getLocale() === 'ko';
         containerEl.empty();
+        const introEl = containerEl.createDiv({ cls: 'setting-item-description' });
+        introEl.createEl('p', { text: ko
+            ? `차트를 넣으려면 노트에서 명령 팔레트의 "${NEW_PLOTLY_CHART_NAME()}"를 실행하거나, 편집기에서 오른쪽 클릭 › "${INSERT_PLOTLY_CHART_NAME()}"을 고르세요.`
+            : `To add a chart, run "${NEW_PLOTLY_CHART_NAME()}" from the command palette in a note, or right-click in the editor and choose "${INSERT_PLOTLY_CHART_NAME()}".` });
+        introEl.createEl('p', { text: ko
+            ? 'plotly 코드 블록 안의 data·layout을 고치면 바로 다시 그려집니다.'
+            : 'Edit data and layout inside the plotly code block and the chart redraws.' });
         new obsidian.Setting(containerEl)
             .setName(ko ? '차트 너비 맞추기' : 'Fit chart width')
             .setDesc(ko ? '차트를 노트 너비에 맞춥니다. 코드 블록에 "fit: off", "fit: shrink" 또는 "fit: fill"을 추가하여 해당 차트의 설정을 바꿀 수 있습니다.' : 'Fit charts to the note width. Add "fit: off", "fit: shrink" or "fit: fill" to a code block to override this for that chart.')
@@ -1099,8 +1151,14 @@ class ChartHandsPlugin extends obsidian.Plugin {
             this.addCommand({
                 id: "add-plotly-dataviewjs-example",
                 name: NEW_PLOTLY_CHART_BY_DATAVIEWJS_NAME(),
-                editorCallback: (editor, view) => newPlotlyChartByDataviewjs(editor)
+                editorCallback: (editor, view) => newPlotlyChartByDataviewjs(editor, this.app)
             });
+            this.registerEvent(this.app.workspace.on('editor-menu', (menu, editor) => {
+                menu.addItem(item => item
+                    .setTitle(INSERT_PLOTLY_CHART_NAME())
+                    .setIcon(typeof obsidian.getIcon === 'function' && !obsidian.getIcon('bar-chart-3') ? 'bar-chart' : 'bar-chart-3')
+                    .onClick(() => newPlotlyChart(editor)));
+            }));
             this.addSettingTab(new ChartHandsSettingTab(this.app, this));
             // Self-exposed chart tools (agentinterop v1). An agent host finds the provider under the Symbol.
             this.agentProvider = createAgentProvider(this);
@@ -1185,7 +1243,7 @@ ${error.message}`, 8000);
 
 export default ChartHandsPlugin;
 // For tests outside Obsidian; Obsidian itself only uses the default export.
-export { createAgentProvider };
+export { blockInsertion, createAgentProvider, isDataviewEnabled };
 export { getLocale, resolveLocale, setLocaleForTests } from './locale.js';
 
 

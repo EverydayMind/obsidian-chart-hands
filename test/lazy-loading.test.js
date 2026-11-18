@@ -22,6 +22,7 @@ async function setup({ failPlotly = 0 } = {}) {
             async loadData() { return {}; }
             registerMarkdownCodeBlockProcessor(name, fn) { this.processor = fn; }
             addCommand() {}
+            registerEvent() {}
             addSettingTab() {}
         },
         PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {},
@@ -49,7 +50,7 @@ async function setup({ failPlotly = 0 } = {}) {
     vm.runInContext(code, context);
     const plugin = new module.exports.default();
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3' };
-    plugin.app = { workspace: { onLayoutReady(fn) { readyCallbacks.push(fn); }, trigger() {} } };
+    plugin.app = { workspace: { onLayoutReady(fn) { readyCallbacks.push(fn); }, trigger() {}, on() { return {}; } } };
     await plugin.onload();
     const flush = async () => { for (let i = 0; i < 20; i++) await Promise.resolve(); };
     const tick = async ms => {

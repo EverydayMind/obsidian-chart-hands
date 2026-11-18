@@ -3816,6 +3816,18 @@
       ]
     },
     {
+      "kind": "text",
+      "values": [
+        "차트를 넣으려면 노트에서 명령 팔레트의 \"새 Plotly 차트\"를 실행하거나, 편집기에서 오른쪽 클릭 › \"Plotly 차트 삽입\"을 고르세요."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "plotly 코드 블록 안의 data·layout을 고치면 바로 다시 그려집니다."
+      ]
+    },
+    {
       "kind": "name",
       "values": [
         "차트 너비 맞추기"
@@ -3870,6 +3882,18 @@
       "kind": "description",
       "values": [
         "PDF로 내보내거나 인쇄할 때 페이지보다 넓은 차트를 페이지 너비로 축소하여 잘리지 않게 합니다."
+      ]
+    },
+    {
+      "kind": "menu",
+      "values": [
+        "Plotly 차트 삽입"
+      ]
+    },
+    {
+      "kind": "notice",
+      "values": [
+        "이 블록은 Dataview 플러그인이 켜져 있어야 그려집니다. 지금은 코드만 보입니다."
       ]
     },
     {

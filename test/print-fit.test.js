@@ -78,6 +78,7 @@ async function setup(saved = {}) {
             async loadData() { return saved; }
             registerMarkdownCodeBlockProcessor() {}
             addCommand() {}
+            registerEvent() {}
             addSettingTab() {}
         },
         PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {},
@@ -94,7 +95,7 @@ async function setup(saved = {}) {
     vm.runInContext(code, context);
     const plugin = new module.exports.default();
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0' };
-    plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {} } };
+    plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {}, on() { return {}; } } };
     await plugin.onload();
     return { plugin, window };
 }
