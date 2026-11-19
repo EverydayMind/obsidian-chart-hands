@@ -24,7 +24,11 @@ const options = {
 	logLevel: 'info',
 	sourcemap: prod ? false : 'inline',
 	treeShaking: true,
-	minify: prod,
+	// Identifiers stay unshortened: antivirus real-time scanning takes several times longer on a
+	// bundle with shortened names (measured with Windows Defender, 3.1 s against 0.45 s), and
+	// Obsidian waits for that scan on the first start after each update.
+	minifyWhitespace: prod,
+	minifySyntax: prod,
 	legalComments: 'none',
 	outfile: 'main.js',
 };
