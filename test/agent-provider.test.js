@@ -66,7 +66,9 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     assert.deepEqual(descriptor.provider, { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3', description: descriptor.provider.description });
     assert.ok(descriptor.instructions.length <= 2000);
     assert.ok(descriptor.instructions.includes('Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file.'));
+    assert.ok(descriptor.instructions.includes('quote its computed numbers instead of doing arithmetic yourself.'));
     assert.ok(descriptor.instructions.includes('summary for one overall total or average of a column (with filter for a period), aggregate for one value per group'));
+    assert.ok(descriptor.instructions.includes('For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks.'));
     const description = descriptor.tools.find(tool => tool.name === 'eda_analyze').description;
     for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows']) assert.ok(description.includes(phrase));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
