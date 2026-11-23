@@ -104,8 +104,8 @@ function indexOf(dataset, name, locale = 'en') {
     return index;
 }
 const summaryNames = new Set(['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum']);
-const summaryLabel = value => value.trim().replace(/^\*\*(.*?)\*\*$/, '$1').trim();
-const isSummary = value => summaryNames.has(summaryLabel(value).toLowerCase());
+const summaryLabel = value => String(value).trim().replace(/^\*\*(.*?)\*\*$/, '$1').trim();
+export const isSummary = value => typeof value === 'string' && summaryNames.has(summaryLabel(value).toLowerCase());
 const summaryNotes = (groups, column, locale) => groups.filter(g => isSummary(g.group)).slice(0, 3).map(g => locale === 'ko'
     ? `그룹 '${g.group}'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 ${JSON.stringify({ column, op: 'ne', value: g.group })}를 더하세요.`
     : `Group '${g.group}' may be a summary row. It is included with other groups. To exclude it, add ${JSON.stringify({ column, op: 'ne', value: g.group })} to filter.`);

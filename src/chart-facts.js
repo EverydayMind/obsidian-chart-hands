@@ -345,6 +345,19 @@ function rankLine(facts, ko, number) {
         : `${facts.highlight === 'bottom' ? 'Bottom' : 'Top'} ${count}: ${labels}`;
 }
 
+function ro(text) {
+    const value = String(text ?? '').trim();
+    if (!value || /%p?$/.test(value)) return '로';
+    const last = value.at(-1);
+    if (/[0-9]/.test(last)) return /[036]/.test(last) ? '으로' : '로';
+    const code = last.charCodeAt(0);
+    if (code >= 0xAC00 && code <= 0xD7A3) {
+        const jong = (code - 0xAC00) % 28;
+        return jong === 0 || jong === 8 ? '로' : '으로';
+    }
+    return '로';
+}
+
 export function titleDraft(facts, locale = 'ko') {
     const { ko, series, number, scoped } = wording(facts, locale);
     const target = targetLine(series, ko, number);
@@ -360,7 +373,7 @@ export function titleDraft(facts, locale = 'ko') {
         return scoped(`${first.label}~${last.label} ${first.display}→${last.display} (${change.from}→${change.to} ${change.display})`);
     }
     const max = series?.max ?? facts.max;
-    if (max && typeof max === 'object') return scoped(ko ? `${max.row ? `${max.row} · ` : ''}${max.label} ${max.display}로 가장 큼` : `${max.row ? `${max.row} · ` : ''}${max.label} highest at ${max.display}`);
+    if (max && typeof max === 'object') return scoped(ko ? `${max.row ? `${max.row} · ` : ''}${max.label} ${max.display}${ro(max.display)} 가장 큼` : `${max.row ? `${max.row} · ` : ''}${max.label} highest at ${max.display}`);
     return undefined;
 }
 

@@ -306,7 +306,7 @@
       {
         "name": "check_chart",
         "title": "Check a Plotly chart",
-        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.",
+        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note. It also lists optional advice (presentation notes) that never makes a chart invalid.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -3568,13 +3568,17 @@
         "content": [
           {
             "type": "text",
-            "text": "No problems · traces: 1(scatter 2 points)"
+            "text": "No problems · traces: 1(scatter 2 points)\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다."
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
-          "traces": 1
+          "traces": 1,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ]
         }
       }
     },
@@ -3644,13 +3648,65 @@
         "content": [
           {
             "type": "text",
-            "text": "1 problem(s) · traces: 1(sankey)\n  - Trace 1: a sankey needs link.source, link.target and link.value arrays of the same length."
+            "text": "1 problem(s) · traces: 1(sankey)\n  - Trace 1: a sankey needs link.source, link.target and link.value arrays of the same length.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다."
           }
         ],
         "structuredContent": {
           "valid": false,
           "problems": 1,
-          "traces": 1
+          "traces": 1,
+          "advice": [
+            "제목이 없습니다."
+          ]
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[-1]},{\"type\":\"pie\",\"labels\":[\"total\",\"B\",\"C\",\"D\",\"E\",\"F\",\"G\"],\"values\":[1,1,1,1,1,1,1]}],\"layout\":{\"barmode\":\"stack\",\"yaxis\":{\"range\":[5,50]}}}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "No problems · traces: 2(bar 1 points, pie 7 points)\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 막대·면적 값 축이 0이 아닌 5에서 시작합니다. 차이가 실제보다 커 보일 수 있습니다.\n  - 원형 조각이 7개입니다. 7개 이상이면 정렬된 가로 막대가 비교하기 쉽습니다.\n  - 'total' 조각이 있습니다. 합계 행이면 다른 조각과 함께 세어집니다.\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n  - 음수가 있는 누적 막대입니다. 합계를 읽기 어려울 수 있습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "traces": 2,
+          "advice": [
+            "막대·면적 값 축이 0이 아닌 5에서 시작합니다. 차이가 실제보다 커 보일 수 있습니다.",
+            "원형 조각이 7개입니다. 7개 이상이면 정렬된 가로 막대가 비교하기 쉽습니다.",
+            "'total' 조각이 있습니다. 합계 행이면 다른 조각과 함께 세어집니다.",
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다.",
+            "음수가 있는 누적 막대입니다. 합계를 읽기 어려울 수 있습니다."
+          ]
+        }
+      }
+    },
+    {
+      "name": "check_chart",
+      "args": {
+        "source": "{\"data\":[{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[1]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[2]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[3]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[4]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[5]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[6]},{\"type\":\"bar\",\"x\":[\"A\"],\"y\":[7]}],\"layout\":{\"title\":{\"text\":\"T\"},\"yaxis\":{\"title\":{\"text\":\"Y\"}}}}"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "No problems · traces: 7(bar 1 points, bar 1 points, bar 1 points, bar 1 points, bar 1 points, bar 1 points, bar 1 points) · title \"T\"\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 한 축에 계열이 7개입니다. 구분이 어려울 수 있습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "traces": 7,
+          "advice": [
+            "한 축에 계열이 7개입니다. 구분이 어려울 수 있습니다."
+          ]
         }
       }
     },
@@ -3663,7 +3719,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems"
+            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems · 2 advice"
           }
         ],
         "structuredContent": {
@@ -3672,7 +3728,13 @@
           "to": 1,
           "withProblems": 0,
           "dataviewBlocks": 0,
-          "complete": true
+          "complete": true,
+          "advice": [
+            {
+              "chart": 1,
+              "count": 2
+            }
+          ]
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -4186,12 +4248,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"line\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "line",
@@ -4260,12 +4326,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"area\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "area",
@@ -4334,12 +4404,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "bar",
@@ -4408,12 +4482,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"barh\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "barh",
@@ -4482,12 +4560,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"combo\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "combo",
@@ -4560,12 +4642,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n좌표 범위: x 1~2, y 1~2 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n좌표 범위: x 1~2, y 1~2 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"scatter\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -4647,12 +4733,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n좌표 범위: x 1~2, y 1~2 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n좌표 범위: x 1~2, y 1~2 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bubble\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -4726,12 +4816,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "pie",
@@ -4800,12 +4893,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"donut\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "donut",
@@ -4878,12 +4974,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"treemap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}],\"parents\":[\"\",\"A\"]}\n```",
           "facts": {
             "type": "treemap",
@@ -4956,12 +5055,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"sunburst\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}],\"parents\":[\"\",\"A\"]}\n```",
           "facts": {
             "type": "sunburst",
@@ -5030,12 +5132,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"waterfall\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "waterfall",
@@ -5104,12 +5210,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: B 2 (표시 2항목 중 유효 2항목)\n최솟값: A 1 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"funnel\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "funnel",
@@ -5178,12 +5287,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"histogram\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -5249,12 +5362,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"box\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -5320,12 +5437,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"violin\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -5391,12 +5512,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: Series · B 2 (표시 2칸 중 유효 2칸)\n최솟값: Series · A 1 (표시 2칸 중 유효 2칸)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: Series · B 2 (표시 2칸 중 유효 2칸)\n최솟값: Series · A 1 (표시 2칸 중 유효 2칸)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"heatmap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "facts": {
             "type": "heatmap",
@@ -5488,12 +5612,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n지표값 1, 기준값 2, 차이 −1, 기준 대비 50% (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\n지표값 1, 기준값 2, 차이 −1, 기준 대비 50% (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"indicator\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
           "ignoredArgs": [
             "labels"
@@ -5633,12 +5760,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nA pie chart shows one series; only the first was used.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nA pie chart shows one series; only the first was used.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]},{\"values\":[2]}]}\n```",
           "facts": {
             "type": "pie",
@@ -5900,12 +6030,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: y2_title\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: y2_title\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}],\"y2_title\":\"unused\"}\n```",
           "ignoredArgs": [
             "y2_title"
@@ -5977,12 +6111,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n목표 1 미달 0/1항목 (표시 1항목 중 유효 1항목)\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n목표 1 미달 0/1항목 (표시 1항목 중 유효 1항목)\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}],\"style\":\"report\",\"target\":{\"value\":1}}\n```",
           "facts": {
             "type": "bar",
@@ -6455,12 +6593,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: long category name 0 1 (표시 200항목 중 유효 200항목)\n최솟값: long category name 0 1 (표시 200항목 중 유효 200항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: long category name 0 1 (표시 200항목 중 유효 200항목)\n최솟값: long category name 0 1 (표시 200항목 중 유효 200항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlockMissing": "too_long",
           "facts": {
             "type": "bar",
@@ -6633,12 +6775,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 (표시 55항목 중 유효 55항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 (표시 55항목 중 유효 55항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 (표시 55항목 중 유효 55항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 (표시 55항목 중 유효 55항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlockMissing": "too_long",
           "facts": {
             "type": "bar",
@@ -6702,12 +6848,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 (표시 100항목 중 유효 100항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 (표시 100항목 중 유효 100항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 (표시 100항목 중 유효 100항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 (표시 100항목 중 유효 100항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlockMissing": "too_long",
           "source": {
             "path": "large.csv",
@@ -6788,12 +6937,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: 지원하지 않는 입력입니다.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: 지원하지 않는 입력입니다.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다."
+          ],
           "staticBlockMissing": "unsupported",
           "facts": {
             "type": "bar",
@@ -7007,12 +7159,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n2025-01→2025-02 +2 (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n2025-01→2025-02 +2 (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"style\":\"report\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"],\"y_title\":\"value\",\"caption\":\"자료: data.csv · 2행 · 조건 value gt 0\"}\n```",
           "source": {
             "path": "data.csv",
@@ -7116,12 +7271,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"value\",\"quantity\":\"value\",\"values\":[4,2]}],\"labels\":[\"2025-02\",\"2025-01\"],\"y_title\":\"value\"}\n```",
           "source": {
             "path": "data.csv",
@@ -7590,12 +7748,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: total 100% (표시 1항목 중 유효 1항목)\n최솟값: total 100% (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: total 100% (표시 1항목 중 유효 1항목)\n최솟값: total 100% (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"비중\",\"quantity\":\"share\",\"values\":[100]}],\"labels\":[\"total\"],\"unit\":\"%\",\"y_title\":\"비중(%)\"}\n```",
           "source": {
             "path": "compare.md",
@@ -7700,12 +7861,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n기준 대비 50.0%, 차이 −1 (공통 1항목)\n최댓값: total −1 (표시 1항목 중 유효 1항목)\n최솟값: total −1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n기준 대비 50.0%, 차이 −1 (공통 1항목)\n최댓값: total −1 (표시 1항목 중 유효 1항목)\n최솟값: total −1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"증감\",\"quantity\":\"difference\",\"values\":[-1]}],\"labels\":[\"total\"],\"y_title\":\"증감\"}\n```",
           "source": {
             "path": "compare.md",
@@ -7832,12 +7996,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n기준 대비 50.0%, 차이 −1 (공통 1항목)\n최댓값: total 50% (표시 1항목 중 유효 1항목)\n최솟값: total 50% (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n기준 대비 50.0%, 차이 −1 (공통 1항목)\n최댓값: total 50% (표시 1항목 중 유효 1항목)\n최솟값: total 50% (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"기준 대비\",\"quantity\":\"ratio\",\"values\":[50]}],\"labels\":[\"total\"],\"unit\":\"%\",\"y_title\":\"기준 대비(%)\"}\n```",
           "source": {
             "path": "compare.md",
@@ -7968,12 +8135,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n2026 2, 2025 대비 +1 (+100%) (양 기간 공통 1항목)\n최댓값: A +100% (표시 1항목 중 유효 1항목)\n최솟값: A +100% (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n2026 2, 2025 대비 +1 (+100%) (양 기간 공통 1항목)\n최댓값: A +100% (표시 1항목 중 유효 1항목)\n최솟값: A +100% (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"증감률\",\"quantity\":\"rate\",\"values\":[100]}],\"labels\":[\"A\"],\"unit\":\"%\",\"y_title\":\"증감률(%)\"}\n```",
           "source": {
             "path": "period.csv",
@@ -8307,12 +8477,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: A 1억원 (표시 1곳 중 유효 1곳)\n최솟값: A 1억원 (표시 1곳 중 유효 1곳)\n표시값 합계: 1억원 (표시 1곳 중 유효 1곳)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: A 1억원 (표시 1곳 중 유효 1곳)\n최솟값: A 1억원 (표시 1곳 중 유효 1곳)\n표시값 합계: 1억원 (표시 1곳 중 유효 1곳)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"values\":[1]}],\"labels\":[\"A\"],\"unit\":\"억원\",\"y_title\":\"value3(억원)\"}\n```",
           "source": {
             "path": "facts-ko.csv",
@@ -8364,7 +8537,7 @@
               "beforeLimit": 1
             }
           },
-          "titleDraft": "A 1억원로 가장 큼 (표시 1곳 중 유효 1곳)",
+          "titleDraft": "A 1억원으로 가장 큼 (표시 1곳 중 유효 1곳)",
           "factLines": [
             "최댓값: A 1억원 (표시 1곳 중 유효 1곳)",
             "최솟값: A 1억원 (표시 1곳 중 유효 1곳)",
@@ -8474,12 +8647,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n2025-01→2025-02 +2 (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n2025-01→2025-02 +2 (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4 (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2 (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"],\"y_title\":\"value\"}\n```",
           "source": {
             "path": "data.csv",
@@ -9071,12 +9247,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n실제 강조 2항목: A, B 하위 2항목 (표시 3항목 중 유효 3항목)\n최댓값: C 3 (표시 3항목 중 유효 3항목)\n최솟값: A 1 (표시 3항목 중 유효 3항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n실제 강조 2항목: A, B 하위 2항목 (표시 3항목 중 유효 3항목)\n최댓값: C 3 (표시 3항목 중 유효 3항목)\n최솟값: A 1 (표시 3항목 중 유효 3항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\",\"C\"],\"series\":[{\"values\":[1,2,3]}],\"highlight\":{\"bottom\":2},\"title\":\"A, B 하위 2항목 (실제 강조 2항목) (표시 3항목 중 유효 3항목)\"}\n```",
           "facts": {
             "type": "bar",
@@ -9154,12 +9333,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n실제 강조 2항목: C, B 상위 2항목 (표시 3항목 중 유효 3항목)\n최댓값: C 3 (표시 3항목 중 유효 3항목)\n최솟값: A 1 (표시 3항목 중 유효 3항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n실제 강조 2항목: C, B 상위 2항목 (표시 3항목 중 유효 3항목)\n최댓값: C 3 (표시 3항목 중 유효 3항목)\n최솟값: A 1 (표시 3항목 중 유효 3항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\",\"C\"],\"series\":[{\"values\":[1,2,3]}],\"highlight\":{\"top\":2}}\n```",
           "facts": {
             "type": "bar",
@@ -9235,12 +9418,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: C $4 (표시 3항목 중 유효 3항목)\n최솟값: A $3 (표시 3항목 중 유효 3항목)\n표시값 합계: $10 (표시 3항목 중 유효 3항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: C $4 (표시 3항목 중 유효 3항목)\n최솟값: A $3 (표시 3항목 중 유효 3항목)\n표시값 합계: $10 (표시 3항목 중 유효 3항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"value\",\"quantity\":\"value\",\"values\":[4,3,3]}],\"labels\":[\"C\",\"A\",\"B\"],\"unit\":\"$\",\"y_title\":\"value($)\"}\n```",
           "source": {
             "path": "facts.csv",
@@ -9343,12 +9529,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: A 2 (표시 3항목 중 유효 3항목)\n최솟값: B 1 (표시 3항목 중 유효 3항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n최댓값: A 2 (표시 3항목 중 유효 3항목)\n최솟값: B 1 (표시 3항목 중 유효 3항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"건수\",\"quantity\":\"value\",\"values\":[2,2,1]}],\"labels\":[\"A\",\"C\",\"B\"],\"y_title\":\"건수\"}\n```",
           "source": {
             "path": "facts.csv",
@@ -9448,12 +9637,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.analysis.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 (표시 100항목 중 유효 100항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 (표시 100항목 중 유효 100항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.analysis.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 (표시 100항목 중 유효 100항목)\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 (표시 100항목 중 유효 100항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlockMissing": "too_long",
           "source": {
             "path": "large.csv",
@@ -9558,12 +9750,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n2026 $2, 2025 대비 $+1 (+100%) (양 기간 공통 1항목)\n한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) (양 기간 공통 1항목)\n유효한 값이 없어 제외한 행: 1행 (양 기간 공통 1항목)\n최댓값: A $+1 (표시 1항목 중 유효 1항목)\n최솟값: A $+1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n2026 $2, 2025 대비 $+1 (+100%) (양 기간 공통 1항목)\n한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) (양 기간 공통 1항목)\n유효한 값이 없어 제외한 행: 1행 (양 기간 공통 1항목)\n최댓값: A $+1 (표시 1항목 중 유효 1항목)\n최솟값: A $+1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"증감\",\"quantity\":\"difference\",\"values\":[1]}],\"labels\":[\"A\"],\"unit\":\"$\",\"y_title\":\"증감($)\"}\n```",
           "source": {
             "path": "facts.csv",
@@ -9713,12 +9908,15 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n2025-02 4%, 목표 5% 대비 −1%p (표시 2항목 중 유효 2항목)\n2025-01→2025-02 +2%p (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4% (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2% (표시 2항목 중 유효 2항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n2025-02 4%, 목표 5% 대비 −1%p (표시 2항목 중 유효 2항목)\n2025-01→2025-02 +2%p (표시 2항목 중 유효 2항목)\n최댓값: 2025-02 4% (표시 2항목 중 유효 2항목)\n최솟값: 2025-01 2% (표시 2항목 중 유효 2항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"unit\":\"%\",\"series\":[{\"values\":[2,4]}],\"target\":{\"value\":5},\"labels\":[\"2025-01\",\"2025-02\"],\"y_title\":\"value\"}\n```",
           "source": {
             "path": "data.csv",

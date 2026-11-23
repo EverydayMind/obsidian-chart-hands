@@ -4,6 +4,7 @@ import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-tabl
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
 import { analysisPresentation, chartFacts, factLines, titleDraft } from './chart-facts.js';
+import { adviseChart } from './chart-advice.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 import { getLocale, initLocale } from './locale.js';
 
@@ -483,7 +484,7 @@ const tools = [
     {
         name: 'check_chart',
         title: 'Check a Plotly chart',
-        description: 'Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.',
+        description: 'Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note. It also lists optional advice (presentation notes) that never makes a chart invalid.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -752,8 +753,8 @@ const lintChart = (source, json, problems) => {
 const isMenuArgsIssue = (issue) => Boolean(issue && issue.code === 'dynamic' && Array.isArray(issue.path)
     && (issue.path[0] === 'updatemenus' || issue.path[0] === 'sliders') && issue.path[4] === 'args');
 // The same rules the code block processor applies, plus Plotly's own schema check.
-const analyzeChart = (source) => {
-    const result = { problems: [], traces: [], title: '' };
+const analyzeChart = (source, locale = getLocale()) => {
+    const result = { problems: [], advice: [], traces: [], title: '' };
     let json;
     try {
         json = parseChartYaml(source);
@@ -804,6 +805,7 @@ const analyzeChart = (source) => {
             result.problems.push(`Plotly check failed: ${agentClip(error && error.message ? error.message : error, 200)}`);
         }
     }
+    result.advice = adviseChart(json, locale);
     return result;
 };
 const problemLines = (problems) => {
@@ -812,6 +814,21 @@ const problemLines = (problems) => {
         lines.push(`  - … ${problems.length - AGENT_MAX_PROBLEMS} more problems`);
     }
     return lines;
+};
+const adviceLines = (advice, locale) => advice.length
+    ? [
+        locale === 'ko'
+            ? '참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):'
+            : 'Advice (optional notes for the user; the chart is complete — do not rebuild or re-check just to clear them):',
+        ...advice.map(item => `  - ${item}`)
+    ]
+    : [];
+const PROVENANCE_PREFIX = '# chart-hands source:';
+const extractProvenance = (source) => {
+    const first = String(source).split(/\r?\n/).find(line => line.trim() !== '');
+    if (!first) return '';
+    const trimmed = first.trim();
+    return trimmed.startsWith(PROVENANCE_PREFIX) ? trimmed.slice(PROVENANCE_PREFIX.length).trim() : '';
 };
 // Fenced blocks whose language is exactly "plotly", with the 1-based line range of the fence.
 const findChartBlocks = (markdown) => {
@@ -1014,7 +1031,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const compact = source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40;
             const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
             const yaml = `${provenance ? `${provenance}\n` : ''}${body}`;
-            const chart = analyzeChart(yaml);
+            const chart = analyzeChart(yaml, locale);
             const staticSource = JSON.stringify(args);
             let staticBlock;
             try {
@@ -1034,6 +1051,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const text = [
                 chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
                 ...problemLines(chart.problems),
+                ...adviceLines(chart.advice, locale),
                 ...notes,
                 ...(ignoredArgs.length ? [`${locale === 'ko' ? '쓰이지 않아 무시한 인자' : 'Ignored unused arguments'}: ${ignoredArgs.join(', ')}`] : []),
                 ...(staticBlockMissing ? [locale === 'ko' ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${reduce} 줄이세요.` : '지원하지 않는 입력입니다.'}` : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${reduceEn}.` : 'unsupported input.'}`] : []),
@@ -1045,7 +1063,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
             const result = {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
             if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
@@ -1059,14 +1077,15 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
             if (plugin.ensureLibraries) yield plugin.ensureLibraries();
-            const chart = analyzeChart(String(args.source));
+            const chart = analyzeChart(String(args.source), locale);
             const summary = `traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 400)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}`;
             const lines = chart.problems.length
                 ? [`${chart.problems.length} problem(s) · ${summary}`, ...problemLines(chart.problems)]
                 : [`No problems · ${summary}`];
+            lines.push(...adviceLines(chart.advice, locale));
             return {
                 content: [{ type: 'text', text: lines.join('\n') }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, traces: chart.traces.length }
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, traces: chart.traces.length, ...(chart.advice.length ? { advice: chart.advice } : {}) }
             };
         }),
         read_charts: (args) => __awaiter(void 0, void 0, void 0, function* () {
@@ -1086,14 +1105,17 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 throw new AgentToolError('INVALID_ARGUMENT', `from must be between 1 and ${Math.max(total, 1)}.`, true);
             }
             const lines = [];
+            const sources = [];
+            const advice = [];
             let size = 0;
             let next = from;
             let withProblems = 0;
             while (next <= total && next - from < AGENT_MAX_CHARTS) {
                 const block = found.charts[next - 1];
-                const chart = analyzeChart(block.source);
+                const chart = analyzeChart(block.source, locale);
+                const provenance = extractProvenance(block.source);
                 const entry = [
-                    `Chart ${next} · lines ${block.startLine}-${block.endLine}${block.closed ? '' : ' · no closing fence'} · traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 200)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''} · ${chart.problems.length ? `${chart.problems.length} problem(s)` : 'no problems'}`,
+                    `Chart ${next} · lines ${block.startLine}-${block.endLine}${block.closed ? '' : ' · no closing fence'} · traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 200)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}${provenance ? ` · source "${agentClip(provenance, 120)}"` : ''} · ${chart.problems.length ? `${chart.problems.length} problem(s)` : 'no problems'}${chart.advice.length ? ` · ${chart.advice.length} advice` : ''}`,
                     ...problemLines(chart.problems)
                 ].join('\n');
                 // Stop before the page budget so the host never cuts a chart in half; always return one.
@@ -1105,6 +1127,12 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 if (chart.problems.length) {
                     withProblems++;
                 }
+                if (provenance) {
+                    sources.push({ chart: next, source: provenance });
+                }
+                if (chart.advice.length) {
+                    advice.push({ chart: next, count: chart.advice.length });
+                }
                 next++;
             }
             const complete = next > total;
@@ -1115,7 +1143,12 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             ].join('\n');
             return {
                 content: [{ type: 'text', text }],
-                structuredContent: Object.assign({ charts: total, from, to: next - 1, withProblems, dataviewBlocks: found.dataview, complete }, complete ? {} : { nextFrom: next }),
+                structuredContent: Object.assign(
+                    { charts: total, from, to: next - 1, withProblems, dataviewBlocks: found.dataview, complete },
+                    complete ? {} : { nextFrom: next },
+                    sources.length ? { sources } : {},
+                    advice.length ? { advice } : {}
+                ),
                 _meta: { 'dev.agentinterop/resource': { path } }
             };
         })

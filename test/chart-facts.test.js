@@ -143,6 +143,10 @@ test('facts titles prioritize the target series, comparisons, actual highlights 
     assert.deepEqual(highlighted.highlighted, ['B', 'C', 'D']);
     assert.match(titleDraft(highlighted), /B, C, D 하위 3곳.*실제 강조 3곳/);
     assert.match(titleDraft(chartFacts(bar(['A', 'B'], [4, 4]))), /A 4로 가장 큼.*2항목/);
+    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [120, 80], { unit: '억원' }))), /서울 120억원으로 가장 큼/);
+    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [84, 70], { unit: '%' }))), /서울 84%로 가장 큼/);
+    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [3, 1]))), /A 3으로 가장 큼/);
+    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [7, 2]))), /A 7로 가장 큼/);
 });
 
 test('title_from applies only an available draft and freezes the normalized title', async () => {
@@ -251,7 +255,7 @@ test('K10 rejects both oversized forms with the applicable limit and true merged
     const { reportSnippet, staticBlock, ...rest } = small.structuredContent;
     assert.ok(reportSnippet.includes('A\\\\B'));
     assert.ok(mergedLength(small) > small.content[0].text.length + reportSnippet.length + staticBlock.length + JSON.stringify(rest).length);
-    const large = bar(labels.map(label => `${label}\\`), labels.map((_, i) => i), { style: 'plain' });
+    const large = bar(labels.map(label => `${label}\\`), labels.map((_, i) => i), { style: 'plain', title: 'T', y_title: 'Y' });
     const rejected = await p.callTool('build_chart', large);
     const block = `\`\`\`plotly\n${JSON.stringify(buildChartDefinition(large), null, 2)}\n\`\`\``;
     const facts = chartFacts(large);

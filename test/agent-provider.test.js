@@ -135,7 +135,7 @@ test('EDA tools expose the dedicated 32-keyword vocabulary', async () => {
 
 test('check_chart applies the code block rules', async () => {
     const provider = provide('');
-    const good = await provider.callTool('check_chart', { source: '{"data": [{"x": [1, 2, 3], "y": [2, 4, 8], "type": "bar", "name": "sales"}], "layout": {"title": {"text": "Q1"}}, "fit": "fill"}' });
+    const good = await provider.callTool('check_chart', { source: '{"data": [{"x": [1, 2, 3], "y": [2, 4, 8], "type": "bar", "name": "sales"}], "layout": {"title": {"text": "Q1"}, "yaxis": {"title": {"text": "KRW"}}}, "fit": "fill"}' });
     assert.notEqual(good.isError, true);
     assertPlainJson(good);
     assert.equal(text(good), 'No problems · traces: 1(bar "sales" 3 points) · title "Q1"');
@@ -169,12 +169,12 @@ test('read_charts finds plotly blocks, reports line ranges and pages without gap
     assert.notEqual(result.isError, true);
     assertPlainJson(result);
     assert.deepEqual(result._meta, { 'dev.agentinterop/resource': { path: 'notes/chart.md' } });
-    assert.deepEqual(result.structuredContent, { charts: 3, from: 1, to: 3, withProblems: 1, dataviewBlocks: 1, complete: true });
+    assert.deepEqual(result.structuredContent, { charts: 3, from: 1, to: 3, withProblems: 1, dataviewBlocks: 1, complete: true, advice: [{ chart: 1, count: 2 }, { chart: 3, count: 2 }] });
     const lines = text(result).split('\n');
     assert.equal(lines[0], 'Note notes/chart.md · 3 plotly chart(s) · showing 1-3 · 1 dataviewjs chart block(s), not checked');
-    assert.equal(lines[1], 'Chart 1 · lines 3-5 · traces: 1(scatter 2 points) · no problems');
+    assert.equal(lines[1], 'Chart 1 · lines 3-5 · traces: 1(scatter 2 points) · no problems · 2 advice');
     assert.equal(lines[2], 'Chart 2 · lines 7-9 · traces: 0 · 2 problem(s)');
-    assert.equal(lines[5], 'Chart 3 · lines 19-20 · no closing fence · traces: 1(scatter 1 points) · no problems');
+    assert.equal(lines[5], 'Chart 3 · lines 19-20 · no closing fence · traces: 1(scatter 1 points) · no problems · 2 advice');
 
     const many = provide(Array.from({ length: 45 }, (_, index) => `\`\`\`plotly\n{"data": [{"y": [${index}]}]}\n\`\`\`\n`).join('\n'));
     let from = 1, seen = 0, pages = 0;

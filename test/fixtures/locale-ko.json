@@ -306,7 +306,7 @@
       {
         "name": "check_chart",
         "title": "Check a Plotly chart",
-        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note.",
+        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note. It also lists optional advice (presentation notes) that never makes a chart invalid.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -975,7 +975,7 @@
       }
     ]
   },
-  "digest": "290eec7abf2e63280bf5e79b5d6d3ace4c4e9d47215d963641bd92e5fac62022",
+  "digest": "4eb18d6c759d041d2361cd82a14489b1826421c94d981b8d2d5da74d9c30466b",
   "results": [
     {
       "name": "eda_profile",
@@ -1207,13 +1207,17 @@
         "content": [
           {
             "type": "text",
-            "text": "No problems · traces: 1(scatter 2 points)"
+            "text": "No problems · traces: 1(scatter 2 points)\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다."
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
-          "traces": 1
+          "traces": 1,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ]
         }
       }
     },
@@ -1245,7 +1249,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems"
+            "text": "Note note.md · 1 plotly chart(s) · showing 1-1\nChart 1 · lines 1-3 · traces: 1(scatter 2 points) · no problems · 2 advice"
           }
         ],
         "structuredContent": {
@@ -1254,7 +1258,13 @@
           "to": 1,
           "withProblems": 0,
           "dataviewBlocks": 0,
-          "complete": true
+          "complete": true,
+          "advice": [
+            {
+              "chart": 1,
+              "count": 2
+            }
+          ]
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -1360,12 +1370,16 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}]}\n```",
           "facts": {
             "type": "bar",

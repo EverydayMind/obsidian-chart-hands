@@ -190,7 +190,11 @@ async function captureExtended(code, locale) {
     ]) await call('eda_analyze', { path: 'units.csv', analysis });
     await call('eda_analyze', { path: 'unit-mismatch.csv', analysis: { type: 'rows', columns: ['label'], filter: [{ column: 'value', op: 'eq', value: '$1' }] } });
     await call('eda_analyze', { path: 'unit-mismatch.csv', analysis: { type: 'summary', columns: ['label', 'value'], filter: [{ column: 'label', op: 'eq', value: 'b' }] } });
-    for (const source of ['{"data":[{"y":[1,2]}]}', '{"data":[]}', '{}', '{', '{"data":[{"type":"sankey"}]}']) await call('check_chart', { source });
+    for (const source of [
+        '{"data":[{"y":[1,2]}]}', '{"data":[]}', '{}', '{', '{"data":[{"type":"sankey"}]}',
+        '{"data":[{"type":"bar","x":["A"],"y":[-1]},{"type":"pie","labels":["total","B","C","D","E","F","G"],"values":[1,1,1,1,1,1,1]}],"layout":{"barmode":"stack","yaxis":{"range":[5,50]}}}',
+        JSON.stringify({ data: Array.from({ length: 7 }, (_, i) => ({ type: 'bar', x: ['A'], y: [i + 1] })), layout: { title: { text: 'T' }, yaxis: { title: { text: 'Y' } } } })
+    ]) await call('check_chart', { source });
     for (const args of [{ path: 'note.md' }, { path: 'empty.md' }, { path: 'missing.md' }, { path: 'file.pdf' }, { path: 'note.md', from: 20 }]) await call('read_charts', args);
     const topics = descriptor.tools.find(t => t.name === 'get_chart_guide').inputSchema.properties.topic.enum;
     for (const topic of [...topics, 'invalid', '']) await call('get_chart_guide', { topic });
