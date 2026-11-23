@@ -123,8 +123,10 @@
                     "histogram",
                     "correlation",
                     "aggregate",
+                    "compare",
                     "rows"
-                  ]
+                  ],
+                  "description": "compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups."
                 },
                 "columns": {
                   "type": "array",
@@ -171,6 +173,36 @@
                       }
                     }
                   }
+                },
+                "period": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "column",
+                    "base",
+                    "target"
+                  ],
+                  "description": "For compare, select the period column and two period values.",
+                  "properties": {
+                    "column": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "rank_by": {
+                  "type": "string",
+                  "enum": [
+                    "difference",
+                    "rate",
+                    "ratio"
+                  ],
+                  "description": "For compare, rank by difference or the relative rate or ratio."
                 },
                 "method": {
                   "type": "string",
@@ -927,7 +959,7 @@
         "content": [
           {
             "type": "text",
-            "text": "File not found in the vault: missing.csv CSV 후보: unit-mismatch.csv, bad.csv, data.csv, empty.csv, units.csv. 후보의 path로 다시 호출하세요."
+            "text": "File not found in the vault: missing.csv CSV 후보: unit-mismatch.csv, bad.csv, compare-units.csv, data.csv, empty.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -952,7 +984,7 @@
         "content": [
           {
             "type": "text",
-            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, data.csv, empty.csv, unit-mismatch.csv, units.csv. 후보의 path로 다시 호출하세요."
+            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, compare-units.csv, data.csv, empty.csv, unit-mismatch.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1174,7 +1206,7 @@
         "content": [
           {
             "type": "text",
-            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, data.csv, unit-mismatch.csv, units.csv. 후보의 path로 다시 호출하세요."
+            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, compare-units.csv, data.csv, unit-mismatch.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1397,6 +1429,763 @@
         "_meta": {
           "dev.agentinterop/resource": {
             "path": "table.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare의 열 구성이 맞지 않습니다. 예: {\"type\":\"compare\",\"columns\":[\"부서\",\"실적\"],\"period\":{\"column\":\"연도\",\"base\":\"2025\",\"target\":\"2026\"}} / {\"type\":\"compare\",\"columns\":[\"부서\",\"실적\",\"목표\"]}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "extra": true
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare에 쓸 수 없는 키: extra. 예: {\"type\":\"compare\",\"columns\":[\"부서\",\"실적\",\"목표\"]}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "period": {}
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "period에는 column, base, target 문자열이 필요합니다. 예: {\"type\":\"compare\",\"columns\":[\"부서\",\"실적\"],\"period\":{\"column\":\"연도\",\"base\":\"2025\",\"target\":\"2026\"}} / {\"type\":\"compare\",\"columns\":[\"부서\",\"실적\",\"목표\"]}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "period": {
+            "column": "month",
+            "base": "2025-01",
+            "target": "2025-01"
+          }
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "base와 target은 서로 다른 기간이어야 합니다. 예: {\"base\":\"2025\",\"target\":\"2026\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "period": {
+            "column": "month",
+            "base": "2020",
+            "target": "2025-01"
+          }
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "base 또는 target에 해당하는 행이 없습니다. 열의 고유값 앞 20개: 2025-01, 2025-02. 이 값으로 period를 다시 지정하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "function": "count"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare function은 sum 또는 mean이어야 합니다. 예: {\"function\":\"mean\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "sort": "bad"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare sort는 desc, asc, label, original 중 하나여야 합니다. 예: {\"sort\":\"desc\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "limit": 0
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare limit은 1~100 정수여야 합니다. 예: {\"limit\":60}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "rank_by": "bad"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "rank_by는 difference, rate, ratio 중 하나여야 합니다. 예: {\"rank_by\":\"difference\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "sort": "label",
+          "rank_by": "rate"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "label 또는 original 정렬에는 rank_by를 쓰지 마세요. 예: {\"sort\":\"label\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "CSV data.csv: compare 분석, 전체 2행 중 2행을 선택했습니다."
+          }
+        ],
+        "structuredContent": {
+          "type": "compare",
+          "mode": "reference",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "function": "sum",
+          "sort": "desc",
+          "rankedBy": "difference",
+          "groups": [
+            {
+              "group": "2025-01",
+              "value": 2,
+              "reference": 3,
+              "difference": -1,
+              "ratio": 0.6666666666666666
+            },
+            {
+              "group": "2025-02",
+              "value": 4,
+              "reference": 6,
+              "difference": -2,
+              "ratio": 0.6666666666666666
+            }
+          ],
+          "groupCount": 2,
+          "truncated": false,
+          "overall": {
+            "value": 6,
+            "reference": 9,
+            "difference": -3,
+            "ratio": 0.6666666666666666,
+            "method": "sum of common groups"
+          },
+          "excludedRows": 0,
+          "missingGroupRows": 0,
+          "chart": {
+            "labels": [
+              "2025-01",
+              "2025-02"
+            ],
+            "value": [
+              2,
+              4
+            ],
+            "reference": [
+              3,
+              6
+            ],
+            "difference": [
+              -1,
+              -2
+            ],
+            "ratio": [
+              0.6666666666666666,
+              0.6666666666666666
+            ]
+          },
+          "totalRows": 2
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "units.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "label",
+            "value",
+            "label"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "열 value의 선택된 행에 단위가 섞여 있습니다($, €). filter로 한 단위의 행만 고르거나 자료를 고치세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "compare-units.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "label",
+            "value",
+            "reference"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "값 열 value($)과 기준 열 reference(kg)의 단위가 다릅니다. 같은 단위의 열을 쓰세요. 단위 환산은 하지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "table.md",
+        "analysis": {
+          "type": "aggregate",
+          "columns": [
+            "label"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1(table.md, 1줄): aggregate 분석, 전체 10행 중 10행을 선택했습니다."
+          }
+        ],
+        "structuredContent": {
+          "type": "aggregate",
+          "columns": [
+            "label"
+          ],
+          "function": "count",
+          "sort": "desc",
+          "totalRows": 10,
+          "validRows": 10,
+          "excludedRows": 0,
+          "missingGroupRows": 0,
+          "groupCount": 10,
+          "truncated": false,
+          "total": 10,
+          "groups": [
+            {
+              "group": "계",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "소계",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "총계",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "총합",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "합",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "합계",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "grand total",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "subtotal",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "sum",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            },
+            {
+              "group": "total",
+              "rows": 1,
+              "value": 1,
+              "share": 0.1
+            }
+          ],
+          "chart": {
+            "labels": [
+              "계",
+              "소계",
+              "총계",
+              "총합",
+              "합",
+              "합계",
+              "grand total",
+              "subtotal",
+              "sum",
+              "total"
+            ],
+            "values": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          },
+          "notes": [
+            "그룹 '계'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 {\"column\":\"label\",\"op\":\"ne\",\"value\":\"계\"}를 더하세요.",
+            "그룹 '소계'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 {\"column\":\"label\",\"op\":\"ne\",\"value\":\"소계\"}를 더하세요.",
+            "그룹 '총계'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 {\"column\":\"label\",\"op\":\"ne\",\"value\":\"총계\"}를 더하세요."
+          ],
+          "table": {
+            "index": 1,
+            "startLine": 1
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "table.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "compare.md",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "label",
+            "value",
+            "reference"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1(compare.md, 1줄): compare 분석, 전체 1행 중 1행을 선택했습니다."
+          }
+        ],
+        "structuredContent": {
+          "type": "compare",
+          "mode": "reference",
+          "columns": [
+            "label",
+            "value",
+            "reference"
+          ],
+          "function": "sum",
+          "sort": "desc",
+          "rankedBy": "difference",
+          "groups": [
+            {
+              "group": "total",
+              "value": 1,
+              "reference": 2,
+              "difference": -1,
+              "ratio": 0.5
+            }
+          ],
+          "groupCount": 1,
+          "truncated": false,
+          "overall": {
+            "value": 1,
+            "reference": 2,
+            "difference": -1,
+            "ratio": 0.5,
+            "method": "sum of common groups"
+          },
+          "excludedRows": 0,
+          "missingGroupRows": 0,
+          "chart": {
+            "labels": [
+              "total"
+            ],
+            "value": [
+              1
+            ],
+            "reference": [
+              2
+            ],
+            "difference": [
+              -1
+            ],
+            "ratio": [
+              0.5
+            ]
+          },
+          "notes": [
+            "그룹 'total'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 {\"column\":\"label\",\"op\":\"ne\",\"value\":\"total\"}를 더하세요."
+          ],
+          "totalRows": 1,
+          "table": {
+            "index": 1,
+            "startLine": 1
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "compare",
+          "columns": [
+            "month",
+            "value"
+          ],
+          "period": {
+            "column": "month",
+            "base": "상반기",
+            "target": "하반기"
+          }
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "base 또는 target에 해당하는 행이 없습니다. 열의 고유값 앞 20개: 2025-01, 2025-02. 이 값으로 period를 다시 지정하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
           }
         }
       }

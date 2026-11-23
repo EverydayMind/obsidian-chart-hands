@@ -40,7 +40,7 @@ function structuralPipes(line) {
 function cleanCell(cell) {
     cell = cell.trim().replace(/<br\s*\/?\s*>/gi, ' ');
     const bold = /^(?:\*\*([\s\S]*)\*\*|__([\s\S]*)__)$/.exec(cell);
-    if (bold) cell = bold[1] ?? bold[2];
+    if (bold && !(bold[1] ?? bold[2]).includes(bold[1] !== undefined ? '**' : '__')) cell = bold[1] ?? bold[2];
     return cell.replace(/(\\+)\|/g, (all, slashes) => slashes.length % 2 ? slashes.slice(1) + '|' : all).trim();
 }
 export function splitCells(line, pipes = structuralPipes(line)) {

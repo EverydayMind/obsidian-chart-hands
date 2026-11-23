@@ -1,3 +1,4 @@
+import { periodKey } from './period.js';
 // Small, bounded CSV analysis engine. Analysis results contain no renderer-specific values.
 const MAX_ROWS = 100000;
 const MAX_COLUMNS = 100;
@@ -101,12 +102,17 @@ function indexOf(dataset, name, locale = 'en') {
     if (index < 0) throw new Error(locale === 'ko' ? `모르는 열: ${name}. 사용 가능한 열: ${dataset.headers.slice(0, 30).join(', ')}. 이 열 이름 중 하나로 다시 호출하세요.` : `Unknown column: ${name}. Available columns: ${dataset.headers.slice(0, 30).join(', ')}. Use one of these column names.`);
     return index;
 }
+const summaryNames = new Set(['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum']);
+const summaryLabel = value => value.trim().replace(/^\*\*(.*?)\*\*$/, '$1').trim();
+const isSummary = value => summaryNames.has(summaryLabel(value).toLowerCase());
+const summaryNotes = (groups, column, locale) => groups.filter(g => isSummary(g.group)).slice(0, 3).map(g => locale === 'ko'
+    ? `그룹 '${g.group}'는 합계 행일 수 있습니다. 포함하면 다른 그룹과 함께 더해집니다. 빼려면 filter에 ${JSON.stringify({ column, op: 'ne', value: g.group })}를 더하세요.`
+    : `Group '${g.group}' may be a summary row. It is included with other groups. To exclude it, add ${JSON.stringify({ column, op: 'ne', value: g.group })} to filter.`);
 export function profile(dataset, from = 0, limit = 10) {
     const target = dataset.headers.findIndex((_, i) => dataset.rows.some(row => !missing(row[i]) && !parseCell(row[i])));
-    const names = new Set(['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum']);
     const candidates = target < 0 ? [] : dataset.rows.flatMap((row, i) => {
-        const label = row[target].trim().replace(/^\*\*(.*?)\*\*$/, '$1').trim();
-        return names.has(label.toLowerCase()) ? [{ rowNumber: i + 1, column: dataset.headers[target], label, ...(dataset.lines ? { line: dataset.lines[i] } : {}) }] : [];
+        const label = summaryLabel(row[target]);
+        return isSummary(row[target]) ? [{ rowNumber: i + 1, column: dataset.headers[target], label, ...(dataset.lines ? { line: dataset.lines[i] } : {}) }] : [];
     });
     return { rowCount: dataset.rows.length, columnCount: dataset.headers.length, ...(candidates.length ? { summaryRowCandidates: candidates.slice(0, 10), summaryRowCount: candidates.length } : {}), columns: dataset.headers.slice(from, from + limit).map((name, offset) => {
         const i = from + offset;
@@ -178,14 +184,75 @@ function aggregate(dataset, spec, locale) {
         }
         return result;
     });
-    const shown = list.slice(0, limit);
+    const shown = list.slice(0, limit), notes = summaryNotes(list, cols[0], locale);
     return { type: 'aggregate', columns: cols, function: fn, sort, totalRows: dataset.rows.length, validRows: dataset.rows.length - excluded - missingGroup,
         excludedRows: excluded, missingGroupRows: missingGroup, groupCount: list.length, truncated: list.length > shown.length,
         ...(list.length > shown.length ? { returnedGroups: shown.length, limit, maxLimit: AGGREGATE_MAX_LIMIT,
             note: list.length <= AGGREGATE_MAX_LIMIT
                 ? `Returned the first ${shown.length} of ${list.length} groups. To see all groups, set analysis.limit to ${list.length} (maximum ${AGGREGATE_MAX_LIMIT}).`
                 : `Returned the first ${shown.length} of ${list.length} groups. The maximum analysis.limit is ${AGGREGATE_MAX_LIMIT}; use a smaller CSV to see the remaining groups.` } : {}),
-        ...(additive ? { total: finite(total) } : { overall: finite(overall) }), ...(facts?.units[0] ? { unit: facts.units[0] } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) } };
+        ...(additive ? { total: finite(total) } : { overall: finite(overall) }), ...(facts?.units[0] ? { unit: facts.units[0] } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) }, ...(notes.length ? { notes } : {}) };
+}
+
+function compare(dataset, spec, locale) {
+    const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
+    const example = ' {"type":"compare","columns":["부서","실적"],"period":{"column":"연도","base":"2025","target":"2026"}} / {"type":"compare","columns":["부서","실적","목표"]}';
+    const englishExample = ' {"type":"compare","columns":["group","value"],"period":{"column":"year","base":"2025","target":"2026"}} / {"type":"compare","columns":["group","value","plan"]}';
+    const periodMode = Object.hasOwn(spec, 'period'), cols = spec.columns;
+    if (!Array.isArray(cols) || cols.length !== (periodMode ? 2 : 3) || cols.some(c => typeof c !== 'string')) fail(`compare의 열 구성이 맞지 않습니다. 예:${example}`, `Invalid compare columns. Examples:${englishExample}`);
+    const p = spec.period;
+    if (periodMode && (!p || typeof p !== 'object' || Array.isArray(p) || Object.keys(p).some(k => !['column', 'base', 'target'].includes(k)) || ['column', 'base', 'target'].some(k => typeof p[k] !== 'string' || !p[k].trim()))) fail(`period에는 column, base, target 문자열이 필요합니다. 예:${example}`, `period requires column, base and target strings. Example:${englishExample}`);
+    const fn = spec.function ?? 'sum', sort = spec.sort ?? 'desc', limit = spec.limit ?? 60;
+    if (!['sum', 'mean'].includes(fn)) fail('compare function은 sum 또는 mean이어야 합니다. 예: {"function":"mean"}', 'compare function must be sum or mean. Example: {"function":"mean"}');
+    if (!AGGREGATE_SORTS.includes(sort)) fail('compare sort는 desc, asc, label, original 중 하나여야 합니다. 예: {"sort":"desc"}', 'compare sort must be desc, asc, label or original. Example: {"sort":"desc"}');
+    if (!Number.isInteger(limit) || limit < 1 || limit > 100) fail('compare limit은 1~100 정수여야 합니다. 예: {"limit":60}', 'compare limit must be an integer from 1 to 100. Example: {"limit":60}');
+    if (spec.rank_by !== undefined && !['difference', 'rate', 'ratio'].includes(spec.rank_by)) fail('rank_by는 difference, rate, ratio 중 하나여야 합니다. 예: {"rank_by":"difference"}', 'rank_by must be difference, rate or ratio. Example: {"rank_by":"difference"}');
+    if (spec.rank_by !== undefined && ['label', 'original'].includes(sort)) fail('label 또는 original 정렬에는 rank_by를 쓰지 마세요. 예: {"sort":"label"}', 'Do not use rank_by with label or original sorting. Example: {"sort":"label"}');
+    const relative = periodMode ? 'rate' : 'ratio', rankedBy = spec.rank_by && spec.rank_by !== 'difference' ? relative : 'difference';
+    const [gi, vi, ri] = cols.map(c => indexOf(dataset, c, locale));
+    let rows = dataset.rows, baseKey, targetKey, pi;
+    if (periodMode) {
+        pi = indexOf(dataset, p.column, locale); baseKey = periodKey(p.base, { compact: true }); targetKey = periodKey(p.target, { compact: true });
+        if (baseKey === targetKey) fail('base와 target은 서로 다른 기간이어야 합니다. 예: {"base":"2025","target":"2026"}', 'base and target must be different periods. Example: {"base":"2025","target":"2026"}');
+        const key = row => periodKey(row[pi], { compact: true });
+        const available = [...new Set(rows.map(row => row[pi].trim()))].slice(0, 20).join(', ');
+        if (!rows.some(row => key(row) === baseKey) || !rows.some(row => key(row) === targetKey)) fail(`base 또는 target에 해당하는 행이 없습니다. 열의 고유값 앞 20개: ${available}. 이 값으로 period를 다시 지정하세요.`, `No rows match base or target. First 20 distinct values: ${available}. Set period to values from this list.`);
+        rows = rows.filter(row => key(row) === baseKey || key(row) === targetKey);
+    }
+    const selected = rows.filter(row => !missing(row[gi]));
+    const vf = checkedFacts(selected, vi, cols[1], locale), rf = periodMode ? null : checkedFacts(selected, ri, cols[2], locale);
+    const unit = vf.units[0] || '', refUnit = rf?.units[0] || '';
+    if (!periodMode && unit !== refUnit) fail(`값 열 ${cols[1]}(${unit || '단위 없음'})과 기준 열 ${cols[2]}(${refUnit || '단위 없음'})의 단위가 다릅니다. 같은 단위의 열을 쓰세요. 단위 환산은 하지 않습니다.`, `Value column ${cols[1]} (${unit || 'no unit'}) and reference column ${cols[2]} (${refUnit || 'no unit'}) have different units. Use columns with the same unit; units are not converted.`);
+    const groups = new Map(); let excluded = 0, missingGroup = 0;
+    for (const row of rows) {
+        if (missing(row[gi])) { missingGroup++; continue; }
+        const value = number(row[vi]), reference = periodMode ? null : number(row[ri]);
+        if (value === null || (!periodMode && reference === null)) { excluded++; continue; }
+        const name = row[gi].trim();
+        if (!groups.has(name)) groups.set(name, { a: [], b: [] });
+        const g = groups.get(name);
+        if (periodMode) (periodKey(row[pi], { compact: true }) === baseKey ? g.a : g.b).push(value);
+        else { g.a.push(value); g.b.push(reference); }
+    }
+    const onlyA = [], onlyB = [], common = [];
+    for (const [name, g] of groups) {
+        if (!g.b.length) onlyA.push(label(name)); else if (!g.a.length) onlyB.push(label(name)); else common.push({ name: label(name), ...g });
+    }
+    const finite = n => Number.isFinite(n) ? n : null;
+    const reduce = values => fn === 'sum' ? finite(values.reduce((a, b) => a + b, 0)) : summary(values).mean ?? null;
+    const result = (a, b) => {
+        const difference = a === null || b === null ? null : finite(periodMode ? b - a : a - b);
+        const denominator = periodMode ? a : b;
+        return { ...(periodMode ? { base: a, target: b } : { value: a, reference: b }), difference, [relative]: difference === null || !denominator ? null : finite(periodMode ? difference / Math.abs(denominator) : a / denominator) };
+    };
+    let list = common.map(g => ({ group: g.name, ...result(reduce(g.a), reduce(g.b)) }));
+    if (sort === 'label') list.sort((a, b) => a.group.localeCompare(b.group, undefined, { numeric: true }));
+    else if (sort !== 'original') list.sort((a, b) => a[rankedBy] === null ? (b[rankedBy] === null ? a.group.localeCompare(b.group) : 1) : b[rankedBy] === null ? -1 : (sort === 'desc' ? b[rankedBy] - a[rankedBy] : a[rankedBy] - b[rankedBy]) || a.group.localeCompare(b.group));
+    const allA = common.flatMap(g => g.a), allB = common.flatMap(g => g.b);
+    const overall = { ...result(allA.length ? reduce(allA) : null, allB.length ? reduce(allB) : null), method: fn === 'sum' ? 'sum of common groups' : 'mean of rows in common groups' };
+    const shown = list.slice(0, limit), notes = summaryNotes(list, cols[0], locale);
+    const fields = periodMode ? ['base', 'target', 'difference', 'rate'] : ['value', 'reference', 'difference', 'ratio'];
+    return { type: 'compare', mode: periodMode ? 'period' : 'reference', columns: cols, function: fn, ...(periodMode ? { period: p, ...(!baseKey.startsWith('S:') ? { baseKey } : {}), ...(!targetKey.startsWith('S:') ? { targetKey } : {}) } : {}), ...(unit ? { unit, differenceUnit: unit === '%' ? '%p' : unit } : {}), sort, rankedBy, groups: shown, groupCount: list.length, truncated: list.length > shown.length, ...(list.length > shown.length ? { returnedGroups: shown.length, limit, maxLimit: 100, note: list.length <= 100 ? `Returned the first ${shown.length} of ${list.length} groups. To see all groups, set analysis.limit to ${list.length} (maximum 100).` : `Returned the first ${shown.length} of ${list.length} groups. The maximum analysis.limit is 100; use a smaller CSV to see the remaining groups.` } : {}), overall, ...(onlyA.length ? { onlyInBase: { count: onlyA.length, names: onlyA.slice(0, 20) } } : {}), ...(onlyB.length ? { onlyInTarget: { count: onlyB.length, names: onlyB.slice(0, 20) } } : {}), excludedRows: excluded, missingGroupRows: missingGroup, chart: { labels: shown.map(g => g.group), ...Object.fromEntries(fields.map(field => [field, shown.map(g => g[field])])) }, ...(notes.length ? { notes } : {}) };
 }
 
 // Shared by analysis and CSV chart input. Never paginate or shorten cells here.
@@ -240,14 +307,16 @@ export function selectRows(dataset, filter, locale = 'en', filterName = 'analysi
 
 export function analyze(dataset, spec, locale = 'ko') {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
-    if (!['summary', 'histogram', 'correlation', 'aggregate', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, rows.');
-    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
+    if (!['summary', 'histogram', 'correlation', 'aggregate', 'compare', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, compare, rows.');
+    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], compare: ['period', 'function', 'sort', 'rank_by', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
     const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
     const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
+    if (invalidKey !== undefined && spec.type === 'compare') throw new Error(locale === 'ko' ? `compare에 쓸 수 없는 키: ${invalidKey}. 예: {"type":"compare","columns":["부서","실적","목표"]}` : `Unknown compare key: ${invalidKey}. Example: {"type":"compare","columns":["group","value","plan"]}`);
     if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
     if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
     const cols = spec.columns;
-    const max = spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
+    if (spec.type === 'compare' && (!Array.isArray(cols) || cols.length !== (Object.hasOwn(spec, 'period') ? 2 : 3) || cols.some(c => typeof c !== 'string'))) return compare(dataset, spec, locale);
+    const max = spec.type === 'compare' ? 3 : spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
     const min = spec.type === 'correlation' ? 2 : 1;
     if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
     const indexes = cols.map(c => indexOf(dataset, c, locale));
@@ -292,7 +361,7 @@ export function analyze(dataset, spec, locale = 'ko') {
         result = analyzeSelected({ ...dataset, rows: selected.map(item => item.row) }, spec, locale);
     }
     const scope = {};
-    if (['summary', 'aggregate', 'rows'].includes(spec.type) && spec.filter !== undefined) scope.matched = matched;
+    if (['summary', 'aggregate', 'compare', 'rows'].includes(spec.type) && spec.filter !== undefined) scope.matched = matched;
     if (spec.type === 'summary') {
         scope.shareOf = 'sum of the listed columns';
         scope.unlistedNumericColumns = dataset.headers.filter((name, i) => {
@@ -371,6 +440,7 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
 }
 
 function analyzeSelected(dataset, spec, locale) {
+    if (spec.type === 'compare') return compare(dataset, spec, locale);
     if (spec.type === 'aggregate') {
         if (!Array.isArray(spec.columns) || spec.columns.length < 1 || spec.columns.length > 2 || spec.columns.some(c => typeof c !== 'string')) throw new Error('aggregate needs [group column, value column].');
         if (spec.method !== undefined || spec.bins !== undefined) throw new Error('method and bins do not apply to aggregate.');

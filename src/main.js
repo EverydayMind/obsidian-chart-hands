@@ -462,9 +462,11 @@ const tools = [
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
             table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
-                type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate', 'rows'] },
+                type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate', 'compare', 'rows'], description: 'compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups.' },
                 columns: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string' } },
                 filter: { type: 'array', description: 'Up to four conditions combined with AND before analysis.', maxItems: 4, items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string', description: 'CSV column to compare.' }, op: { type: 'string', description: 'Comparison operator.', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string', description: 'Value to compare against the cell.' } } } },
+                period: { type: 'object', additionalProperties: false, required: ['column', 'base', 'target'], description: 'For compare, select the period column and two period values.', properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } },
+                rank_by: { type: 'string', enum: ['difference', 'rate', 'ratio'], description: 'For compare, rank by difference or the relative rate or ratio.' },
                 method: { type: 'string', enum: ['pearson'] },
                 bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
                 function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic.' },

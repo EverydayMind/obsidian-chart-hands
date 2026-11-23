@@ -91,6 +91,8 @@ const fixtureFiles = {
     'bad.csv': 'duplicate,duplicate\n1,2',
     'units.csv': 'label,value\na,$1\nb,€2',
     'unit-mismatch.csv': 'label,value\na,1\nb,$2',
+    'compare-units.csv': 'label,value,reference\na,$1,2kg',
+    'compare.md': '| label | value | reference |\n|---|---|---|\n| total | 1 | 2 |',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
     'empty.md': '', 'file.pdf': 'synthetic',
     'table.md': '| amount | label |\n|---|---|\n' + ['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum'].map((v, i) => `| ${i % 2 ? '1원' : '2명'} | ${v} |`).join('\n'),
@@ -148,6 +150,20 @@ async function captureExtended(code, locale) {
     for (const args of [{ path: 'data.csv' }, { path: 'empty.csv' }, { path: 'bad.csv' }, { path: 'missing.csv' }, { path: 'file.pdf' }, { path: 'data.csv', from: 20 }]) await call('eda_profile', args);
     for (const args of [{ path: 'table.md' }, { path: 'table.md', table: 2 }, { path: 'empty.md' }, { path: 'invalid.md' }, { path: 'many.md' }, { path: 'long.md' }, { path: 'data.csv', table: 1 }]) await call('eda_profile', args);
     await call('eda_analyze', { path: 'table.md', analysis: { type: 'rows', columns: ['label'] } });
+    for (const analysis of [
+        { type: 'compare', columns: ['month', 'value'] },
+        { type: 'compare', columns: ['month', 'value', 'other'], extra: true },
+        { type: 'compare', columns: ['month', 'value'], period: {} },
+        { type: 'compare', columns: ['month', 'value'], period: { column: 'month', base: '2025-01', target: '2025-01' } },
+        { type: 'compare', columns: ['month', 'value'], period: { column: 'month', base: '2020', target: '2025-01' } },
+        ...[{ function: 'count' }, { sort: 'bad' }, { limit: 0 }, { rank_by: 'bad' }, { sort: 'label', rank_by: 'rate' }].map(extra => ({ type: 'compare', columns: ['month', 'value', 'other'], ...extra })),
+        { type: 'compare', columns: ['month', 'value', 'other'] }
+    ]) await call('eda_analyze', { path: 'data.csv', analysis });
+    await call('eda_analyze', { path: 'units.csv', analysis: { type: 'compare', columns: ['label', 'value', 'label'] } });
+    await call('eda_analyze', { path: 'compare-units.csv', analysis: { type: 'compare', columns: ['label', 'value', 'reference'] } });
+    await call('eda_analyze', { path: 'table.md', analysis: { type: 'aggregate', columns: ['label'] } });
+    await call('eda_analyze', { path: 'compare.md', analysis: { type: 'compare', columns: ['label', 'value', 'reference'] } });
+    if (locale === 'ko') await call('eda_analyze', { path: 'data.csv', analysis: { type: 'compare', columns: ['month', 'value'], period: { column: 'month', base: '상반기', target: '하반기' } } });
     for (const type of ['summary', 'histogram', 'correlation', 'aggregate', 'rows']) {
         const columns = type === 'correlation' ? ['value', 'other'] : type === 'aggregate' ? ['month', 'value'] : ['value'];
         for (const path of ['data.csv', 'empty.csv']) await call('eda_analyze', { path, analysis: { type, columns } });

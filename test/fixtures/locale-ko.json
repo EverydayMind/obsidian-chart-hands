@@ -123,8 +123,10 @@
                     "histogram",
                     "correlation",
                     "aggregate",
+                    "compare",
                     "rows"
-                  ]
+                  ],
+                  "description": "compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups."
                 },
                 "columns": {
                   "type": "array",
@@ -171,6 +173,36 @@
                       }
                     }
                   }
+                },
+                "period": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "column",
+                    "base",
+                    "target"
+                  ],
+                  "description": "For compare, select the period column and two period values.",
+                  "properties": {
+                    "column": {
+                      "type": "string"
+                    },
+                    "base": {
+                      "type": "string"
+                    },
+                    "target": {
+                      "type": "string"
+                    }
+                  }
+                },
+                "rank_by": {
+                  "type": "string",
+                  "enum": [
+                    "difference",
+                    "rate",
+                    "ratio"
+                  ],
+                  "description": "For compare, rank by difference or the relative rate or ratio."
                 },
                 "method": {
                   "type": "string",
@@ -760,7 +792,7 @@
       }
     ]
   },
-  "digest": "6e073ee178a40d6e588a4d17157ece29a907a8badd9db27dedb7e3eab1ae09e7",
+  "digest": "0a47abc05a0b8d5c44dfba3e9d0b7c7b23f2a008d9e4dffc9ec589b6faef6f5c",
   "results": [
     {
       "name": "eda_profile",

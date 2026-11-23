@@ -52,6 +52,9 @@ test('English checks all guide topics, chart types, analysis families, empty res
     assertPure('build_chart.radar', radar);
     assert.equal(en.calls.filter(c => c.name === 'eda_analyze' && c.args.path === 'empty.csv' && !c.result.isError).length, 5);
     assert.ok(en.calls.some(c => c.name === 'read_charts' && c.result.structuredContent.charts === 0));
+    const markdownCompare = en.calls.find(c => c.name === 'eda_analyze' && c.args.path === 'compare.md');
+    assert.equal(markdownCompare.result.structuredContent.mode, 'reference');
+    assert.equal(markdownCompare.result.structuredContent.groups[0].difference, -1);
     assert.equal(en.ui.filter(item => item.kind === 'command').length, 2);
     assert.equal(en.ui.filter(item => item.kind === 'name').length, 3);
     assert.ok(en.ui.some(item => item.kind === 'notice' && item.values[0].includes('could not load')));

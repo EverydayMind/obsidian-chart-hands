@@ -4,6 +4,7 @@ import { splitCells, splitLines, findTables, tableDataset } from '../src/markdow
 import { analyze, profile } from '../src/eda.js';
 
 test('structural pipe scanner handles escapes, spans and links', () => {
+    assert.deepEqual(splitCells('| **a** 와 **b** | **합계** | __a__ 와 __b__ |'), ['**a** 와 **b**', '합계', '__a__ 와 __b__']);
     const examples = [
         ['| a | b |', ['a', 'b']], ['a | b', ['a', 'b']], ['|', ['']],
         ['| [[노트|별칭]] | 3 |', ['[[노트|별칭]]', '3']], ['| [[노트 | 3 |', ['[[노트', '3']],
