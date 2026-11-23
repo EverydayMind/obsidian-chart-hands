@@ -7,6 +7,7 @@
 - Recognize English month names (`Jan 2025`, `January 2025`, `Jan. 2025`, `Jan-2025`, `2025 Jan`, and standalone month names in period columns) and half-years (`H1 2025`, `2025 H1`, `2025-H1`, `H1`, `H2`) in `periodKey`, column role classification, and `suggest_chart` requests.
 - Read a currency symbol with a scale suffix (`$120K`, `€2.5M`, `$3 million`, `($1.2K)`) as one additive unit, shown as `$120K` / `$3 million`.
 - Separate the unit in automatic English axis titles (`Change ($K)`); Korean titles are unchanged (`증감(억원)`).
+- README and README.ko: new "Better with Verbex" section with plain-language requests and a real `suggest_chart` → `build_chart` output.
 - Add side-by-side period comparison candidates to `suggest_chart` when `goal` is `compare` on repeated categories with a period column (and warn when no period is specified so the aggregate combines periods).
 
 ## 0.11.2

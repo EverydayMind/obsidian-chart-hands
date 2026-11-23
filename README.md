@@ -2,11 +2,11 @@
 
 Chart Hands draws interactive [Plotly](https://plotly.com/javascript/) charts in your Obsidian notes from short `plotly` code blocks, with no JavaScript needed. You can hover over a chart to read values and drag to zoom. Charts fit the note width, and they fit the page when you export a note to PDF.
 
-Chart Hands also gives LLM agents a pair of "hands": tools that build and check chart blocks before an agent writes them into a note. You don't need an agent to use the plugin.
+Chart Hands also gives LLM agents a pair of "hands": tools that build and check chart blocks before an agent writes them into a note. With [Verbex](https://github.com/EverydayMind/obsidian-verbex) you can ask for a report chart in plain words, in English or Korean, and every number in it is computed by the tools and traceable to your data (see [Better with Verbex](#better-with-verbex)). You don't need an agent to use the plugin.
 
 It is a fork of [obsidian-plotly](https://github.com/Dmitriy-Shulha/obsidian-plotly) by Dmitriy Shulha (MIT), updated to Plotly.js 4 and D3 7. It adds width fitting, PDF export support and the agent tools. It works on desktop and mobile.
 
-**Contents:** [Quick start](#quick-start) · [Writing a plotly block](#writing-a-plotly-block) · [Using examples from plotly.com](#using-examples-from-plotlycom) · [Charts from vault data (DataviewJS)](#charts-from-vault-data-dataviewjs) · [When a chart doesn't show](#when-a-chart-doesnt-show) · [Settings](#settings) · [Examples](#examples) · [Report charts](#report-charts) · [Data from Markdown tables](#data-from-markdown-tables) · [Tools for LLM agents](#tools-for-llm-agents) · [Installation](#installation)
+**Contents:** [Quick start](#quick-start) · [Better with Verbex](#better-with-verbex) · [Writing a plotly block](#writing-a-plotly-block) · [Using examples from plotly.com](#using-examples-from-plotlycom) · [Charts from vault data (DataviewJS)](#charts-from-vault-data-dataviewjs) · [When a chart doesn't show](#when-a-chart-doesnt-show) · [Settings](#settings) · [Examples](#examples) · [Report charts](#report-charts) · [Data from Markdown tables](#data-from-markdown-tables) · [Tools for LLM agents](#tools-for-llm-agents) · [Installation](#installation)
 
 ## Quick start
 
@@ -39,6 +39,89 @@ layout:
 ````
 
 Change `type: bar` to `type: scatter` to draw a line instead. When that works, copy any chart from [Examples](#examples) and replace the numbers with your own.
+
+## Better with Verbex
+
+Chart Hands works on its own, but its agent tools are built to be driven by an agent. Paired with [Verbex](https://github.com/EverydayMind/obsidian-verbex), an AI agent for Obsidian, you describe the chart you need in plain words and get a checked chart in your note, with numbers you can trace back to your data. The tools do the calculation and the model does not.
+
+### Ask in plain words
+
+You don't name chart types or write YAML. Verbex calls the Chart Hands tools for you:
+
+| You ask | What happens |
+| --- | --- |
+| "Compare demand and supply by job role from `Stats/workforce_2026.csv` and save it as a note." | `eda_profile` reads the columns and units, `suggest_chart` picks grouped bars, `build_chart` builds and checks the block, and Verbex writes the note after you approve the change. |
+| "Chart the top supplier share per item for a report, with a 50% target line." | `suggest_chart` reads the 50% target from your sentence. `build_chart` draws a dashed target line, highlights the items above it and labels values with `%`. |
+| "Make a monthly export trend chart for an approval document." | A line chart in the `report` style, with a title drafted from the facts (first and last month, change between them). |
+| "Using the table in this note, compare 2025 and 2026 by department, highlight the three largest declines and insert the chart below the table." | The Markdown table is read directly. `eda_analyze` computes each department's change, and `build_chart` charts that result and highlights the three largest declines. |
+
+Requests can be in English or Korean. Units such as `$120K`, `3 million`, `12%`, `억원` and `명`, periods such as `2025 Q1`, `Jan 2025`, `H1 2025` and `2025년 1분기`, and the generated sentences work in both languages. We test requests like these with small models (gpt-5.4-nano and Gemma 4 31B) in a sample vault.
+
+### What you get
+
+For the last request, on a note that holds this table (illustrative numbers)
+
+| Department | Year | Result |
+| --- | --- | --- |
+| Materials | 2025 | $120K |
+| Materials | 2026 | $96K |
+| Chips | 2025 | $210K |
+| Chips | 2026 | $236K |
+| … | … | … |
+
+`suggest_chart` reads three things from the sentence, using fixed rules:
+
+- the goal: a change between periods
+- the two periods: 2025 → 2026
+- the highlight: the three largest declines, which are Materials, Supply chain and Talent
+
+Its first candidate is a horizontal bar chart of each department's change. `build_chart` turns that candidate into the block below (shortened and reformatted here), followed by fact lines and a source line. Every number in it was computed by the tools:
+
+````
+```plotly
+# chart-hands source: Reports/Department results.md table 1 · rows 6 of 12 · analysis compare Department Result sum 2025→2026 · built 2026-11-24
+data:
+  - x: [26, 6, -1, -12, -17, -24]
+    y: [Chips, Investment, Cluster, Talent, Supply chain, Materials]
+    type: bar
+    orientation: h
+    name: Change
+    marker:
+      color: ["#CBD5E1", "#CBD5E1", "#CBD5E1", "#C2410C", "#C2410C", "#C2410C"]
+    text: [$+26K, $+6K, $−1K, $−12K, $−17K, $−24K]
+layout:
+  title:
+    text: 2026 $655K, $−22K vs 2025 (−3.2%) · 6 items common to both periods
+  xaxis:
+    title:
+      text: Change ($K)
+# … report styling, value-label settings and the source annotation are omitted here
+```
+
+- 2026 $655K, $−22K vs 2025 (−3.2%) · 6 items common to both periods
+- 3 items highlighted: Talent, Supply chain, Materials · 6 items shown, 6 items valid
+- Maximum: Chips $+26K · 6 items shown, 6 items valid
+- Minimum: Materials $−24K · 6 items shown, 6 items valid
+
+Source: Reports/Department results.md table 1 · 12 rows · compare Department Result sum 2025→2026
+````
+
+Verbex inserts this snippet below the table, and the agent can add its interpretation under it.
+
+### Why the pair works well
+
+- **The model doesn't do the arithmetic.** The tools compute sums, period differences, rankings, number formatting (`$−22K`, `−3.2%`, `3억원`) and the fact sentences. The model chooses what to ask for and interprets the result. The same data gives the same numbers every time, whichever model you use.
+- **Every chart records where its numbers came from.** The first line of the block names the file, table, rows, analysis and build date, and `read_charts` reads it back later. The fact lines also state how many items were shown and how many were valid.
+- **Charts are checked before they reach your note.** `build_chart` validates each block against Plotly's schema, and `check_chart` checks any block the agent writes or edits itself. Optional `advice` points out presentation issues, such as a bar axis that doesn't start at zero.
+- **Nothing changes without you.** Chart Hands tools only read. Verbex writes to a note only through its change review, with a checkpoint you can roll back.
+- **Small models make fewer wasted calls.** Verbex shows the Chart Hands tools only when a request is about charts or data. Results carry ready-to-run arguments (`build` in `suggest_chart`, `chartArgs` in `eda_analyze`), and errors name the offending argument and show a corrected example.
+- **Charts can go into documents too.** `build_chart` also returns a `staticBlock` that a compatible HWPX Exporter renders into an HWPX document.
+
+### Tips
+
+- After installing or updating Chart Hands, approve its tools in Verbex under **Settings › Tool management › Tool approval**. Verbex offers the tools to the model only after that.
+- Small models sometimes show the chart in the reply but don't insert it into the note. If that happens, press **NEXT**: it sends "Go ahead" and the model continues. If the reply already says the change was applied, don't press NEXT, or the chart may be inserted a second time.
+- Say what the chart is for ("for a report", "for slides", "for black-and-white printing"), so the agent can choose the `report`, `slides` or `print` style.
 
 ## Writing a `plotly` block
 
