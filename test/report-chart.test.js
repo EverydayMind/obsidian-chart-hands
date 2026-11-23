@@ -81,6 +81,25 @@ test('target and highlight boundaries, stacking and legacy blocks', () => {
     for (const highlight of [{ top: 1, bottom: 1 }, { below_target: false }, { top: 51 }, { below_target: true }]) assert.throws(() => buildChartDefinition({ ...base, highlight }));
     assert.throws(() => buildChartDefinition({ ...base, series: [base.series[0], base.series[0]], highlight: { top: 1 } }), /여러 계열이면 highlight\.labels로 범주를 지정하세요\./);
     assert.throws(() => buildChartDefinition({ ...base, series: [base.series[0], base.series[0]], highlight: { top: 1 } }, { locale: 'en' }), /With several series, use highlight\.labels to pick categories\./);
+    // G2/G3 (0.11.2): two rank selectors name what was received; a non-bar type is told to change type.
+    assert.throws(() => buildChartDefinition({ ...base, highlight: { top: 3, bottom: 3 } }), /highlight에는 선택자를 하나만 주세요\(받은 것: top, bottom\)/);
+    assert.throws(() => buildChartDefinition({ ...base, highlight: { top: 3, bottom: 3 } }, { locale: 'en' }), /Give highlight only one selector \(received: top, bottom\)/);
+    assert.throws(() => buildChartDefinition({ ...base, type: 'line', highlight: { bottom: 1 } }), /지금 type: line\)\. type을 bar나 barh로 바꾸거나 highlight를 빼세요\./);
+    assert.throws(() => buildChartDefinition({ ...base, type: 'line', highlight: { labels: ['A'] } }, { locale: 'en' }), /type is line\); change type to bar or barh, or omit highlight\./);
+    // G1 (0.11.2): with several bar series each series keeps its own colour on the chosen categories.
+    const kept = buildChartDefinition({ ...base, style: 'report', series: [base.series[0], { values: [5, 6, 7] }], highlight: { labels: ['B'] } });
+    assert.notEqual(kept.data[0].marker.color[1], kept.data[1].marker.color[1]);
+    assert.notEqual(kept.data[0].marker.color[0], kept.data[1].marker.color[0]);
+    assert.equal(buildChartDefinition({ ...base, style: 'report', highlight: { labels: ['B'] } }).data[0].marker.color[0], '#CBD5E1');
+    for (const style of ['plain', 'print']) {
+        const multi = buildChartDefinition({ ...base, style, series: [base.series[0], { values: [5, 6, 7] }], highlight: { labels: ['B'] } });
+        assert.notEqual(multi.data[0].marker.color[1], multi.data[1].marker.color[1]);
+        assert.notEqual(multi.data[0].marker.color[0], multi.data[0].marker.color[1]);
+        if (style === 'print') assert.ok(multi.data.every(trace => trace.marker.pattern));
+    }
+    const twoBars = buildChartDefinition({ ...base, type: 'combo', series: [{ values: [1, 2, 3], kind: 'bar' }, { values: [4, 5, 6], kind: 'bar' }, { values: [7, 8, 9], kind: 'line' }], highlight: { labels: ['A'] } });
+    assert.notEqual(twoBars.data[0].marker.color[0], twoBars.data[1].marker.color[0]);
+    assert.throws(() => buildChartDefinition({ ...base, type: 'combo', series: [{ values: [1, 2, 3], kind: 'line' }, { values: [4, 5, 6], kind: 'line' }], highlight: { labels: ['A'] } }), /지금 type: combo\)/);
     // F10: highlight.labels allowed on multi-series bar, barh, combo and static-chart
     for (const type of ['bar', 'barh']) {
         const multi = buildChartDefinition({ ...base, type, series: [base.series[0], { values: [5, 6, 7] }], highlight: { labels: ['B'] } });

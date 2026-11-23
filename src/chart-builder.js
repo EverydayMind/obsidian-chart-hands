@@ -25,6 +25,8 @@ const DIVERGING_SCALE = [[0, PALETTE.highlight], [0.5, '#F8FAFC'], [1, PALETTE.p
 const HEATMAP_TEXT_CELLS = 150;
 const BUBBLE_MAX_PX = 40;
 
+// Mixes a #RRGGBB colour 70% toward white (pale version for non-highlighted categories).
+const tint = (hex) => /^#[0-9a-f]{6}$/i.test(hex) ? `#${[1, 3, 5].map(i => Math.round(parseInt(hex.slice(i, i + 2), 16) * 0.3 + 255 * 0.7).toString(16).padStart(2, '0')).join('').toUpperCase()}` : '#E2E8F0';
 const fail = (message) => {
     throw new Error(message);
 };
@@ -64,6 +66,7 @@ export function validateBuildArgs(args, locale = 'ko') {
     if (args.highlight !== undefined) {
         const h = args.highlight, keys = h && typeof h === 'object' && !Array.isArray(h) ? Object.keys(h) : [];
         const k = keys[0];
+        if (keys.length > 1 && keys.every(key => ['labels', 'top', 'bottom', 'below_target', 'above_target'].includes(key))) error(`highlight에는 선택자를 하나만 주세요(받은 것: ${keys.join(', ')}). 이름을 정해 강조하면 labels만 씁니다.`, `Give highlight only one selector (received: ${keys.join(', ')}). To highlight by name, use labels alone.`);
         if (keys.length !== 1 || !['labels', 'top', 'bottom', 'below_target', 'above_target'].includes(k) || (k === 'labels' ? !Array.isArray(h[k]) || !h[k].length || h[k].length > 50 || h[k].some(v => typeof v !== 'string') : ['top', 'bottom'].includes(k) ? !Number.isInteger(h[k]) || h[k] < 1 || h[k] > 50 : h[k] !== true || !args.target)) error('highlight 선택자가 잘못되었습니다. labels, top, bottom, below_target, above_target 중 하나를 지정하세요.', 'Invalid highlight selector; specify exactly one of labels, top, bottom, below_target or above_target.');
         if (k === 'labels' && Array.isArray(args.labels) && h.labels.some(v => !args.labels.includes(v))) error(`highlight.labels는 실제 labels에서 선택하세요: ${args.labels.join(', ')}`, `Choose highlight.labels from the actual labels: ${args.labels.join(', ')}`);
         const bar = type === 'combo' ? series.findIndex((s, i) => (s.kind || (i ? 'line' : 'bar')) === 'bar') : 0;
@@ -71,8 +74,8 @@ export function validateBuildArgs(args, locale = 'ko') {
             ? (['bar', 'barh'].includes(type) || type === 'combo' && bar >= 0)
             : (type === 'combo' && bar >= 0 || ['bar', 'barh'].includes(type) && series.length === 1);
         if (!ok) {
-            if (k !== 'labels') error('highlight은 단일 계열 bar, barh, 또는 막대가 있는 combo에만 쓸 수 있습니다. 여러 계열이면 highlight.labels로 범주를 지정하세요.', 'highlight is only supported for single-series bar, barh, or combo with a bar. With several series, use highlight.labels to pick categories.');
-            reject('highlight', 'bar, barh, or combo with a bar');
+            if (!['bar', 'barh'].includes(type) && !(type === 'combo' && bar >= 0)) error(`highlight은 bar, barh, 또는 막대가 있는 combo에만 쓸 수 있습니다(지금 type: ${type}). type을 bar나 barh로 바꾸거나 highlight를 빼세요.`, `highlight is only supported for bar, barh, or combo with a bar (type is ${type}); change type to bar or barh, or omit highlight.`);
+            error('top·bottom·below_target·above_target은 단일 계열 막대에만 쓸 수 있습니다. 여러 계열이면 highlight.labels로 범주를 지정하세요.', 'top, bottom, below_target and above_target are only supported for a single bar series. With several series, use highlight.labels to pick categories.');
         }
         if (['below_target', 'above_target'].includes(k) && (args.target.series ?? 0) !== bar) error('목표를 단 계열과 강조할 막대 계열이 다릅니다.', 'The target series differs from the highlighted bar series.');
     }
@@ -521,9 +524,13 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         const mutedColor = args.style === 'print' ? '#D1D5DB' : '#CBD5E1';
         if (Object.hasOwn(args.highlight, 'labels')) {
             const chosen = new Set(highlightIndices(args.highlight, labels, series[0].values, args.target));
-            const colors = labels.map((_, n) => chosen.has(n) ? highlightColor : mutedColor);
-            data.forEach(trace => {
-                if (trace.type === 'bar') trace.marker = { ...trace.marker, color: [...colors] };
+            const bars = data.filter(trace => trace.type === 'bar');
+            // One bar series: highlight colour vs grey. Several: each series keeps its own colour on the chosen
+            // categories and a pale tint of it elsewhere, so the series stay distinguishable.
+            bars.forEach((trace, n) => {
+                const base = bars.length === 1 ? highlightColor : typeof trace.marker?.color === 'string' ? trace.marker.color : (args.style === 'print' ? PRINT_COLORS : SERIES_COLORS)[n % 5];
+                const faded = bars.length === 1 ? mutedColor : tint(base);
+                trace.marker = { ...trace.marker, color: labels.map((_, i) => chosen.has(i) ? base : faded) };
             });
         } else {
             const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0;

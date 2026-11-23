@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.11.2
+
+- Keep each series' own colour on `highlight.labels` categories in multi-series bar charts and pale it elsewhere, instead of painting every series the same highlight colour (series were indistinguishable).
+- When `highlight.labels` is given beside `top`, `bottom`, `below_target` or `above_target`, use the labels and report the other selector in `ignoredArgs`; two rank selectors now fail with the received selector names.
+- On a chart type without bars, the highlight error now names the type and says to change it to `bar` or `barh` or omit `highlight`.
+
 ## 0.11.1
 
 - Run full `Plotly.validate` schema checks directly inside `build_chart` when Plotly is available, update `build_chart` and provider instructions accordingly, and let `check_chart` strip surrounding ` ```plotly ` / ` ~~~plotly ` fences.

@@ -172,6 +172,17 @@ test('title_from applies only an available draft and freezes the normalized titl
     assert.notEqual(both.isError, true);
     assert.ok(both.structuredContent.ignoredArgs.includes('title_from'));
     assert.equal(JSON.parse(both.structuredContent.staticBlock.split('\n')[1]).title, 'Manual');
+    // G2 (0.11.2): labels beside a rank selector wins; the other selector is reported as ignored.
+    // labels picks A (largest) while bottom: 1 would pick B, so the result shows which selector won.
+    const mixed = await p.callTool('build_chart', bar(['A', 'B', 'C'], [3, 1, 2], { highlight: { labels: ['A'], bottom: 1 } }));
+    assert.notEqual(mixed.isError, true);
+    assert.ok(mixed.structuredContent.ignoredArgs.includes('highlight.bottom'));
+    assert.deepEqual(JSON.parse(mixed.structuredContent.staticBlock.split('\n')[1]).highlight, { labels: ['A'] });
+    assert.equal(mixed.structuredContent.facts.highlight, 'labels');
+    assert.deepEqual(plain(mixed.structuredContent.facts.highlighted), ['A']);
+    for (const highlight of [{ labels: [], bottom: 1 }, { labels: ['missing'], bottom: 1 }, { labels: ['A'], foo: 1 }]) {
+        assert.equal((await p.callTool('build_chart', bar(['A', 'B', 'C'], [3, 1, 2], { highlight }))).structuredContent.code, 'INVALID_ARGUMENT');
+    }
     const empty = await p.callTool('build_chart', bar(['A'], [null], { title_from: 'facts' }));
     assert.equal(empty.structuredContent.code, 'INVALID_ARGUMENT');
     assert.match(empty.content[0].text, /유효한 값이 없습니다/);

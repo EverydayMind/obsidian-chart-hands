@@ -1022,6 +1022,10 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'title_from은 facts만 받습니다.' : 'title_from only accepts facts.', true);
             }
             const ignoreTitleFrom = titleFrom === 'facts' && args.title !== undefined;
+            // labels names the categories outright, so it wins over rank selectors given beside it.
+            const h = args.highlight;
+            const droppedHighlight = h && typeof h === 'object' && !Array.isArray(h) && Object.hasOwn(h, 'labels') ? Object.keys(h).filter(k => ['top', 'bottom', 'below_target', 'above_target'].includes(k)) : [];
+            if (droppedHighlight.length) args = { ...args, highlight: Object.fromEntries(Object.entries(h).filter(([k]) => !droppedHighlight.includes(k))) };
             let definition;
             let source;
             let provenance;
@@ -1032,6 +1036,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             try { ignoredArgs = validateBuildArgs(validationArgs, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
             if (ignoreTitleFrom) ignoredArgs.push('title_from');
+            ignoredArgs.push(...droppedHighlight.map(k => `highlight.${k}`));
             if (Object.hasOwn(args, 'source')) {
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
