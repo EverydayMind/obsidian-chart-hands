@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.11.4
+
+- Sort ties and labels with one fixed collation instead of the machine locale, so `eda_profile` top values and aggregate group order are the same on every computer (an en-US machine used to order Latin before Hangul).
+- First published release of the 0.11.3 changes below (the 0.11.3 tag never got a release because its CI failed on this ordering).
+
 ## 0.11.3
 
 - Match English requests in `suggest_chart` at parity with Korean: English negation (`except`, `without`, `not`, `n't`, …), direction phrases (`compared with/to`, `against`, `relative to`, `from A to B`, `as the base/baseline`), prior-period comparison phrases (`year over year`, `YoY`, `MoM`, `QoQ`, …), highlight/display/table wording, English number words (`one`–`ten`), rank and delta quantities, target values (`target of N`, `90% target`, …), and expanded goal keywords.
@@ -8,7 +13,6 @@
 - Read a currency symbol with a scale suffix (`$120K`, `€2.5M`, `$3 million`, `($1.2K)`) as one additive unit, shown as `$120K` / `$3 million`.
 - Separate the unit in automatic English axis titles (`Change ($K)`); Korean titles are unchanged (`증감(억원)`).
 - README and README.ko: new "Better with Verbex" section with plain-language requests and a real `suggest_chart` → `build_chart` output.
-- Sort ties and labels with one fixed collation instead of the machine locale, so `eda_profile` top values and aggregate group order are the same on every computer (an en-US machine used to order Latin before Hangul).
 - Add side-by-side period comparison candidates to `suggest_chart` when `goal` is `compare` on repeated categories with a period column (and warn when no period is specified so the aggregate combines periods).
 
 ## 0.11.2
