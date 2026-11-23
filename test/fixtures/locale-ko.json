@@ -972,10 +972,215 @@
           ],
           "dev.agentinterop/maxResultChars": 16000
         }
+      },
+      {
+        "name": "suggest_chart",
+        "title": "Suggest chart types for a dataset",
+        "description": "Suggest chart types for a goal from the data's shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or a Markdown table, classifies columns (period, category, numeric with unit) and returns up to three candidates with the reason, cautions found in the data, and build arguments that build_chart accepts as they are; needs lists what the data cannot tell (a target value, the periods to compare). Deterministic rules; does not draw or change files.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
+            },
+            "goal": {
+              "type": "string",
+              "enum": [
+                "trend",
+                "compare",
+                "rank",
+                "share",
+                "distribution",
+                "relationship",
+                "target",
+                "change",
+                "matrix"
+              ],
+              "description": "Charting goal. Optional when request states one."
+            },
+            "request": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "User request text to parse goal, periods, target value and highlight."
+            },
+            "label": {
+              "type": "string",
+              "description": "Override category or period column."
+            },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "type": "string"
+              },
+              "description": "Override numeric value columns (1–12)."
+            },
+            "reference": {
+              "type": "string",
+              "description": "target goal: reference numeric column."
+            },
+            "top": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "rank goal: number of items (default 10)."
+            },
+            "filter": {
+              "type": "array",
+              "maxItems": 4,
+              "description": "Up to four AND conditions applied before classification and charting.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "column",
+                  "op",
+                  "value"
+                ],
+                "properties": {
+                  "column": {
+                    "type": "string"
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "eq",
+                      "ne",
+                      "gt",
+                      "gte",
+                      "lt",
+                      "lte",
+                      "prefix",
+                      "contains"
+                    ]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "period": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "base",
+                "target"
+              ],
+              "description": "change goal: explicit period column and base/target values.",
+              "properties": {
+                "column": {
+                  "type": "string"
+                },
+                "base": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                }
+              }
+            },
+            "target_value": {
+              "type": "number",
+              "description": "Explicit numeric target line value."
+            },
+            "highlight": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Explicit bar highlight selector.",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 50,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "below_target": {
+                  "type": "boolean"
+                },
+                "above_target": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 16000
+        }
       }
     ]
   },
-  "digest": "4eb18d6c759d041d2361cd82a14489b1826421c94d981b8d2d5da74d9c30466b",
+  "digest": "bdd8bc9eea09d9bce428f6381fc5c36a6e2a6e4e9e667e501532b99471581de7",
   "results": [
     {
       "name": "eda_profile",

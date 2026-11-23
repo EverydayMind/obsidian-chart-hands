@@ -972,6 +972,211 @@
           ],
           "dev.agentinterop/maxResultChars": 16000
         }
+      },
+      {
+        "name": "suggest_chart",
+        "title": "Suggest chart types for a dataset",
+        "description": "Suggest chart types for a goal from the data's shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or a Markdown table, classifies columns (period, category, numeric with unit) and returns up to three candidates with the reason, cautions found in the data, and build arguments that build_chart accepts as they are; needs lists what the data cannot tell (a target value, the periods to compare). Deterministic rules; does not draw or change files.",
+        "inputSchema": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "path"
+          ],
+          "properties": {
+            "path": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096,
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
+            },
+            "goal": {
+              "type": "string",
+              "enum": [
+                "trend",
+                "compare",
+                "rank",
+                "share",
+                "distribution",
+                "relationship",
+                "target",
+                "change",
+                "matrix"
+              ],
+              "description": "Charting goal. Optional when request states one."
+            },
+            "request": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 500,
+              "description": "User request text to parse goal, periods, target value and highlight."
+            },
+            "label": {
+              "type": "string",
+              "description": "Override category or period column."
+            },
+            "values": {
+              "type": "array",
+              "minItems": 1,
+              "maxItems": 12,
+              "items": {
+                "type": "string"
+              },
+              "description": "Override numeric value columns (1–12)."
+            },
+            "reference": {
+              "type": "string",
+              "description": "target goal: reference numeric column."
+            },
+            "top": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 50,
+              "description": "rank goal: number of items (default 10)."
+            },
+            "filter": {
+              "type": "array",
+              "maxItems": 4,
+              "description": "Up to four AND conditions applied before classification and charting.",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": [
+                  "column",
+                  "op",
+                  "value"
+                ],
+                "properties": {
+                  "column": {
+                    "type": "string"
+                  },
+                  "op": {
+                    "type": "string",
+                    "enum": [
+                      "eq",
+                      "ne",
+                      "gt",
+                      "gte",
+                      "lt",
+                      "lte",
+                      "prefix",
+                      "contains"
+                    ]
+                  },
+                  "value": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "period": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "base",
+                "target"
+              ],
+              "description": "change goal: explicit period column and base/target values.",
+              "properties": {
+                "column": {
+                  "type": "string"
+                },
+                "base": {
+                  "type": "string"
+                },
+                "target": {
+                  "type": "string"
+                }
+              }
+            },
+            "target_value": {
+              "type": "number",
+              "description": "Explicit numeric target line value."
+            },
+            "highlight": {
+              "type": "object",
+              "additionalProperties": false,
+              "description": "Explicit bar highlight selector.",
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 50,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "below_target": {
+                  "type": "boolean"
+                },
+                "above_target": {
+                  "type": "boolean"
+                }
+              }
+            }
+          }
+        },
+        "annotations": {
+          "readOnlyHint": true
+        },
+        "_meta": {
+          "dev.agentinterop/effect": "read",
+          "dev.agentinterop/group": "data",
+          "dev.agentinterop/resourceTypes": [
+            ".csv"
+          ],
+          "dev.agentinterop/keywords": [
+            "eda",
+            "data",
+            "csv",
+            "statistics",
+            "correlation",
+            "dataset",
+            "aggregate",
+            "데이터",
+            "분석",
+            "통계",
+            "집계",
+            "합계",
+            "평균",
+            "상관",
+            "분포",
+            "추이",
+            "인사이트",
+            "계산",
+            "누계",
+            "chart",
+            "graph",
+            "plot",
+            "visuali",
+            "histogram",
+            "heatmap",
+            "dashboard",
+            "차트",
+            "그래프",
+            "시각화",
+            "히트맵",
+            "산점도",
+            "대시보드"
+          ],
+          "dev.agentinterop/maxResultChars": 16000
+        }
       }
     ]
   },
@@ -1142,7 +1347,7 @@
         "content": [
           {
             "type": "text",
-            "text": "File not found in the vault: missing.csv CSV 후보: unit-mismatch.csv, bad.csv, compare-units.csv, data.csv, empty.csv. 후보의 path로 다시 호출하세요."
+            "text": "File not found in the vault: missing.csv CSV 후보: leading-zero.csv, unit-mismatch.csv, bad.csv, bubble-neg.csv, bubble-pos.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1167,7 +1372,7 @@
         "content": [
           {
             "type": "text",
-            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, compare-units.csv, data.csv, empty.csv, facts-ko.csv. 후보의 path로 다시 호출하세요."
+            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, bubble-neg.csv, bubble-pos.csv, cat-dup-long.csv, cat-dup.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1389,7 +1594,7 @@
         "content": [
           {
             "type": "text",
-            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, compare-units.csv, data.csv, facts-ko.csv. 후보의 path로 다시 호출하세요."
+            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, bubble-neg.csv, bubble-pos.csv, cat-dup-long.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -10005,6 +10210,4063 @@
         "_meta": {
           "dev.agentinterop/resource": {
             "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "goal을 주거나 request에 목적을 적으세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: bar, line\nbar: 기간이 2개로 적어 막대가 읽기 쉽습니다.\nline: 기간 흐름을 선으로 연결합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "기간이 2개로 적어 막대가 읽기 쉽습니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "data.csv",
+                  "labels": "month"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "line",
+              "why": "기간 흐름을 선으로 연결합니다.",
+              "cautions": [],
+              "build": {
+                "type": "line",
+                "source": {
+                  "path": "data.csv",
+                  "labels": "month"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "top": 3
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "top은 rank 목적에만 씁니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "request": "2025년과 2026년 실적 증감을 보여줘."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: waterfall, barh\nwaterfall: 2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.\nbarh: 항목별 증감 크기를 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "waterfall",
+              "why": "2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "waterfall",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "항목별 증감 크기를 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": [
+            {
+              "field": "goal",
+              "status": "applied",
+              "matched": [
+                "증감"
+              ],
+              "value": "change"
+            },
+            {
+              "field": "period",
+              "status": "applied",
+              "matched": [
+                "2025년",
+                "2026년"
+              ],
+              "value": {
+                "column": "year",
+                "base": "2025",
+                "target": "2026"
+              }
+            },
+            {
+              "field": "target.value",
+              "status": "unmatched",
+              "matched": []
+            },
+            {
+              "field": "highlight",
+              "status": "unmatched",
+              "matched": []
+            }
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "request": "월별 추이는 빼고 부서별로 비교해 줘."
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 미정 · 후보: 없음 · confirm: goal, period, target.value, highlight"
+          }
+        ],
+        "structuredContent": {
+          "goal": null,
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [
+            {
+              "field": "goal",
+              "status": "ambiguous",
+              "matched": [
+                "빼고"
+              ]
+            },
+            {
+              "field": "period",
+              "status": "ambiguous",
+              "matched": [
+                "빼고"
+              ]
+            },
+            {
+              "field": "target.value",
+              "status": "ambiguous",
+              "matched": [
+                "빼고"
+              ]
+            },
+            {
+              "field": "highlight",
+              "status": "ambiguous",
+              "matched": [
+                "빼고"
+              ]
+            }
+          ],
+          "confirm": [
+            {
+              "field": "goal",
+              "candidates": [
+                "trend",
+                "compare",
+                "rank",
+                "share",
+                "distribution",
+                "relationship",
+                "target",
+                "change",
+                "matrix"
+              ]
+            },
+            {
+              "field": "period",
+              "candidates": []
+            },
+            {
+              "field": "target.value",
+              "candidates": []
+            },
+            {
+              "field": "highlight",
+              "candidates": []
+            }
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "nopairs.csv",
+        "goal": "relationship"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 relationship · 후보: scatter\nscatter: x과 y의 관계를 산점도로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "relationship",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "x"
+              },
+              {
+                "name": "y"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "scatter",
+              "why": "x과 y의 관계를 산점도로 보여줍니다.",
+              "cautions": [
+                "열 x에 결측이 1행 있습니다.",
+                "열 y에 결측이 1행 있습니다."
+              ],
+              "failure": {
+                "code": "NO_VALID_DATA",
+                "message": "유효한 관측값이 없습니다."
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "nopairs.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "compare.md",
+        "goal": "target",
+        "reference": "reference"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 target · 후보: combo, bar\ncombo: value(막대)과 reference(선)을 같은 축에 비교합니다.\nbar: 기준 대비 비율(%)을 100% 목표선과 함께 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "target",
+          "dataShape": {
+            "rows": 1,
+            "labelColumn": "label",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": [
+              {
+                "rowNumber": 1,
+                "column": "label",
+                "label": "total",
+                "line": 3
+              }
+            ]
+          },
+          "candidates": [
+            {
+              "type": "combo",
+              "why": "value(막대)과 reference(선)을 같은 축에 비교합니다.",
+              "cautions": [
+                "합계 행 후보가 있습니다(total). 포함하면 다른 행과 함께 더해질 수 있습니다."
+              ],
+              "build": {
+                "type": "combo",
+                "source": {
+                  "path": "compare.md",
+                  "labels": "label"
+                },
+                "series": [
+                  {
+                    "column": "value",
+                    "kind": "bar"
+                  },
+                  {
+                    "column": "reference",
+                    "kind": "line"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "기준 대비 비율(%)을 100% 목표선과 함께 보여줍니다.",
+              "cautions": [
+                "합계 행 후보가 있습니다(total). 포함하면 다른 행과 함께 더해질 수 있습니다."
+              ],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "compare.md",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "label",
+                      "value",
+                      "reference"
+                    ]
+                  }
+                },
+                "series": [
+                  {
+                    "column": "ratio"
+                  }
+                ],
+                "target": {
+                  "value": 100
+                },
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": [],
+          "table": {
+            "index": 1,
+            "startLine": 1
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "compare.md",
+        "goal": "matrix"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 matrix · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "matrix",
+          "dataShape": {
+            "rows": 1,
+            "labelColumn": "label",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              },
+              {
+                "name": "reference"
+              }
+            ],
+            "summaryRowCandidates": [
+              {
+                "rowNumber": 1,
+                "column": "label",
+                "label": "total",
+                "line": 3
+              }
+            ]
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "합계 행 후보가 있습니다(total). 포함하면 다른 행과 함께 더해질 수 있습니다.",
+            "긴 표는 heatmap 전에 행·열로 펼쳐야 합니다."
+          ],
+          "table": {
+            "index": 1,
+            "startLine": 1
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "facts.csv",
+        "goal": "change",
+        "period": {
+          "column": "year",
+          "base": "2025",
+          "target": "2026"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: 없음 · needs: values"
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 5,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 3,
+            "valueColumns": [],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "values"
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "facts.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "compare-units.csv",
+        "request": "목표 100원 비교해 줘"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 미정 · 후보: 없음 · confirm: goal"
+          }
+        ],
+        "structuredContent": {
+          "goal": null,
+          "dataShape": {
+            "rows": 1,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "value",
+                "unit": "$"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [
+            {
+              "field": "goal",
+              "status": "ambiguous",
+              "matched": [
+                "목표",
+                "비교"
+              ]
+            },
+            {
+              "field": "period",
+              "status": "unmatched",
+              "matched": []
+            },
+            {
+              "field": "target.value",
+              "status": "unmatched",
+              "matched": [
+                "목표 100원"
+              ]
+            },
+            {
+              "field": "highlight",
+              "status": "unmatched",
+              "matched": []
+            }
+          ],
+          "confirm": [
+            {
+              "field": "goal",
+              "candidates": [
+                "target",
+                "compare"
+              ]
+            }
+          ],
+          "cautions": [
+            "요청의 목표값 단위(원)가 값 열 단위($)와 달라 목표값을 적용하지 않았습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare-units.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "invalid"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "goal은 trend, compare, rank, share, distribution, relationship, target, change, matrix 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "request": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "request는 500자 이하 문자열이어야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "label": "missing"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "모르는 label 열: missing"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "distribution",
+        "label": "month"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "distribution 목적에는 label을 쓰지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "values": []
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "values는 1~12개의 열 이름 배열이어야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "values": [
+          "value",
+          "value"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "values에 같은 열이 중복되었습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "values": [
+          "missing"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "모르는 values 열: missing"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "label": "value",
+        "values": [
+          "value"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "values 열 value이 label과 겹칩니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "values": [
+          "month"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "values 열 month은 수치 열이어야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "reference": "other"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "reference는 target 목적에만 씁니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "target",
+        "reference": "missing"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "모르는 reference 열: missing"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "target",
+        "reference": "month"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "reference 열 month은 수치 열이어야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "target",
+        "values": [
+          "value"
+        ],
+        "reference": "value"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "reference 열 value이 다른 인자 열과 겹칩니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "rank",
+        "top": 0
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "top은 1~50 정수여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "compare",
+        "period": {
+          "base": "2025-01",
+          "target": "2025-02"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "period는 change 목적에만 씁니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "change",
+        "period": {}
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "period에는 base, target 문자열(과 선택적 column)이 필요합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "change",
+        "period": {
+          "column": "missing",
+          "base": "2025-01",
+          "target": "2025-02"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "모르는 period.column 열: missing"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "target",
+        "target_value": "bad"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "target_value는 유한한 숫자여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "share",
+        "target_value": 10
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "share 목적에는 target_value를 쓰지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "trend",
+        "filter": [
+          {
+            "column": "month",
+            "op": "eq",
+            "value": "none"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 0,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "조건에 맞는 행이 없습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "mixed-year.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음 · needs: label"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "label"
+          ],
+          "cautions": [
+            "기간 열 period에 연도가 있는 값과 없는 값이 섞여 있어 자동 후보에서 뺐습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "mixed-year.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "mixed-notation.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "period",
+            "labelKind": "period",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "같은 기간이 다른 표기로 적혀 있습니다(2025-Q1, 2025 Q1). 자료 표기를 맞추세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "mixed-notation.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period-order.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "period",
+            "labelKind": "period",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "기간 표기가 섞여 순서를 맞출 수 없습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period-order.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-dup.csv",
+        "goal": "trend",
+        "values": [
+          "a",
+          "b"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 5,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 4,
+            "valueColumns": [
+              {
+                "name": "a"
+              },
+              {
+                "name": "b"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "기간이 중복된 자료는 단일 값 열만 자동 집계할 수 있습니다. values를 1개로 지정하거나 filter로 줄이세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-dup.csv",
+        "goal": "trend",
+        "values": [
+          "a"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: line, bar\nline: 기간 4개를 집계(mean)해 추이를 선으로 보여줍니다.\nbar: 기간별 집계 크기를 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 5,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 4,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "line",
+              "why": "기간 4개를 집계(mean)해 추이를 선으로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "line",
+                "source": {
+                  "path": "trend-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "month",
+                      "a"
+                    ],
+                    "function": "mean",
+                    "sort": "label"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "기간별 집계 크기를 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "trend-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "month",
+                      "a"
+                    ],
+                    "function": "mean",
+                    "sort": "label"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-101-dup.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 102,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 101,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "고유 기간이 101개라 analysis.limit 한도(100)를 넘습니다. filter로 범위를 줄이세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-101-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-km.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음 · needs: function"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "dist",
+                "unit": "km"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "function"
+          ],
+          "cautions": [
+            "열 dist(km)의 집계 방식(sum/mean)을 자동으로 정할 수 없습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-km.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "rows201.csv",
+        "goal": "trend"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: 없음 · needs: filter"
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 201,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 201,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "filter"
+          ],
+          "cautions": [
+            "행이 201개라 build_chart source는 200행까지입니다. filter로 줄이세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "rows201.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-combo.csv",
+        "goal": "trend",
+        "values": [
+          "rev",
+          "rate"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: combo\ncombo: 단위가 다른 두 지표의 추이를 주축 막대와 보조축 선으로 함께 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 4,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 4,
+            "valueColumns": [
+              {
+                "name": "rev",
+                "unit": "$"
+              },
+              {
+                "name": "rate",
+                "unit": "%"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "combo",
+              "why": "단위가 다른 두 지표의 추이를 주축 막대와 보조축 선으로 함께 보여줍니다.",
+              "cautions": [
+                "두 값 열의 단위가 달라($, %) 보조축 combo를 추천합니다."
+              ],
+              "build": {
+                "type": "combo",
+                "source": {
+                  "path": "trend-combo.csv",
+                  "labels": "month"
+                },
+                "series": [
+                  {
+                    "column": "rev",
+                    "kind": "bar"
+                  },
+                  {
+                    "column": "rate",
+                    "kind": "line",
+                    "secondary": true
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-combo.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "trend-combo.csv",
+        "goal": "trend",
+        "values": [
+          "rev"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 trend · 후보: line, bar\nline: 기간 4개의 변화를 선으로 보여줍니다.\nbar: 기간별 값을 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "trend",
+          "dataShape": {
+            "rows": 4,
+            "labelColumn": "month",
+            "labelKind": "period",
+            "distinct": 4,
+            "valueColumns": [
+              {
+                "name": "rev",
+                "unit": "$"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "line",
+              "why": "기간 4개의 변화를 선으로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "line",
+                "source": {
+                  "path": "trend-combo.csv",
+                  "labels": "month"
+                },
+                "series": [
+                  {
+                    "column": "rev"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "기간별 값을 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "trend-combo.csv",
+                  "labels": "month"
+                },
+                "series": [
+                  {
+                    "column": "rev"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "trend-combo.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "wide13.csv",
+        "goal": "compare",
+        "values": [
+          "v1",
+          "v2",
+          "v3",
+          "v4"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare의 values는 최대 3개입니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "compare-units.csv",
+        "goal": "compare",
+        "values": [
+          "value",
+          "reference"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare의 값 열들은 같은 단위여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "compare",
+        "values": [
+          "a",
+          "b"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              },
+              {
+                "name": "b"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "중복 범주는 단일 값 열만 자동 집계할 수 있습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "compare",
+        "values": [
+          "a"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: bar, barh\nbar: 범주 2개를 집계(mean)해 세로 막대로 비교합니다.\nbarh: 값 내림차순 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "범주 2개를 집계(mean)해 세로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "a"
+                    ],
+                    "function": "mean",
+                    "sort": "original"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "값 내림차순 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "a"
+                    ],
+                    "function": "mean",
+                    "sort": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat101-dup.csv",
+        "goal": "compare"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 102,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 101,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "고유 범주가 101개라 analysis.limit 한도(100)를 넘습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat101-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup-long.csv",
+        "goal": "compare"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: barh, bar\nbarh: 범주 2개(최대 16자)를 값 내림차순 가로 막대로 비교합니다.\nbar: 세로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "범주 2개(최대 16자)를 값 내림차순 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "cat-dup-long.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "세로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "cat-dup-long.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup-long.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "leading-zero.csv",
+        "goal": "compare"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: bar, barh\nbar: 범주 2개, 이름 길이가 짧아 세로 막대가 읽기 쉽습니다.\nbarh: 값 순으로 정렬한 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "code",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "범주 2개, 이름 길이가 짧아 세로 막대가 읽기 쉽습니다.",
+              "cautions": [
+                "열 code에 앞자리 0이 있어 범주로 분류했습니다."
+              ],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "leading-zero.csv",
+                  "labels": "code"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "값 순으로 정렬한 가로 막대로 비교합니다.",
+              "cautions": [
+                "열 code에 앞자리 0이 있어 범주로 분류했습니다."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "leading-zero.csv",
+                  "labels": "code",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "leading-zero.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "large.csv",
+        "goal": "compare"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: barh, bar\nbarh: 범주 수(100개)나 이름 길이(27자)가 커 가로 막대가 읽기 쉽습니다.\nbar: 세로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 100,
+            "labelColumn": "name",
+            "labelKind": "category",
+            "distinct": 100,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "범주 수(100개)나 이름 길이(27자)가 커 가로 막대가 읽기 쉽습니다.",
+              "cautions": [
+                "고유 범주가 100개입니다."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "large.csv",
+                  "labels": "name",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "세로 막대로 비교합니다.",
+              "cautions": [
+                "고유 범주가 100개입니다."
+              ],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "large.csv",
+                  "labels": "name"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "large.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "rank"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 rank · 후보: barh\nbarh: 상위 10개 순위를 집계(mean)해 가로 막대로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "rank",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "상위 10개 순위를 집계(mean)해 가로 막대로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "a"
+                    ],
+                    "function": "mean",
+                    "sort": "desc",
+                    "limit": 10
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "large.csv",
+        "goal": "rank"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 rank · 후보: barh\nbarh: 상위 10개 순위를 가로 막대로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "rank",
+          "dataShape": {
+            "rows": 100,
+            "labelColumn": "name",
+            "labelKind": "category",
+            "distinct": 100,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "상위 10개 순위를 가로 막대로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "large.csv",
+                  "labels": "name",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  },
+                  "limit": 10
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "large.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "zero.csv",
+        "goal": "share"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 share · 후보: 없음"
+          }
+        ],
+        "structuredContent": {
+          "goal": "share",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "cautions": [
+            "모든 값이 0이라 구성비를 그릴 수 없습니다."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "zero.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "neg.csv",
+        "goal": "share"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 share · 후보: barh\nbarh: 음수가 포함된 구성은 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "share",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "음수가 포함된 구성은 가로 막대로 비교합니다.",
+              "cautions": [
+                "음수가 있어 원형·도넛 차트를 제외하고 가로 막대만 추천합니다."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "neg.csv",
+                  "labels": "cat",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "neg.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "leading-zero.csv",
+        "goal": "share"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 share · 후보: donut, barh\ndonut: 범주가 2개로 적어 도넛 차트로 비중을 한눈에 봅니다.\nbarh: 정확한 크기 비교는 가로 막대가 유리합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "share",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "code",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "donut",
+              "why": "범주가 2개로 적어 도넛 차트로 비중을 한눈에 봅니다.",
+              "cautions": [
+                "열 code에 앞자리 0이 있어 범주로 분류했습니다."
+              ],
+              "build": {
+                "type": "donut",
+                "source": {
+                  "path": "leading-zero.csv",
+                  "labels": "code"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "정확한 크기 비교는 가로 막대가 유리합니다.",
+              "cautions": [
+                "열 code에 앞자리 0이 있어 범주로 분류했습니다."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "leading-zero.csv",
+                  "labels": "code",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "leading-zero.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "large.csv",
+        "goal": "share"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 share · 후보: barh\nbarh: 범주가 100개로 많아 정렬된 가로 막대로 비중을 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "share",
+          "dataShape": {
+            "rows": 100,
+            "labelColumn": "name",
+            "labelKind": "category",
+            "distinct": 100,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "범주가 100개로 많아 정렬된 가로 막대로 비중을 비교합니다.",
+              "cautions": [
+                "고유 범주가 100개라 원형 대신 가로 막대만 추천합니다."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "large.csv",
+                  "labels": "name",
+                  "sort": {
+                    "column": "value",
+                    "order": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "large.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "large.csv",
+        "goal": "distribution"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 distribution · 후보: histogram, box\nhistogram: 유효 관측치가 100개라 히스토그램으로 분포 모양을 봅니다.\nbox: 중앙값·사분위·이상치를 상자 그림으로 요약합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "distribution",
+          "dataShape": {
+            "rows": 100,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "histogram",
+              "why": "유효 관측치가 100개라 히스토그램으로 분포 모양을 봅니다.",
+              "cautions": [],
+              "build": {
+                "type": "histogram",
+                "source": {
+                  "path": "large.csv"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "box",
+              "why": "중앙값·사분위·이상치를 상자 그림으로 요약합니다.",
+              "cautions": [],
+              "build": {
+                "type": "box",
+                "source": {
+                  "path": "large.csv"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "large.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "data.csv",
+        "goal": "distribution"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 distribution · 후보: box\nbox: 유효 관측치가 2개로 적어 상자 그림을 추천합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "distribution",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "box",
+              "why": "유효 관측치가 2개로 적어 상자 그림을 추천합니다.",
+              "cautions": [],
+              "build": {
+                "type": "box",
+                "source": {
+                  "path": "data.csv"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "wide13.csv",
+        "goal": "relationship",
+        "values": [
+          "v1",
+          "v2",
+          "v3",
+          "v4"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "relationship의 values는 2~3개여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "bubble-neg.csv",
+        "goal": "relationship",
+        "values": [
+          "x",
+          "y",
+          "size"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 relationship · 후보: scatter\nscatter: x과 y의 관계를 산점도로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "relationship",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "x"
+              },
+              {
+                "name": "y"
+              },
+              {
+                "name": "size"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "scatter",
+              "why": "x과 y의 관계를 산점도로 보여줍니다.",
+              "cautions": [
+                "크기 열 size에 음수가 있어 bubble을 제외하고 scatter만 추천합니다."
+              ],
+              "build": {
+                "type": "scatter",
+                "source": {
+                  "path": "bubble-neg.csv",
+                  "x": "x"
+                },
+                "series": [
+                  {
+                    "column": "y"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "bubble-neg.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "bubble-pos.csv",
+        "goal": "relationship",
+        "values": [
+          "x",
+          "y",
+          "size"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 relationship · 후보: bubble\nbubble: x·y 관계와 size 크기를 버블 차트로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "relationship",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": null,
+            "labelKind": null,
+            "distinct": 0,
+            "valueColumns": [
+              {
+                "name": "x"
+              },
+              {
+                "name": "y"
+              },
+              {
+                "name": "size"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bubble",
+              "why": "x·y 관계와 size 크기를 버블 차트로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "bubble",
+                "source": {
+                  "path": "bubble-pos.csv",
+                  "x": "x"
+                },
+                "series": [
+                  {
+                    "column": "y",
+                    "sizeColumn": "size"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "bubble-pos.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "target",
+        "values": [
+          "a"
+        ],
+        "reference": "b"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 target · 후보: combo, bar\ncombo: 집계된 실적(막대)과 기준(선)을 같은 축에 비교합니다.\nbar: 기준 대비 달성률(%)을 목표선 100%와 함께 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "target",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "combo",
+              "why": "집계된 실적(막대)과 기준(선)을 같은 축에 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "combo",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "cat",
+                      "a",
+                      "b"
+                    ]
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value",
+                    "kind": "bar"
+                  },
+                  {
+                    "column": "reference",
+                    "kind": "line"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "기준 대비 달성률(%)을 목표선 100%와 함께 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "cat",
+                      "a",
+                      "b"
+                    ]
+                  }
+                },
+                "series": [
+                  {
+                    "column": "ratio"
+                  }
+                ],
+                "target": {
+                  "value": 100
+                },
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "target",
+        "values": [
+          "a"
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 target · 후보: bar · needs: target.value\nbar: 목표값과 비교할 막대 차트입니다(target.value 필요)."
+          }
+        ],
+        "structuredContent": {
+          "goal": "target",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "목표값과 비교할 막대 차트입니다(target.value 필요).",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "a"
+                    ],
+                    "function": "mean"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              },
+              "needs": [
+                "target.value"
+              ]
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "cat-dup.csv",
+        "goal": "target",
+        "values": [
+          "a"
+        ],
+        "target_value": 25
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 target · 후보: bar\nbar: 목표선 25 대비 값을 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "target",
+          "dataShape": {
+            "rows": 3,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "a"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "목표선 25 대비 값을 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "cat-dup.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "cat",
+                      "a"
+                    ],
+                    "function": "mean"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report",
+                "target": {
+                  "value": 25
+                }
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "cat-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "leading-zero.csv",
+        "goal": "target"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 target · 후보: bar · needs: target.value\nbar: 목표선과 비교할 막대 차트입니다(target.value 필요)."
+          }
+        ],
+        "structuredContent": {
+          "goal": "target",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "code",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "목표선과 비교할 막대 차트입니다(target.value 필요).",
+              "cautions": [
+                "열 code에 앞자리 0이 있어 범주로 분류했습니다."
+              ],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "leading-zero.csv",
+                  "labels": "code"
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              },
+              "needs": [
+                "target.value"
+              ]
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "leading-zero.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "two-periods.csv",
+        "goal": "change"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: 없음 · needs: period.column"
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "val"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "period.column"
+          ],
+          "cautions": [
+            "기간 열이 여러 개입니다(year, month). period.column을 지정하세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "two-periods.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "goal": "change"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: waterfall · needs: period.base, period.target\nwaterfall: 두 기간(year)의 증감을 waterfall로 비교합니다(base·target 필요)."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "waterfall",
+              "why": "두 기간(year)의 증감을 waterfall로 비교합니다(base·target 필요).",
+              "cautions": [],
+              "needs": [
+                "period.base",
+                "period.target"
+              ]
+            }
+          ],
+          "readFromRequest": [],
+          "notes": [
+            "비교할 두 기간을 지정하세요. 열 year 고유값: 2025, 2026"
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "request": "2025년과 2026년 증감에서 감소 폭이 가장 큰 1곳을 강조해 줘"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: waterfall, barh\nwaterfall: 2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.\nbarh: 항목별 증감 크기를 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "waterfall",
+              "why": "2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "waterfall",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "항목별 증감 크기를 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": [
+            {
+              "field": "goal",
+              "status": "applied",
+              "matched": [
+                "증감",
+                "감소"
+              ],
+              "value": "change"
+            },
+            {
+              "field": "period",
+              "status": "applied",
+              "matched": [
+                "2025년",
+                "2026년"
+              ],
+              "value": {
+                "column": "year",
+                "base": "2025",
+                "target": "2026"
+              }
+            },
+            {
+              "field": "target.value",
+              "status": "unmatched",
+              "matched": []
+            },
+            {
+              "field": "highlight",
+              "status": "applied",
+              "matched": [
+                "감소 폭이 가장 큰 1"
+              ],
+              "value": {
+                "labels": []
+              },
+              "selected": 0
+            }
+          ],
+          "notes": [
+            "감소한 항목이 없어 강조를 넣지 않았습니다(selected: 0)."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period-dec.csv",
+        "request": "2025년과 2026년 증감에서 증가 폭이 가장 큰 1곳을 강조해 줘"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: waterfall, barh\nwaterfall: 2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.\nbarh: 항목별 증감 크기를 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "waterfall",
+              "why": "2025→2026 가산 증감(sum)을 폭포 차트로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "waterfall",
+                "source": {
+                  "path": "period-dec.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "항목별 증감 크기를 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period-dec.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": [
+            {
+              "field": "goal",
+              "status": "applied",
+              "matched": [
+                "증감",
+                "증가"
+              ],
+              "value": "change"
+            },
+            {
+              "field": "period",
+              "status": "applied",
+              "matched": [
+                "2025년",
+                "2026년"
+              ],
+              "value": {
+                "column": "year",
+                "base": "2025",
+                "target": "2026"
+              }
+            },
+            {
+              "field": "target.value",
+              "status": "unmatched",
+              "matched": []
+            },
+            {
+              "field": "highlight",
+              "status": "applied",
+              "matched": [
+                "증가 폭이 가장 큰 1"
+              ],
+              "value": {
+                "labels": []
+              },
+              "selected": 0
+            }
+          ],
+          "notes": [
+            "증가한 항목이 없어 강조를 넣지 않았습니다(selected: 0)."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period-dec.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "goal": "change",
+        "period": {
+          "column": "year",
+          "base": "2025",
+          "target": "2026"
+        },
+        "highlight": {
+          "top": 1
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: barh, waterfall\nbarh: 2025→2026 증감을 가로 막대로 보여주고 요청한 항목을 강조합니다.\nwaterfall: 강조 없이 전체 증감 합계를 폭포 차트로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "2025→2026 증감을 가로 막대로 보여주고 요청한 항목을 강조합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report",
+                "highlight": {
+                  "top": 1
+                }
+              }
+            },
+            {
+              "type": "waterfall",
+              "why": "강조 없이 전체 증감 합계를 폭포 차트로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "waterfall",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "sum"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period-pct.csv",
+        "goal": "change",
+        "period": {
+          "column": "year",
+          "base": "2025",
+          "target": "2026"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 change · 후보: barh\nbarh: 2025→2026 증감을 가로 막대로 보여줍니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "change",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "rate",
+                "unit": "%"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "barh",
+              "why": "2025→2026 증감을 가로 막대로 보여줍니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period-pct.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "rate"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "mean"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "difference"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period-pct.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "matrix-units.csv",
+        "goal": "matrix",
+        "values": [
+          "a",
+          "b",
+          "c"
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "matrix의 값 열들은 같은 단위여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "matrix-dup.csv",
+        "goal": "matrix"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 matrix · 후보: 없음 · needs: filter"
+          }
+        ],
+        "structuredContent": {
+          "goal": "matrix",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "a"
+              },
+              {
+                "name": "b"
+              },
+              {
+                "name": "c"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [],
+          "readFromRequest": [],
+          "needs": [
+            "filter"
+          ],
+          "cautions": [
+            "범주 이름이 겹쳐 heatmap을 원자료로 그릴 수 없습니다. filter로 줄이거나 집계하세요."
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "matrix-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "wide13.csv",
+        "goal": "matrix"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 matrix · 후보: heatmap\nheatmap: cat과 12개 지표를 히트맵으로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "matrix",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "cat",
+            "labelKind": "category",
+            "distinct": 2,
+            "valueColumns": [
+              {
+                "name": "v1"
+              },
+              {
+                "name": "v2"
+              },
+              {
+                "name": "v3"
+              },
+              {
+                "name": "v4"
+              },
+              {
+                "name": "v5"
+              },
+              {
+                "name": "v6"
+              },
+              {
+                "name": "v7"
+              },
+              {
+                "name": "v8"
+              },
+              {
+                "name": "v9"
+              },
+              {
+                "name": "v10"
+              },
+              {
+                "name": "v11"
+              },
+              {
+                "name": "v12"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "heatmap",
+              "why": "cat과 12개 지표를 히트맵으로 비교합니다.",
+              "cautions": [
+                "수치 열이 13개라 앞 12개만 사용했습니다."
+              ],
+              "build": {
+                "type": "heatmap",
+                "source": {
+                  "path": "wide13.csv",
+                  "labels": "cat"
+                },
+                "series": [
+                  {
+                    "column": "v1",
+                    "name": "v1"
+                  },
+                  {
+                    "column": "v2",
+                    "name": "v2"
+                  },
+                  {
+                    "column": "v3",
+                    "name": "v3"
+                  },
+                  {
+                    "column": "v4",
+                    "name": "v4"
+                  },
+                  {
+                    "column": "v5",
+                    "name": "v5"
+                  },
+                  {
+                    "column": "v6",
+                    "name": "v6"
+                  },
+                  {
+                    "column": "v7",
+                    "name": "v7"
+                  },
+                  {
+                    "column": "v8",
+                    "name": "v8"
+                  },
+                  {
+                    "column": "v9",
+                    "name": "v9"
+                  },
+                  {
+                    "column": "v10",
+                    "name": "v10"
+                  },
+                  {
+                    "column": "v11",
+                    "name": "v11"
+                  },
+                  {
+                    "column": "v12",
+                    "name": "v12"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "wide13.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "wide99-too-large.csv",
+        "goal": "matrix"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "추천 결과가 15,000자를 넘습니다. filter로 행 수를 줄이거나 열을 지정하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "RESULT_TOO_LARGE",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "RESULT_TOO_LARGE",
+            "retryable": true
           }
         }
       }

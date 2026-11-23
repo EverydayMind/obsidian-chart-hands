@@ -5,6 +5,7 @@ import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
 import { analysisPresentation, chartFacts, factLines, titleDraft } from './chart-facts.js';
 import { adviseChart } from './chart-advice.js';
+import { SUGGEST_GOALS, suggestChart } from './suggest.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 import { getLocale, initLocale } from './locale.js';
 
@@ -594,6 +595,32 @@ const tools = [
         },
         annotations: { readOnlyHint: true },
         _meta: { ...agentMeta('read', DATA_MAX_RESULT_CHARS), 'dev.agentinterop/resourceTypes': ['.csv'] }
+    },
+    {
+        name: 'suggest_chart',
+        title: 'Suggest chart types for a dataset',
+        description: 'Suggest chart types for a goal from the data\'s shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or a Markdown table, classifies columns (period, category, numeric with unit) and returns up to three candidates with the reason, cautions found in the data, and build arguments that build_chart accepts as they are; needs lists what the data cannot tell (a target value, the periods to compare). Deterministic rules; does not draw or change files.',
+        inputSchema: {
+            type: 'object',
+            additionalProperties: false,
+            required: ['path'],
+            properties: {
+                path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
+                table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
+                goal: { type: 'string', enum: SUGGEST_GOALS, description: 'Charting goal. Optional when request states one.' },
+                request: { type: 'string', minLength: 1, maxLength: 500, description: 'User request text to parse goal, periods, target value and highlight.' },
+                label: { type: 'string', description: 'Override category or period column.' },
+                values: { type: 'array', minItems: 1, maxItems: 12, items: { type: 'string' }, description: 'Override numeric value columns (1–12).' },
+                reference: { type: 'string', description: 'target goal: reference numeric column.' },
+                top: { type: 'integer', minimum: 1, maximum: 50, description: 'rank goal: number of items (default 10).' },
+                filter: { type: 'array', maxItems: 4, description: 'Up to four AND conditions applied before classification and charting.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' } } } },
+                period: { type: 'object', additionalProperties: false, required: ['base', 'target'], description: 'change goal: explicit period column and base/target values.', properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } },
+                target_value: { type: 'number', description: 'Explicit numeric target line value.' },
+                highlight: { type: 'object', additionalProperties: false, description: 'Explicit bar highlight selector.', properties: { labels: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string' } }, top: { type: 'integer', minimum: 1, maximum: 50 }, bottom: { type: 'integer', minimum: 1, maximum: 50 }, below_target: { type: 'boolean' }, above_target: { type: 'boolean' } } }
+            }
+        },
+        annotations: { readOnlyHint: true },
+        _meta: edaMeta()
     }
 ];
 if (locale === 'en') {
@@ -1151,7 +1178,61 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 ),
                 _meta: { 'dev.agentinterop/resource': { path } }
             };
-        })
+        }),
+        suggest_chart: async (args) => {
+            const { path, dataset } = await readDataset(args.path, args.table);
+            let result;
+            try { result = suggestChart(dataset, { ...args, path }, locale); }
+            catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+            if (dataset.table) result.table = dataset.table;
+            for (const candidate of result.candidates) {
+                if (!candidate.build) continue;
+                try {
+                    const built = await handlers.build_chart(candidate.build);
+                    const validCount = built.structuredContent?.facts?.scope?.valid ?? 0;
+                    if (!built.structuredContent?.valid || validCount < 1) {
+                        delete candidate.build;
+                        candidate.failure = {
+                            code: built.structuredContent?.valid ? 'NO_VALID_DATA' : 'INVALID_CHART',
+                            message: built.structuredContent?.valid
+                                ? (locale === 'ko' ? '유효한 관측값이 없습니다.' : 'No valid observations to plot.')
+                                : `${built.structuredContent?.problems ?? 0} problem(s) found in the built chart.`
+                        };
+                    }
+                }
+                catch (error) {
+                    delete candidate.build;
+                    candidate.failure = {
+                        code: error instanceof AgentToolError ? error.code : 'INTERNAL',
+                        message: error?.message || String(error)
+                    };
+                }
+            }
+            const types = result.candidates.map(c => c.type).join(', ') || (locale === 'ko' ? '없음' : 'none');
+            const extra = [];
+            if (result.confirm?.length) extra.push(`confirm: ${result.confirm.map(c => c.field).join(', ')}`);
+            const needsFields = [...new Set([...(result.needs ?? []), ...result.candidates.flatMap(c => c.needs ?? [])])];
+            if (needsFields.length) extra.push(`needs: ${needsFields.join(', ')}`);
+            const summaryLine = locale === 'ko'
+                ? `목적 ${result.goal ?? '미정'} · 후보: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`
+                : `Goal ${result.goal ?? 'unset'} · candidates: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`;
+            const text = [summaryLine, ...result.candidates.map(c => `${c.type}: ${c.why}`)].join('\n');
+            const content = [{ type: 'text', text }];
+            while (resultLength(content, result) > DATA_RESULT_CHARS) {
+                let index = -1;
+                for (let i = result.candidates.length - 1; i >= 0; i--) {
+                    if (result.candidates[i].build) { index = i; break; }
+                }
+                if (index < 0) {
+                    throw new AgentToolError('RESULT_TOO_LARGE', locale === 'ko'
+                        ? '추천 결과가 15,000자를 넘습니다. filter로 행 수를 줄이거나 열을 지정하세요.'
+                        : 'Suggestion result exceeds 15,000 characters. Use filter or specify columns.', true);
+                }
+                delete result.candidates[index].build;
+                result.candidates[index].buildOmitted = 'too_long';
+            }
+            return { content, structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+        }
     };
     return {
         protocol: 'agentinterop',

@@ -1,4 +1,5 @@
 import { periodKey } from './period.js';
+import { periodHeader, isIdentifierHeader } from './column-roles.js';
 
 // Numeric display shared by chart facts and visible value labels.
 const CURRENCY = new Set(['₩', '$', '€', '£', '¥']);
@@ -49,13 +50,11 @@ const ADDITIVE_TYPES = ['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 
 const valid = Number.isFinite;
 const countText = value => formatNumber(value, 0);
 
-export function isPeriodHeader(name = '') {
-    return /(?:연도|년도|연월|년월|월|분기|반기|기간|일자|날짜|year|month|quarter|period|date)$/.test(name.toLowerCase().replace(/\s/g, ''));
-}
+export { periodHeader as isPeriodHeader } from './column-roles.js';
 
 export function periodColumnKeys(labels, header = '') {
-    const compact = isPeriodHeader(header);
-    if (/(?:회차|차수|기수|순번|번호|no|id|코드|code)$/.test(header.toLowerCase().replace(/\s/g, ''))) return null;
+    const compact = periodHeader(header);
+    if (isIdentifierHeader(header)) return null;
     const keys = labels.map(label => {
         const value = String(label).trim();
         if (!compact && /^\d+$/.test(value)) return '';
