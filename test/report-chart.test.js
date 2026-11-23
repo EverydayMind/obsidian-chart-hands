@@ -141,7 +141,7 @@ test('handler reports omitted static blocks and ignored arguments', async () => 
         const handler = locale === 'en' ? p : provider(`name,value\n${Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n')}`, locale);
         const source = await handler.callTool('build_chart', { type: 'bar', source: { path: 'data.csv', labels: 'name' }, series: [{ column: 'value' }] });
         assert.equal(source.structuredContent.staticBlockMissing, 'too_long'); assert.match(resultText(source), /source\.limit/);
-        const direct = await handler.callTool('build_chart', { type: 'bar', labels: Array(100).fill('a'.repeat(25)), series: [{ values: Array(100).fill(1) }] });
+        const direct = await handler.callTool('build_chart', { type: 'bar', labels: Array.from({ length: 100 }, (_, i) => `${'a'.repeat(23)}${String(i).padStart(2, '0')}`), series: [{ values: Array(100).fill(1) }] });
         assert.equal(direct.structuredContent.staticBlockMissing, 'too_long'); assert.match(resultText(direct), locale === 'ko' ? /labels·series 값 개수/ : /number of labels and series values/);
         const unsupported = await handler.callTool('build_chart', { ...base, title: 'x'.repeat(201) });
         assert.equal(unsupported.structuredContent.staticBlockMissing, 'unsupported');

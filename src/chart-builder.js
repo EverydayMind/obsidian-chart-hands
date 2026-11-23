@@ -31,6 +31,7 @@ export function validateBuildArgs(args, locale = 'ko') {
     const { type, series = [] } = args;
     const error = (ko, en) => fail(locale === 'ko' ? ko : en);
     const reject = (key, allowed) => error(`${key}은 ${allowed}에만 쓸 수 있습니다. 해당 유형으로 바꾸거나 인자를 빼세요.`, `${key} is only supported for ${allowed}; change the type or omit it.`);
+    if (PER_LABEL.includes(type) && Array.isArray(args.labels)) checkDuplicateLabels(args.labels, locale);
     if (args.style !== undefined && !['clean', 'plain', 'report', 'print', 'slides'].includes(args.style)) reject('style', 'clean, plain, report, print, slides');
     for (const [key, types] of [['parents', ['treemap', 'sunburst']], ['measure', ['waterfall']], ['bins', ['histogram']]]) if (args[key] !== undefined && !types.includes(type)) reject(key, types.join(', '));
     if (args.range_slider && !RANGE_SLIDER.includes(type)) reject('range_slider', RANGE_SLIDER.join(', '));
@@ -69,6 +70,14 @@ export function validateBuildArgs(args, locale = 'ko') {
         if (['below_target', 'above_target'].includes(k) && (args.target.series ?? 0) !== bar) error('목표를 단 계열과 강조할 막대 계열이 다릅니다.', 'The target series differs from the highlighted bar series.');
     }
     return ignored;
+}
+export function checkDuplicateLabels(labels, locale = 'ko') {
+    const seen = new Set();
+    for (const value of labels) {
+        const name = String(value).slice(0, 100);
+        if (seen.has(name)) fail(locale === 'ko' ? `범주 이름이 겹칩니다: ${name}. 같은 이름의 행을 합치려면 source.analysis로 aggregate하세요.` : `Duplicate category name: ${name}. To combine rows with the same name, aggregate with source.analysis.`);
+        seen.add(name);
+    }
 }
 // CSV blanks are gaps, never zeroes.
 const isNumberList = (value) => Array.isArray(value) && value.every(item => item === null || typeof item === 'number' && Number.isFinite(item));

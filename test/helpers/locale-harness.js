@@ -93,6 +93,7 @@ const fixtureFiles = {
     'unit-mismatch.csv': 'label,value\na,1\nb,$2',
     'compare-units.csv': 'label,value,reference\na,$1,2kg',
     'compare.md': '| label | value | reference |\n|---|---|---|\n| total | 1 | 2 |',
+    'period.csv': 'group,value,year\nA,1,2025\nA,2,2026',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
     'empty.md': '', 'file.pdf': 'synthetic',
     'large.csv': 'name,value\n' + Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n'),
@@ -205,7 +206,7 @@ async function captureExtended(code, locale) {
             { ...bar, bins: 2 }, { ...bar, target: {} }, { ...bar, highlight: {} }, { ...bar, highlight: { labels: ['missing'] } },
             { type: 'combo', labels: ['A'], series: [{ values: [1] }, { values: [2], secondary: true }], target: { value: 1, series: 1 }, highlight: { below_target: true } },
             { ...bar, y2_title: 'unused' }, { ...bar, style: 'report', target: { value: 1 } },
-            { ...bar, caption: 'a'.repeat(199), labels: Array(200).fill('long category name'), series: [{ values: Array(200).fill(1) }] },
+            { ...bar, caption: 'a'.repeat(199), labels: Array.from({ length: 200 }, (_, i) => `long category name ${i}`), series: [{ values: Array(200).fill(1) }] },
             { type: 'bar', source: { path: 'large.csv', labels: 'name' }, series: [{ column: 'value' }] },
             { ...bar, title: 'a'.repeat(201) },
             { type: 'bar', source: { path: 'data.csv', labels: 'month', x: 'value' }, series: [{ column: 'value' }] },
@@ -213,6 +214,24 @@ async function captureExtended(code, locale) {
             { type: 'bar', source: { path: 'compare-units.csv', labels: 'label' }, series: [{ column: 'value' }, { column: 'reference' }] },
             { type: 'bar', unit: 'wrong', source: { path: 'compare-units.csv', labels: 'label' }, series: [{ column: 'value' }] },
             { type: 'bar', style: 'report', source: { path: 'data.csv', labels: 'month', filter: [{ column: 'value', op: 'gt', value: '0' }] }, series: [{ column: 'value' }] }
+        ]) await call('build_chart', args);
+    }
+    {
+        const source = { path: 'data.csv', analysis: { type: 'aggregate', columns: ['month', 'value'] } };
+        const series = [{ column: 'value' }];
+        for (const args of [
+            { type: 'bar', source, series },
+            { type: 'bar', source: { ...source, labels: 'month' }, series },
+            { type: 'bar', source: { ...source, analysis: { type: 'summary', columns: ['value'] } }, series },
+            { type: 'scatter', source, series },
+            { type: 'bar', source: { ...source, analysis: { ...source.analysis, filter: [{ column: 'month', op: 'eq', value: 'missing' }] } }, series },
+            { type: 'bar', source, series: [{ column: 'bad' }] },
+            { type: 'waterfall', source, series },
+            { type: 'bar', source: { path: 'compare.md', analysis: { type: 'compare', columns: ['label', 'value', 'reference'] } }, series: [{ column: 'value' }, { column: 'ratio' }] },
+            { type: 'bar', unit: 'bad', source, series: [{ column: 'share' }] },
+            { type: 'bar', labels: ['A', 'A'], series: [{ values: [1, 2] }] },
+            ...['share', 'difference', 'ratio'].map(column => ({ type: 'bar', source: { path: 'compare.md', analysis: column === 'share' ? { type: 'aggregate', columns: ['label', 'value'] } : { type: 'compare', columns: ['label', 'value', 'reference'] } }, series: [{ column }] })),
+            { type: 'bar', source: { path: 'period.csv', analysis: { type: 'compare', columns: ['group', 'value'], period: { column: 'year', base: '2025', target: '2026' } } }, series: [{ column: 'rate' }] }
         ]) await call('build_chart', args);
     }
     {

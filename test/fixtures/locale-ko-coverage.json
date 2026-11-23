@@ -540,6 +540,119 @@
                   "maximum": 1000,
                   "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
                 },
+                "analysis": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": [
+                    "type",
+                    "columns"
+                  ],
+                  "description": "Chart the result of eda_analyze aggregate or compare instead of raw rows; series[].column then names a result field (value, share, base, target, difference, rate, reference, ratio).",
+                  "properties": {
+                    "type": {
+                      "type": "string",
+                      "enum": [
+                        "aggregate",
+                        "compare"
+                      ]
+                    },
+                    "columns": {
+                      "type": "array",
+                      "minItems": 1,
+                      "maxItems": 3,
+                      "items": {
+                        "type": "string"
+                      }
+                    },
+                    "filter": {
+                      "type": "array",
+                      "maxItems": 4,
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": false,
+                        "required": [
+                          "column",
+                          "op",
+                          "value"
+                        ],
+                        "properties": {
+                          "column": {
+                            "type": "string"
+                          },
+                          "op": {
+                            "type": "string",
+                            "enum": [
+                              "eq",
+                              "ne",
+                              "gt",
+                              "gte",
+                              "lt",
+                              "lte",
+                              "prefix",
+                              "contains"
+                            ]
+                          },
+                          "value": {
+                            "type": "string"
+                          }
+                        }
+                      }
+                    },
+                    "function": {
+                      "type": "string",
+                      "enum": [
+                        "sum",
+                        "mean",
+                        "count",
+                        "min",
+                        "max",
+                        "median"
+                      ]
+                    },
+                    "sort": {
+                      "type": "string",
+                      "enum": [
+                        "desc",
+                        "asc",
+                        "label",
+                        "original"
+                      ]
+                    },
+                    "limit": {
+                      "type": "integer",
+                      "minimum": 1,
+                      "maximum": 100
+                    },
+                    "period": {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": [
+                        "column",
+                        "base",
+                        "target"
+                      ],
+                      "properties": {
+                        "column": {
+                          "type": "string"
+                        },
+                        "base": {
+                          "type": "string"
+                        },
+                        "target": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "rank_by": {
+                      "type": "string",
+                      "enum": [
+                        "difference",
+                        "rate",
+                        "ratio"
+                      ]
+                    }
+                  }
+                },
                 "labels": {
                   "type": "string",
                   "description": "CSV category column; required for per-label chart types."
@@ -5013,206 +5126,206 @@
       "args": {
         "type": "bar",
         "labels": [
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name",
-          "long category name"
+          "long category name 0",
+          "long category name 1",
+          "long category name 2",
+          "long category name 3",
+          "long category name 4",
+          "long category name 5",
+          "long category name 6",
+          "long category name 7",
+          "long category name 8",
+          "long category name 9",
+          "long category name 10",
+          "long category name 11",
+          "long category name 12",
+          "long category name 13",
+          "long category name 14",
+          "long category name 15",
+          "long category name 16",
+          "long category name 17",
+          "long category name 18",
+          "long category name 19",
+          "long category name 20",
+          "long category name 21",
+          "long category name 22",
+          "long category name 23",
+          "long category name 24",
+          "long category name 25",
+          "long category name 26",
+          "long category name 27",
+          "long category name 28",
+          "long category name 29",
+          "long category name 30",
+          "long category name 31",
+          "long category name 32",
+          "long category name 33",
+          "long category name 34",
+          "long category name 35",
+          "long category name 36",
+          "long category name 37",
+          "long category name 38",
+          "long category name 39",
+          "long category name 40",
+          "long category name 41",
+          "long category name 42",
+          "long category name 43",
+          "long category name 44",
+          "long category name 45",
+          "long category name 46",
+          "long category name 47",
+          "long category name 48",
+          "long category name 49",
+          "long category name 50",
+          "long category name 51",
+          "long category name 52",
+          "long category name 53",
+          "long category name 54",
+          "long category name 55",
+          "long category name 56",
+          "long category name 57",
+          "long category name 58",
+          "long category name 59",
+          "long category name 60",
+          "long category name 61",
+          "long category name 62",
+          "long category name 63",
+          "long category name 64",
+          "long category name 65",
+          "long category name 66",
+          "long category name 67",
+          "long category name 68",
+          "long category name 69",
+          "long category name 70",
+          "long category name 71",
+          "long category name 72",
+          "long category name 73",
+          "long category name 74",
+          "long category name 75",
+          "long category name 76",
+          "long category name 77",
+          "long category name 78",
+          "long category name 79",
+          "long category name 80",
+          "long category name 81",
+          "long category name 82",
+          "long category name 83",
+          "long category name 84",
+          "long category name 85",
+          "long category name 86",
+          "long category name 87",
+          "long category name 88",
+          "long category name 89",
+          "long category name 90",
+          "long category name 91",
+          "long category name 92",
+          "long category name 93",
+          "long category name 94",
+          "long category name 95",
+          "long category name 96",
+          "long category name 97",
+          "long category name 98",
+          "long category name 99",
+          "long category name 100",
+          "long category name 101",
+          "long category name 102",
+          "long category name 103",
+          "long category name 104",
+          "long category name 105",
+          "long category name 106",
+          "long category name 107",
+          "long category name 108",
+          "long category name 109",
+          "long category name 110",
+          "long category name 111",
+          "long category name 112",
+          "long category name 113",
+          "long category name 114",
+          "long category name 115",
+          "long category name 116",
+          "long category name 117",
+          "long category name 118",
+          "long category name 119",
+          "long category name 120",
+          "long category name 121",
+          "long category name 122",
+          "long category name 123",
+          "long category name 124",
+          "long category name 125",
+          "long category name 126",
+          "long category name 127",
+          "long category name 128",
+          "long category name 129",
+          "long category name 130",
+          "long category name 131",
+          "long category name 132",
+          "long category name 133",
+          "long category name 134",
+          "long category name 135",
+          "long category name 136",
+          "long category name 137",
+          "long category name 138",
+          "long category name 139",
+          "long category name 140",
+          "long category name 141",
+          "long category name 142",
+          "long category name 143",
+          "long category name 144",
+          "long category name 145",
+          "long category name 146",
+          "long category name 147",
+          "long category name 148",
+          "long category name 149",
+          "long category name 150",
+          "long category name 151",
+          "long category name 152",
+          "long category name 153",
+          "long category name 154",
+          "long category name 155",
+          "long category name 156",
+          "long category name 157",
+          "long category name 158",
+          "long category name 159",
+          "long category name 160",
+          "long category name 161",
+          "long category name 162",
+          "long category name 163",
+          "long category name 164",
+          "long category name 165",
+          "long category name 166",
+          "long category name 167",
+          "long category name 168",
+          "long category name 169",
+          "long category name 170",
+          "long category name 171",
+          "long category name 172",
+          "long category name 173",
+          "long category name 174",
+          "long category name 175",
+          "long category name 176",
+          "long category name 177",
+          "long category name 178",
+          "long category name 179",
+          "long category name 180",
+          "long category name 181",
+          "long category name 182",
+          "long category name 183",
+          "long category name 184",
+          "long category name 185",
+          "long category name 186",
+          "long category name 187",
+          "long category name 188",
+          "long category name 189",
+          "long category name 190",
+          "long category name 191",
+          "long category name 192",
+          "long category name 193",
+          "long category name 194",
+          "long category name 195",
+          "long category name 196",
+          "long category name 197",
+          "long category name 198",
+          "long category name 199"
         ],
         "series": [
           {
@@ -5426,13 +5539,13 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name 0\",\n        \"long category name 1\",\n        \"long category name 2\",\n        \"long category name 3\",\n        \"long category name 4\",\n        \"long category name 5\",\n        \"long category name 6\",\n        \"long category name 7\",\n        \"long category name 8\",\n        \"long category name 9\",\n        \"long category name 10\",\n        \"long category name 11\",\n        \"long category name 12\",\n        \"long category name 13\",\n        \"long category name 14\",\n        \"long category name 15\",\n        \"long category name 16\",\n        \"long category name 17\",\n        \"long category name 18\",\n        \"long category name 19\",\n        \"long category name 20\",\n        \"long category name 21\",\n        \"long category name 22\",\n        \"long category name 23\",\n        \"long category name 24\",\n        \"long category name 25\",\n        \"long category name 26\",\n        \"long category name 27\",\n        \"long category name 28\",\n        \"long category name 29\",\n        \"long category name 30\",\n        \"long category name 31\",\n        \"long category name 32\",\n        \"long category name 33\",\n        \"long category name 34\",\n        \"long category name 35\",\n        \"long category name 36\",\n        \"long category name 37\",\n        \"long category name 38\",\n        \"long category name 39\",\n        \"long category name 40\",\n        \"long category name 41\",\n        \"long category name 42\",\n        \"long category name 43\",\n        \"long category name 44\",\n        \"long category name 45\",\n        \"long category name 46\",\n        \"long category name 47\",\n        \"long category name 48\",\n        \"long category name 49\",\n        \"long category name 50\",\n        \"long category name 51\",\n        \"long category name 52\",\n        \"long category name 53\",\n        \"long category name 54\",\n        \"long category name 55\",\n        \"long category name 56\",\n        \"long category name 57\",\n        \"long category name 58\",\n        \"long category name 59\",\n        \"long category name 60\",\n        \"long category name 61\",\n        \"long category name 62\",\n        \"long category name 63\",\n        \"long category name 64\",\n        \"long category name 65\",\n        \"long category name 66\",\n        \"long category name 67\",\n        \"long category name 68\",\n        \"long category name 69\",\n        \"long category name 70\",\n        \"long category name 71\",\n        \"long category name 72\",\n        \"long category name 73\",\n        \"long category name 74\",\n        \"long category name 75\",\n        \"long category name 76\",\n        \"long category name 77\",\n        \"long category name 78\",\n        \"long category name 79\",\n        \"long category name 80\",\n        \"long category name 81\",\n        \"long category name 82\",\n        \"long category name 83\",\n        \"long category name 84\",\n        \"long category name 85\",\n        \"long category name 86\",\n        \"long category name 87\",\n        \"long category name 88\",\n        \"long category name 89\",\n        \"long category name 90\",\n        \"long category name 91\",\n        \"long category name 92\",\n        \"long category name 93\",\n        \"long category name 94\",\n        \"long category name 95\",\n        \"long category name 96\",\n        \"long category name 97\",\n        \"long category name 98\",\n        \"long category name 99\",\n        \"long category name 100\",\n        \"long category name 101\",\n        \"long category name 102\",\n        \"long category name 103\",\n        \"long category name 104\",\n        \"long category name 105\",\n        \"long category name 106\",\n        \"long category name 107\",\n        \"long category name 108\",\n        \"long category name 109\",\n        \"long category name 110\",\n        \"long category name 111\",\n        \"long category name 112\",\n        \"long category name 113\",\n        \"long category name 114\",\n        \"long category name 115\",\n        \"long category name 116\",\n        \"long category name 117\",\n        \"long category name 118\",\n        \"long category name 119\",\n        \"long category name 120\",\n        \"long category name 121\",\n        \"long category name 122\",\n        \"long category name 123\",\n        \"long category name 124\",\n        \"long category name 125\",\n        \"long category name 126\",\n        \"long category name 127\",\n        \"long category name 128\",\n        \"long category name 129\",\n        \"long category name 130\",\n        \"long category name 131\",\n        \"long category name 132\",\n        \"long category name 133\",\n        \"long category name 134\",\n        \"long category name 135\",\n        \"long category name 136\",\n        \"long category name 137\",\n        \"long category name 138\",\n        \"long category name 139\",\n        \"long category name 140\",\n        \"long category name 141\",\n        \"long category name 142\",\n        \"long category name 143\",\n        \"long category name 144\",\n        \"long category name 145\",\n        \"long category name 146\",\n        \"long category name 147\",\n        \"long category name 148\",\n        \"long category name 149\",\n        \"long category name 150\",\n        \"long category name 151\",\n        \"long category name 152\",\n        \"long category name 153\",\n        \"long category name 154\",\n        \"long category name 155\",\n        \"long category name 156\",\n        \"long category name 157\",\n        \"long category name 158\",\n        \"long category name 159\",\n        \"long category name 160\",\n        \"long category name 161\",\n        \"long category name 162\",\n        \"long category name 163\",\n        \"long category name 164\",\n        \"long category name 165\",\n        \"long category name 166\",\n        \"long category name 167\",\n        \"long category name 168\",\n        \"long category name 169\",\n        \"long category name 170\",\n        \"long category name 171\",\n        \"long category name 172\",\n        \"long category name 173\",\n        \"long category name 174\",\n        \"long category name 175\",\n        \"long category name 176\",\n        \"long category name 177\",\n        \"long category name 178\",\n        \"long category name 179\",\n        \"long category name 180\",\n        \"long category name 181\",\n        \"long category name 182\",\n        \"long category name 183\",\n        \"long category name 184\",\n        \"long category name 185\",\n        \"long category name 186\",\n        \"long category name 187\",\n        \"long category name 188\",\n        \"long category name 189\",\n        \"long category name 190\",\n        \"long category name 191\",\n        \"long category name 192\",\n        \"long category name 193\",\n        \"long category name 194\",\n        \"long category name 195\",\n        \"long category name 196\",\n        \"long category name 197\",\n        \"long category name 198\",\n        \"long category name 199\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
-          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name 0\",\n        \"long category name 1\",\n        \"long category name 2\",\n        \"long category name 3\",\n        \"long category name 4\",\n        \"long category name 5\",\n        \"long category name 6\",\n        \"long category name 7\",\n        \"long category name 8\",\n        \"long category name 9\",\n        \"long category name 10\",\n        \"long category name 11\",\n        \"long category name 12\",\n        \"long category name 13\",\n        \"long category name 14\",\n        \"long category name 15\",\n        \"long category name 16\",\n        \"long category name 17\",\n        \"long category name 18\",\n        \"long category name 19\",\n        \"long category name 20\",\n        \"long category name 21\",\n        \"long category name 22\",\n        \"long category name 23\",\n        \"long category name 24\",\n        \"long category name 25\",\n        \"long category name 26\",\n        \"long category name 27\",\n        \"long category name 28\",\n        \"long category name 29\",\n        \"long category name 30\",\n        \"long category name 31\",\n        \"long category name 32\",\n        \"long category name 33\",\n        \"long category name 34\",\n        \"long category name 35\",\n        \"long category name 36\",\n        \"long category name 37\",\n        \"long category name 38\",\n        \"long category name 39\",\n        \"long category name 40\",\n        \"long category name 41\",\n        \"long category name 42\",\n        \"long category name 43\",\n        \"long category name 44\",\n        \"long category name 45\",\n        \"long category name 46\",\n        \"long category name 47\",\n        \"long category name 48\",\n        \"long category name 49\",\n        \"long category name 50\",\n        \"long category name 51\",\n        \"long category name 52\",\n        \"long category name 53\",\n        \"long category name 54\",\n        \"long category name 55\",\n        \"long category name 56\",\n        \"long category name 57\",\n        \"long category name 58\",\n        \"long category name 59\",\n        \"long category name 60\",\n        \"long category name 61\",\n        \"long category name 62\",\n        \"long category name 63\",\n        \"long category name 64\",\n        \"long category name 65\",\n        \"long category name 66\",\n        \"long category name 67\",\n        \"long category name 68\",\n        \"long category name 69\",\n        \"long category name 70\",\n        \"long category name 71\",\n        \"long category name 72\",\n        \"long category name 73\",\n        \"long category name 74\",\n        \"long category name 75\",\n        \"long category name 76\",\n        \"long category name 77\",\n        \"long category name 78\",\n        \"long category name 79\",\n        \"long category name 80\",\n        \"long category name 81\",\n        \"long category name 82\",\n        \"long category name 83\",\n        \"long category name 84\",\n        \"long category name 85\",\n        \"long category name 86\",\n        \"long category name 87\",\n        \"long category name 88\",\n        \"long category name 89\",\n        \"long category name 90\",\n        \"long category name 91\",\n        \"long category name 92\",\n        \"long category name 93\",\n        \"long category name 94\",\n        \"long category name 95\",\n        \"long category name 96\",\n        \"long category name 97\",\n        \"long category name 98\",\n        \"long category name 99\",\n        \"long category name 100\",\n        \"long category name 101\",\n        \"long category name 102\",\n        \"long category name 103\",\n        \"long category name 104\",\n        \"long category name 105\",\n        \"long category name 106\",\n        \"long category name 107\",\n        \"long category name 108\",\n        \"long category name 109\",\n        \"long category name 110\",\n        \"long category name 111\",\n        \"long category name 112\",\n        \"long category name 113\",\n        \"long category name 114\",\n        \"long category name 115\",\n        \"long category name 116\",\n        \"long category name 117\",\n        \"long category name 118\",\n        \"long category name 119\",\n        \"long category name 120\",\n        \"long category name 121\",\n        \"long category name 122\",\n        \"long category name 123\",\n        \"long category name 124\",\n        \"long category name 125\",\n        \"long category name 126\",\n        \"long category name 127\",\n        \"long category name 128\",\n        \"long category name 129\",\n        \"long category name 130\",\n        \"long category name 131\",\n        \"long category name 132\",\n        \"long category name 133\",\n        \"long category name 134\",\n        \"long category name 135\",\n        \"long category name 136\",\n        \"long category name 137\",\n        \"long category name 138\",\n        \"long category name 139\",\n        \"long category name 140\",\n        \"long category name 141\",\n        \"long category name 142\",\n        \"long category name 143\",\n        \"long category name 144\",\n        \"long category name 145\",\n        \"long category name 146\",\n        \"long category name 147\",\n        \"long category name 148\",\n        \"long category name 149\",\n        \"long category name 150\",\n        \"long category name 151\",\n        \"long category name 152\",\n        \"long category name 153\",\n        \"long category name 154\",\n        \"long category name 155\",\n        \"long category name 156\",\n        \"long category name 157\",\n        \"long category name 158\",\n        \"long category name 159\",\n        \"long category name 160\",\n        \"long category name 161\",\n        \"long category name 162\",\n        \"long category name 163\",\n        \"long category name 164\",\n        \"long category name 165\",\n        \"long category name 166\",\n        \"long category name 167\",\n        \"long category name 168\",\n        \"long category name 169\",\n        \"long category name 170\",\n        \"long category name 171\",\n        \"long category name 172\",\n        \"long category name 173\",\n        \"long category name 174\",\n        \"long category name 175\",\n        \"long category name 176\",\n        \"long category name 177\",\n        \"long category name 178\",\n        \"long category name 179\",\n        \"long category name 180\",\n        \"long category name 181\",\n        \"long category name 182\",\n        \"long category name 183\",\n        \"long category name 184\",\n        \"long category name 185\",\n        \"long category name 186\",\n        \"long category name 187\",\n        \"long category name 188\",\n        \"long category name 189\",\n        \"long category name 190\",\n        \"long category name 191\",\n        \"long category name 192\",\n        \"long category name 193\",\n        \"long category name 194\",\n        \"long category name 195\",\n        \"long category name 196\",\n        \"long category name 197\",\n        \"long category name 198\",\n        \"long category name 199\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
           "staticBlockMissing": "too_long"
         }
       }
@@ -5698,6 +5811,711 @@
         "_meta": {
           "dev.agentinterop/resource": {
             "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: data.csv · rows 2 of 2 · analysis aggregate month value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"y\": [\n        4,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · analysis aggregate month value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"y\": [\n        4,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"value\",\"quantity\":\"value\",\"values\":[4,2]}],\"labels\":[\"2025-02\",\"2025-01\"],\"y_title\":\"value\"}\n```",
+          "source": {
+            "path": "data.csv",
+            "rows": 2,
+            "labels": {
+              "first": "2025-02",
+              "last": "2025-01"
+            },
+            "units": {
+              "value": ""
+            },
+            "analysis": {
+              "type": "aggregate",
+              "columns": [
+                "month",
+                "value"
+              ],
+              "function": "sum"
+            },
+            "excludedRows": 0,
+            "groupCount": 2,
+            "truncated": false
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          },
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "filter·정렬·limit은 analysis 안에 쓰세요. 예: source:{path:\"data.csv\",analysis:{type:\"aggregate\",columns:[\"부서\",\"실적\"],sort:\"desc\"}}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "analysis.type은 aggregate 또는 compare여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "scatter",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "이 차트 유형에는 source.analysis를 쓸 수 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ],
+            "filter": [
+              {
+                "column": "month",
+                "op": "eq",
+                "value": "missing"
+              }
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "분석 결과에 그룹이 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "bad"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "분석 결과 필드는 value, share 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "waterfall",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "waterfall은 더할 수 있는 증감(합계 기준, 잘리지 않은 결과)에만 씁니다. 평균이나 비율의 변화는 barh로 그리세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "compare.md",
+          "analysis": {
+            "type": "compare",
+            "columns": [
+              "label",
+              "value",
+              "reference"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          },
+          {
+            "column": "ratio"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "같은 축에 단위가 다른 계열: value(단위 없음), ratio(%) — 하나를 secondary로 옮기세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "unit": "bad",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "month",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "share"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "unit이 share의 단위와 다릅니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A",
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "범주 이름이 겹칩니다: A. 같은 이름의 행을 합치려면 source.analysis로 aggregate하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "compare.md",
+          "analysis": {
+            "type": "aggregate",
+            "columns": [
+              "label",
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "share"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis aggregate label value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"비중\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"비중(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis aggregate label value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"비중\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"비중(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"비중\",\"quantity\":\"share\",\"values\":[100]}],\"labels\":[\"total\"],\"unit\":\"%\",\"y_title\":\"비중(%)\"}\n```",
+          "source": {
+            "path": "compare.md",
+            "table": {
+              "index": 1,
+              "startLine": 1
+            },
+            "rows": 1,
+            "labels": {
+              "first": "total",
+              "last": "total"
+            },
+            "units": {
+              "share": "%"
+            },
+            "analysis": {
+              "type": "aggregate",
+              "columns": [
+                "label",
+                "value"
+              ],
+              "function": "sum"
+            },
+            "excludedRows": 0,
+            "groupCount": 1,
+            "truncated": false
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "compare.md",
+          "analysis": {
+            "type": "compare",
+            "columns": [
+              "label",
+              "value",
+              "reference"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "difference"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        -1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        -1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"증감\",\"quantity\":\"difference\",\"values\":[-1]}],\"labels\":[\"total\"],\"y_title\":\"증감\"}\n```",
+          "source": {
+            "path": "compare.md",
+            "table": {
+              "index": 1,
+              "startLine": 1
+            },
+            "rows": 1,
+            "labels": {
+              "first": "total",
+              "last": "total"
+            },
+            "units": {
+              "difference": ""
+            },
+            "analysis": {
+              "type": "compare",
+              "columns": [
+                "label",
+                "value",
+                "reference"
+              ],
+              "function": "sum"
+            },
+            "excludedRows": 0,
+            "groupCount": 1,
+            "truncated": false
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "compare.md",
+          "analysis": {
+            "type": "compare",
+            "columns": [
+              "label",
+              "value",
+              "reference"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "ratio"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        50\n      ],\n      \"type\": \"bar\",\n      \"name\": \"기준 대비\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"기준 대비(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        50\n      ],\n      \"type\": \"bar\",\n      \"name\": \"기준 대비\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"기준 대비(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"기준 대비\",\"quantity\":\"ratio\",\"values\":[50]}],\"labels\":[\"total\"],\"unit\":\"%\",\"y_title\":\"기준 대비(%)\"}\n```",
+          "source": {
+            "path": "compare.md",
+            "table": {
+              "index": 1,
+              "startLine": 1
+            },
+            "rows": 1,
+            "labels": {
+              "first": "total",
+              "last": "total"
+            },
+            "units": {
+              "ratio": "%"
+            },
+            "analysis": {
+              "type": "compare",
+              "columns": [
+                "label",
+                "value",
+                "reference"
+              ],
+              "function": "sum"
+            },
+            "excludedRows": 0,
+            "groupCount": 1,
+            "truncated": false
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "compare.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "period.csv",
+          "analysis": {
+            "type": "compare",
+            "columns": [
+              "group",
+              "value"
+            ],
+            "period": {
+              "column": "year",
+              "base": "2025",
+              "target": "2026"
+            }
+          }
+        },
+        "series": [
+          {
+            "column": "rate"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: period.csv · rows 1 of 2 · analysis compare group value sum 2025→2026 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감률\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감률(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: period.csv · rows 1 of 2 · analysis compare group value sum 2025→2026 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감률\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}%\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감률(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"name\":\"증감률\",\"quantity\":\"rate\",\"values\":[100]}],\"labels\":[\"A\"],\"unit\":\"%\",\"y_title\":\"증감률(%)\"}\n```",
+          "source": {
+            "path": "period.csv",
+            "rows": 1,
+            "labels": {
+              "first": "A",
+              "last": "A"
+            },
+            "units": {
+              "rate": "%"
+            },
+            "analysis": {
+              "type": "compare",
+              "columns": [
+                "group",
+                "value"
+              ],
+              "function": "sum",
+              "period": {
+                "column": "year",
+                "base": "2025",
+                "target": "2026"
+              }
+            },
+            "excludedRows": 0,
+            "groupCount": 1,
+            "truncated": false
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
           }
         }
       }

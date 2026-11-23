@@ -3,7 +3,7 @@ import { buildChartDefinition, CHART_TYPES } from './chart-builder.js';
 // A distinct internal API for frozen report inputs, not the Markdown renderer.
 export const STATIC_CHART_API = Symbol.for('dev.chart-hands.static-chart-v1');
 const TOP_KEYS = new Set(['type', 'title', 'labels', 'parents', 'measure', 'series', 'x_title', 'y_title', 'y2_title', 'stacked', 'bins', 'range_slider', 'style', 'target', 'highlight', 'unit', 'caption']);
-const SERIES_KEYS = new Set(['name', 'values', 'x', 'size', 'text', 'kind', 'secondary']);
+const SERIES_KEYS = new Set(['name', 'values', 'x', 'size', 'text', 'kind', 'secondary', 'quantity']);
 const text = (value, max) => typeof value === 'string' && value.length <= max
     && !Array.from(value).some(char => char.codePointAt(0) < 32 || char.codePointAt(0) === 127);
 const stringArray = (value, maxItems, maxChars) => Array.isArray(value) && value.length <= maxItems && value.every(item => text(item, maxChars));
@@ -20,7 +20,7 @@ export function parseStaticChart(source) {
     let args;
     try { args = JSON.parse(source); } catch { return invalid(); }
     if (!object(args, TOP_KEYS) || !CHART_TYPES.includes(args.type)) return invalid();
-    const strict = ['target', 'highlight', 'unit', 'caption'].some(key => Object.hasOwn(args, key)) || ['report', 'print', 'slides'].includes(args.style);
+    const strict = ['target', 'highlight', 'unit', 'caption'].some(key => Object.hasOwn(args, key)) || args.series?.some(s => s && Object.hasOwn(s, 'quantity')) || ['report', 'print', 'slides'].includes(args.style);
     for (const key of ['title', 'x_title', 'y_title', 'y2_title', 'unit', 'caption']) {
         if (args[key] !== undefined && !text(args[key], key === 'unit' ? 12 : ['title', 'caption'].includes(key) ? 200 : 100)) return invalid();
     }
@@ -43,6 +43,7 @@ export function parseStaticChart(source) {
         if (series.text !== undefined && !stringArray(series.text, 2000, 100)) return invalid();
         if (series.kind !== undefined && !['bar', 'line', 'area'].includes(series.kind)) return invalid();
         if (series.secondary !== undefined && typeof series.secondary !== 'boolean') return invalid();
+        if (series.quantity !== undefined && !['value', 'share', 'rate', 'ratio', 'difference'].includes(series.quantity)) return invalid();
     }
     if (total > 10000) return invalid();
     for (const key of ['title', 'x_title', 'y_title', 'y2_title', 'unit', 'caption']) if (args[key] !== undefined) args[key] = literal(args[key]);

@@ -537,6 +537,12 @@ const tools = [
                 source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
                     path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
                     table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
+                    analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], description: 'Chart the result of eda_analyze aggregate or compare instead of raw rows; series[].column then names a result field (value, share, base, target, difference, rate, reference, ratio).', properties: {
+                        type: { type: 'string', enum: ['aggregate', 'compare'] }, columns: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } },
+                        filter: { type: 'array', maxItems: 4, items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' } } } },
+                        function: { type: 'string', enum: AGGREGATE_FUNCTIONS }, sort: { type: 'string', enum: AGGREGATE_SORTS }, limit: { type: 'integer', minimum: 1, maximum: 100 },
+                        period: { type: 'object', additionalProperties: false, required: ['column', 'base', 'target'], properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } }, rank_by: { type: 'string', enum: ['difference', 'rate', 'ratio'] }
+                    } },
                     labels: { type: 'string', description: 'CSV category column; required for per-label chart types.' },
                     x: { type: 'string', description: 'Numeric CSV x column; required for scatter and bubble.' },
                     filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
@@ -937,12 +943,18 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const labels = args.labels ?? args.series[0].x ?? [];
                 source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
+                if (args.analysisResult) {
+                    const r = args.analysisResult;
+                    source.analysis = { type: r.type, columns: r.columns, function: r.function, ...(r.period ? { period: r.period } : {}), ...(r.filter ? { filter: r.filter } : {}) };
+                    Object.assign(source, { excludedRows: r.excludedRows, groupCount: r.groupCount, truncated: r.truncated }, ...(r.onlyInBase ? [{ onlyInBase: { count: r.onlyInBase.count } }] : []), ...(r.onlyInTarget ? [{ onlyInTarget: { count: r.onlyInTarget.count } }] : []));
+                }
                 const date = now();
                 const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 const details = [`# chart-hands source: ${path}${dataset.table ? ` table ${dataset.table.index}` : ''}`, `rows ${source.rows} of ${dataset.rows.length}`];
                 if (requestedSource.filter) details.push(`filter ${requestedSource.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
                 if (requestedSource.sort) details.push(`sort ${requestedSource.sort.column} ${requestedSource.sort.order || 'desc'}`);
                 if (requestedSource.limit !== undefined) details.push(`limit ${requestedSource.limit}`);
+                if (source.analysis) { const a = source.analysis; details.push(`analysis ${a.type} ${a.columns.join(' ')} ${a.function}${a.period ? ` ${a.period.base}→${a.period.target}` : ''}`); }
                 details.push(`built ${day}`);
                 const line = details.join(' · ').replace(/\p{Cc}/gu, ' ');
                 provenance = line.length > 300 ? `${line.slice(0, 299)}…` : line;

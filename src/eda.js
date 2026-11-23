@@ -1,4 +1,5 @@
 import { periodKey } from './period.js';
+import { checkDuplicateLabels } from './chart-builder.js';
 // Small, bounded CSV analysis engine. Analysis results contain no renderer-specific values.
 const MAX_ROWS = 100000;
 const MAX_COLUMNS = 100;
@@ -374,9 +375,10 @@ export function analyze(dataset, spec, locale = 'ko') {
 export function validateChartSource(args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = args.source;
-    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'table', 'labels', 'x', 'filter', 'sort', 'limit'].includes(k))) {
+    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'table', 'labels', 'x', 'filter', 'sort', 'limit', 'analysis'].includes(k))) {
         fail('source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, table, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
+    if (Object.hasOwn(source, 'analysis') && ['labels', 'x', 'sort', 'limit', 'filter'].some(k => Object.hasOwn(source, k))) fail('filter·정렬·limit은 analysis 안에 쓰세요. 예: source:{path:"data.csv",analysis:{type:"aggregate",columns:["부서","실적"],sort:"desc"}}', 'Put filter, sort and limit inside analysis. Example: source:{path:"data.csv",analysis:{type:"aggregate",columns:["group","value"],sort:"desc"}}');
     if (source.sort !== undefined && (!source.sort || typeof source.sort !== 'object' || Array.isArray(source.sort) || typeof source.sort.column !== 'string' || !source.sort.column || Object.keys(source.sort).some(k => !['column', 'order'].includes(k)) || (source.sort.order !== undefined && !['desc', 'asc'].includes(source.sort.order)))) fail('source.sort는 column과 선택적 order(desc 또는 asc)가 필요합니다.', 'source.sort requires column and an optional order (desc or asc).');
     if (source.limit !== undefined && (!Number.isInteger(source.limit) || source.limit < 1 || source.limit > 200)) fail('source.limit은 1~200의 정수여야 합니다.', 'source.limit must be an integer from 1 to 200.');
     if (Object.hasOwn(args, 'labels') || !Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || typeof s !== 'object' || ['values', 'x', 'size'].some(k => Object.hasOwn(s, k)))) {
@@ -389,6 +391,7 @@ export function validateChartSource(args, locale = 'ko') {
 export function resolveChartSource(dataset, args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = validateChartSource(args, locale);
+    if (Object.hasOwn(source, 'analysis')) return resolveAnalysisSource(dataset, args, locale);
     if (source.x !== undefined && !['scatter', 'bubble'].includes(args.type)) fail('source.x는 scatter와 bubble에만 씁니다. 범주 열은 source.labels를 쓰세요.', 'source.x is only for scatter and bubble; use source.labels for categories.');
     if (args.type !== 'bubble' && args.series.some(s => s.sizeColumn !== undefined)) fail('sizeColumn은 bubble에만 씁니다.', 'sizeColumn is only for bubble.');
     let selected = selectRows(dataset, source.filter, locale, 'source.filter');
@@ -432,6 +435,7 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
     const points = ['scatter', 'bubble'].includes(args.type);
     const needsLabels = !['scatter', 'bubble', 'histogram', 'box', 'violin', 'indicator'].includes(args.type);
     if (needsLabels || source.labels !== undefined) resolved.labels = column(source.labels, 'source.labels', false);
+    if (needsLabels) checkDuplicateLabels(resolved.labels, locale);
     const x = points ? column(source.x, 'source.x', true) : undefined;
     resolved.series = args.series.map(entry => {
         const { column: name, sizeColumn, ...rest } = entry;
@@ -458,6 +462,48 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
         resolved.caption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
     }
     if (Object.keys(units).length) Object.defineProperty(resolved, 'sourceUnits', { value: units, enumerable: false });
+    return resolved;
+}
+
+function resolveAnalysisSource(dataset, args, locale) {
+    const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
+    const spec = args.source.analysis;
+    if (!spec || !['aggregate', 'compare'].includes(spec.type)) fail('analysis.type은 aggregate 또는 compare여야 합니다.', 'analysis.type must be aggregate or compare.');
+    if (!['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel', 'radar', 'heatmap', 'waterfall'].includes(args.type)) fail('이 차트 유형에는 source.analysis를 쓸 수 없습니다.', 'This chart type does not support source.analysis.');
+    const result = analyze(dataset, spec, locale);
+    if (!result.groups.length) fail('분석 결과에 그룹이 없습니다.', 'The analysis returned no groups.');
+    const labels = result.groups.map(g => g.group);
+    checkDuplicateLabels(labels, locale);
+    const fields = result.type === 'aggregate' ? (['sum', 'count'].includes(result.function) ? ['value', 'share'] : ['value']) : result.mode === 'period' ? ['base', 'target', 'difference', 'rate'] : ['value', 'reference', 'difference', 'ratio'];
+    for (const s of args.series) if (!fields.includes(s.column)) fail(`분석 결과 필드는 ${fields.join(', ')} 중 하나여야 합니다.`, `Analysis result field must be one of: ${fields.join(', ')}.`);
+    if (args.type === 'waterfall' && (result.mode !== 'period' || result.function !== 'sum' || ['%', '%p'].includes(result.unit) || result.truncated || args.series.length !== 1 || args.series[0].column !== 'difference' || Object.hasOwn(args, 'measure'))) fail('waterfall은 더할 수 있는 증감(합계 기준, 잘리지 않은 결과)에만 씁니다. 평균이나 비율의 변화는 barh로 그리세요.', 'Use waterfall only for additive changes (sum, untruncated results). Use barh for changes in averages or ratios.');
+    const unitFor = field => ['share', 'rate', 'ratio'].includes(field) ? '%' : field === 'difference' && result.unit === '%' ? '%p' : result.function === 'count' ? '' : result.unit || '';
+    const names = { value: spec.columns[1] || spec.columns[0], base: spec.period?.base, target: spec.period?.target, difference: locale === 'ko' ? '증감' : 'Change', rate: locale === 'ko' ? '증감률' : 'Change rate', ratio: locale === 'ko' ? '기준 대비' : 'Ratio to reference', reference: spec.columns[2], share: locale === 'ko' ? '비중' : 'Share' };
+    const normalize = (v, max) => { const s = String(v).replace(/\p{Cc}/gu, ' '); return s.length > max ? `${s.slice(0, max - 1)}…` : s; };
+    const units = Object.fromEntries(fields.map(f => [f, unitFor(f)]));
+    for (const secondary of [false, true]) {
+        const entries = args.series.filter(s => Boolean(s.secondary) === secondary);
+        if (new Set(entries.map(s => units[s.column])).size > 1) fail(`같은 축에 단위가 다른 계열: ${entries.map(s => `${s.column}(${units[s.column] || '단위 없음'})`).join(', ')} — 하나를 secondary로 옮기세요.`, `Series on the same axis have different units: ${entries.map(s => `${s.column}(${units[s.column] || 'no unit'})`).join(', ')}; move one to secondary.`);
+    }
+    for (const s of args.series) if (args.unit !== undefined && units[s.column] && args.unit !== units[s.column]) fail(`unit이 ${s.column}의 단위와 다릅니다.`, `unit differs from ${s.column} unit; units are not converted.`);
+    const resolved = { ...args, labels, series: args.series.map(({ column, ...rest }) => ({ ...rest, name: rest.name ?? normalize(names[column], 100), quantity: ['share', 'rate', 'ratio', 'difference'].includes(column) ? column : 'value', values: result.groups.map(g => g[column] === null ? null : ['share', 'rate', 'ratio'].includes(column) ? g[column] * 100 : g[column]) })) };
+    delete resolved.source;
+    const seriesUnits = args.series.map(s => units[s.column]);
+    if (args.unit === undefined && new Set(seriesUnits).size === 1 && seriesUnits[0]) resolved.unit = seriesUnits[0];
+    const axis = s => normalize(`${names[s.column]}${units[s.column] ? `(${units[s.column]})` : ''}`, 100);
+    if (!['pie', 'donut', 'radar', 'funnel', 'heatmap'].includes(args.type)) {
+        const key = args.type === 'barh' ? 'x_title' : 'y_title';
+        if (!resolved[key]) resolved[key] = axis(args.series.find(s => !s.secondary) || args.series[0]);
+        const secondary = args.series.find(s => s.secondary);
+        if (secondary && !resolved.y2_title) resolved.y2_title = axis(secondary);
+    }
+    const summary = `${result.type} ${result.columns.join(' ')} ${result.function}${result.period ? ` ${result.period.base}→${result.period.target}` : ''}`;
+    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) {
+        const filter = spec.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+        resolved.caption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${args.source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${result.filteredRows ?? result.totalRows}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''} · ${summary}`, 200);
+    }
+    Object.defineProperty(resolved, 'analysisResult', { value: result, enumerable: false });
+    Object.defineProperty(resolved, 'sourceUnits', { value: Object.fromEntries(args.series.map(s => [s.column, units[s.column]])), enumerable: false });
     return resolved;
 }
 
