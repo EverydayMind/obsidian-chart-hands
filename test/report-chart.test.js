@@ -55,7 +55,9 @@ test('source units and YAML comments', () => {
     const dataset = parseDataset('name,value\nA,2억원\nB,3억원', 'data.csv');
     const args = resolveChartSource(dataset, { type: 'bar', style: 'report', source: { path: 'data.csv', labels: 'name' }, series: [{ column: 'value' }] }, 'en');
     assert.equal(args.unit, '억원');
-    assert.equal(args.y_title, 'value(억원)');
+    // English axis titles separate the unit (0.11.3); Korean keeps 값(억원).
+    assert.equal(args.y_title, 'value (억원)');
+    assert.equal(resolveChartSource(dataset, { type: 'bar', style: 'report', source: { path: 'data.csv', labels: 'name' }, series: [{ column: 'value' }] }, 'ko').y_title, 'value(억원)');
     assert.match(args.caption, /^Source:/);
     const definition = buildChartDefinition(args);
     assert.deepEqual(parseYaml(`# chart-hands source: data.csv · built 2026-11-23\n${stringifyYaml(definition)}`), definition);

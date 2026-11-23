@@ -35,6 +35,7 @@ export function parseDataset(source) {
     return { headers, rows };
 }
 const missing = value => value.trim() === '';
+const withAxisUnit = (name, unit, locale) => unit ? `${name}${locale !== 'ko' && /[A-Za-z0-9)]$/.test(name) ? ' ' : ''}(${unit})` : name;
 const NUM = '(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d*)?|\\.\\d+)';
 const UNIT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤|kg|km|thousand|million|billion|people|units|cases|items|USD|EUR|KRW|JPY|GBP|pcs|bn|mn|pp|K|k|M|B)/.source;
 const CUR = /(?:[₩$€¥£]|USD|EUR|KRW|JPY|GBP)/.source;
@@ -464,13 +465,13 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
     if (args.unit !== undefined) for (const s of args.series) if (units[s.column] && units[s.column] !== args.unit) fail(`unit "${args.unit}"이 열 ${s.column}의 단위 "${units[s.column]}"과 다릅니다. 표시 단위만 바꾸는 환산은 하지 않습니다.`, `unit "${args.unit}" differs from column ${s.column} unit "${units[s.column]}"; units are not converted.`);
     if (args.unit === undefined && new Set(seriesUnits).size === 1 && seriesUnits[0]) resolved.unit = seriesUnits[0];
     const normalize = (s, max) => { const v = String(s).replace(/\p{Cc}/gu, ' '); return v.length > max ? `${v.slice(0, max - 1)}…` : v; };
-    const axisTitle = s => normalize(`${s.column}${units[s.column] ? `(${units[s.column]})` : ''}`, 100);
+    const axisTitle = s => normalize(withAxisUnit(s.column, units[s.column], locale), 100);
     if (!['pie', 'donut', 'treemap', 'sunburst', 'radar', 'indicator', 'funnel', 'heatmap'].includes(args.type)) {
         const key = ['barh', 'histogram'].includes(args.type) ? 'x_title' : 'y_title';
         if (!resolved[key]) resolved[key] = axisTitle(args.series.find(s => !s.secondary) || args.series[0]);
         const secondary = args.series.find(s => s.secondary);
         if (secondary && !resolved.y2_title) resolved.y2_title = axisTitle(secondary);
-        if (['scatter', 'bubble'].includes(args.type) && !resolved.x_title) resolved.x_title = normalize(`${source.x}${units[source.x] ? `(${units[source.x]})` : ''}`, 100);
+        if (['scatter', 'bubble'].includes(args.type) && !resolved.x_title) resolved.x_title = normalize(withAxisUnit(source.x, units[source.x], locale), 100);
     }
     const filter = source.filter?.length ? source.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ') : '';
     const sourceCaption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
@@ -509,7 +510,7 @@ function resolveAnalysisSource(dataset, args, locale) {
     delete resolved.source;
     const seriesUnits = args.series.map(s => units[s.column]);
     if (args.unit === undefined && new Set(seriesUnits).size === 1 && seriesUnits[0]) resolved.unit = seriesUnits[0];
-    const axis = s => normalize(`${names[s.column]}${units[s.column] ? `(${units[s.column]})` : ''}`, 100);
+    const axis = s => normalize(withAxisUnit(names[s.column], units[s.column], locale), 100);
     if (!['pie', 'donut', 'radar', 'funnel', 'heatmap'].includes(args.type)) {
         const key = args.type === 'barh' ? 'x_title' : 'y_title';
         if (!resolved[key]) resolved[key] = axis(args.series.find(s => !s.secondary) || args.series[0]);
