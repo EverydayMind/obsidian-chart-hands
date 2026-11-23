@@ -1577,7 +1577,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {

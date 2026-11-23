@@ -5,6 +5,7 @@
 - Keep each series' own colour on `highlight.labels` categories in multi-series bar charts and pale it elsewhere, instead of painting every series the same highlight colour (series were indistinguishable).
 - When `highlight.labels` is given beside `top`, `bottom`, `below_target` or `above_target`, use the labels and report the other selector in `ignoredArgs`; two rank selectors now fail with the received selector names.
 - On a chart type without bars, the highlight error now names the type and says to change it to `bar` or `barh` or omit `highlight`.
+- End the `build_chart` text result with an explicit next step: when the user asked for the chart in a note, insert `reportSnippet` (or `block`) with an edit tool, because a chart shown only in the reply is not saved. The `staticBlock` line now only says it is for HWPX/PPTX export.
 
 ## 0.11.1
 

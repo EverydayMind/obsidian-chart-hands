@@ -4581,7 +4581,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -4660,7 +4660,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -4739,7 +4739,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -4818,7 +4818,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -4897,7 +4897,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -4980,7 +4980,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n좌표 범위: x 1~2, y 1~2 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n좌표 범위: x 1~2, y 1~2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5072,7 +5072,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n좌표 범위: x 1~2, y 1~2 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n좌표 범위: x 1~2, y 1~2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5156,7 +5156,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5234,7 +5234,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5316,7 +5316,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5398,7 +5398,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5476,7 +5476,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5555,7 +5555,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: B 2 · 표시 2항목 중 유효 2항목\n최솟값: A 1 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5633,7 +5633,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5709,7 +5709,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5785,7 +5785,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최솟값 1.0, 중앙값 1.5, 최댓값 2.0, 평균 1.5 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5861,7 +5861,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: Series · B 2 · 표시 2칸 중 유효 2칸\n최솟값: Series · A 1 · 표시 2칸 중 유효 2칸"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: Series · B 2 · 표시 2칸 중 유효 2칸\n최솟값: Series · A 1 · 표시 2칸 중 유효 2칸\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -5962,7 +5962,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n지표값 1, 기준값 2, 차이 −1, 기준 대비 50% · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: labels\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n지표값 1, 기준값 2, 차이 −1, 기준 대비 50% · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -6111,7 +6111,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nA pie chart shows one series; only the first was used.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nA pie chart shows one series; only the first was used.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -6382,7 +6382,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: y2_title\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: y2_title\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -6464,7 +6464,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n목표 1 미달 0/1항목 · 표시 1항목 중 유효 1항목\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n목표 1 미달 0/1항목 · 표시 1항목 중 유효 1항목\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -6947,7 +6947,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: long category name 0 1 · 표시 200항목 중 유효 200항목\n최솟값: long category name 0 1 · 표시 200항목 중 유효 200항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: long category name 0 1 · 표시 200항목 중 유효 200항목\n최솟값: long category name 0 1 · 표시 200항목 중 유효 200항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -7129,7 +7129,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 · 표시 55항목 중 유효 55항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 · 표시 55항목 중 유효 55항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 · 표시 55항목 중 유효 55항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa0 1 · 표시 55항목 중 유효 55항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -7202,7 +7202,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -7291,7 +7291,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: 지원하지 않는 입력입니다.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: 지원하지 않는 입력입니다.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -7513,7 +7513,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -7626,7 +7626,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -8104,7 +8104,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: total 100% · 표시 1항목 중 유효 1항목\n최솟값: total 100% · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: total 100% · 표시 1항목 중 유효 1항목\n최솟값: total 100% · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -8218,7 +8218,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n기준 대비 50.0%, 차이 −1 · 공통 1항목\n최댓값: total −1 · 표시 1항목 중 유효 1항목\n최솟값: total −1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n기준 대비 50.0%, 차이 −1 · 공통 1항목\n최댓값: total −1 · 표시 1항목 중 유효 1항목\n최솟값: total −1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -8354,7 +8354,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n기준 대비 50.0%, 차이 −1 · 공통 1항목\n최댓값: total 50% · 표시 1항목 중 유효 1항목\n최솟값: total 50% · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n기준 대비 50.0%, 차이 −1 · 공통 1항목\n최댓값: total 50% · 표시 1항목 중 유효 1항목\n최솟값: total 50% · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -8494,7 +8494,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n2026 2, 2025 대비 +1 (+100%) · 양 기간 공통 1항목\n최댓값: A +100% · 표시 1항목 중 유효 1항목\n최솟값: A +100% · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2026 2, 2025 대비 +1 (+100%) · 양 기간 공통 1항목\n최댓값: A +100% · 표시 1항목 중 유효 1항목\n최솟값: A +100% · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -8837,7 +8837,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 1억원 · 표시 1곳 중 유효 1곳\n최솟값: A 1억원 · 표시 1곳 중 유효 1곳\n표시값 합계: 1억원 · 표시 1곳 중 유효 1곳"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 1억원 · 표시 1곳 중 유효 1곳\n최솟값: A 1억원 · 표시 1곳 중 유효 1곳\n표시값 합계: 1억원 · 표시 1곳 중 유효 1곳\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -9008,7 +9008,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -9550,7 +9550,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n쓰이지 않아 무시한 인자: title_from\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n쓰이지 않아 무시한 인자: title_from\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -9715,7 +9715,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n실제 강조 2항목: A, B 하위 2항목 · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n실제 강조 2항목: A, B 하위 2항목 · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -9802,7 +9802,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n실제 강조 2항목: C, B 상위 2항목 · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n실제 강조 2항목: C, B 상위 2항목 · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -9893,7 +9893,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n실제 강조 2항목: A, B · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n실제 강조 2항목: A, B · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10076,7 +10076,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: highlight.bottom\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n실제 강조 1항목: A · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n쓰이지 않아 무시한 인자: highlight.bottom\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n실제 강조 1항목: A · 표시 3항목 중 유효 3항목\n최댓값: C 3 · 표시 3항목 중 유효 3항목\n최솟값: A 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10206,7 +10206,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: C $4 · 표시 3항목 중 유효 3항목\n최솟값: A $3 · 표시 3항목 중 유효 3항목\n표시값 합계: $10 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: C $4 · 표시 3항목 중 유효 3항목\n최솟값: A $3 · 표시 3항목 중 유효 3항목\n표시값 합계: $10 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10318,7 +10318,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 2 · 표시 3항목 중 유효 3항목\n최솟값: B 1 · 표시 3항목 중 유효 3항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 2 · 표시 3항목 중 유효 3항목\n최솟값: B 1 · 표시 3항목 중 유효 3항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10427,7 +10427,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.analysis.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.analysis.limit을 줄이세요.\n최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10540,7 +10540,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n2026 $2, 2025 대비 $+1 (+100%) · 양 기간 공통 1항목\n한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) · 양 기간 공통 1항목\n유효한 값이 없어 제외한 행: 1행 · 양 기간 공통 1항목\n최댓값: A $+1 · 표시 1항목 중 유효 1항목\n최솟값: A $+1 · 표시 1항목 중 유효 1항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2026 $2, 2025 대비 $+1 (+100%) · 양 기간 공통 1항목\n한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) · 양 기간 공통 1항목\n유효한 값이 없어 제외한 행: 1행 · 양 기간 공통 1항목\n최댓값: A $+1 · 표시 1항목 중 유효 1항목\n최솟값: A $+1 · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {
@@ -10699,7 +10699,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n2025-02 4%, 목표 5% 대비 −1%p · 표시 2항목 중 유효 2항목\n2025-01→2025-02 +2%p · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4% · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2% · 표시 2항목 중 유효 2항목"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2025-02 4%, 목표 5% 대비 −1%p · 표시 2항목 중 유효 2항목\n2025-01→2025-02 +2%p · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4% · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2% · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
           }
         ],
         "structuredContent": {

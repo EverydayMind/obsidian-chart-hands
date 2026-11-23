@@ -286,7 +286,9 @@ test('K10 rejects both oversized forms with the applicable limit and true merged
     const content = [{ type: 'text', text: [
         'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
         'HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.',
-        ...lines, block
+        ...lines,
+        '다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다.',
+        block
     ].join('\n') }];
     const structuredContent = { valid: true, problems: 0, staticBlockMissing: 'too_long', facts, titleDraft: titleDraft(facts), factLines: lines, block, snippetOmitted: 'too_long' };
     assert.equal(Number(rejected.content[0].text.match(/^\d+/)[0]), mergedLength({ content, structuredContent }));

@@ -1123,12 +1123,16 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 ...(ignoredArgs.length ? [`${locale === 'ko' ? '쓰이지 않아 무시한 인자' : 'Ignored unused arguments'}: ${ignoredArgs.join(', ')}`] : []),
                 ...(staticBlock
                     ? [locale === 'ko'
-                        ? 'staticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.'
-                        : 'staticBlock is for HWPX/PPTX export only; put reportSnippet (or block) in the note.']
+                        ? 'staticBlock은 HWPX·PPTX 내보내기 전용입니다.'
+                        : 'staticBlock is for HWPX/PPTX export only.']
                     : [locale === 'ko'
                         ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${reduce} 줄이세요.` : '지원하지 않는 입력입니다.'}`
                         : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${reduceEn}.` : 'unsupported input.'}`]),
-                ...lines
+                ...lines,
+                // G4 (0.11.2): an explicit next action; without it small models showed the chart in the reply and stopped.
+                locale === 'ko'
+                    ? '다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다.'
+                    : 'Next: if the user asked for the chart in a note, insert reportSnippet (or block) into that note with an edit tool; a chart shown only in the reply is not saved.'
             ].join('\n');
             const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
             const sourcePrefix = locale === 'ko' ? '자료: ' : 'Source: ';

@@ -390,10 +390,12 @@ test('build_chart offers a data-only static block for compatible report inputs',
     const result = await provider.callTool('build_chart', args);
     assert.match(result.structuredContent.staticBlock, /^```chart-hands-static\n/);
     assert.equal(result.structuredContent.staticBlockUse, 'HWPX or PPTX export only; put reportSnippet (or block) in the note');
-    assert.match(text(result), /staticBlock is for HWPX\/PPTX export only; put reportSnippet \(or block\) in the note\./);
+    assert.match(text(result), /staticBlock is for HWPX\/PPTX export only\./);
+    assert.match(text(result), /\nNext: if the user asked for the chart in a note, insert reportSnippet \(or block\) into that note with an edit tool; a chart shown only in the reply is not saved\.$/);
     const koResult = await provide('', 'ko').callTool('build_chart', args);
     assert.equal(koResult.structuredContent.staticBlockUse, 'HWPX or PPTX export only; put reportSnippet (or block) in the note');
-    assert.match(text(koResult), /staticBlock은 HWPX·PPTX 내보내기 전용입니다\. 노트에는 reportSnippet\(또는 block\)을 넣으세요\./);
+    assert.match(text(koResult), /staticBlock은 HWPX·PPTX 내보내기 전용입니다\./);
+    assert.match(text(koResult), /\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet\(또는 block\)을 그 노트에 넣으세요\. 답에만 보인 차트는 노트에 저장되지 않습니다\.$/);
     const source = result.structuredContent.staticBlock.split('\n')[1];
     assert.deepEqual(JSON.parse(source), args);
     const markup = await provider.callTool('build_chart', { ...args, title: '<b>Rates</b>' });
