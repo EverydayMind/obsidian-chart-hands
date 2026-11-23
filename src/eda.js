@@ -38,11 +38,17 @@ const missing = value => value.trim() === '';
 const NUM = '(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d*)?|\\.\\d+)';
 const UNIT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤|kg|km|thousand|million|billion|people|units|cases|items|USD|EUR|KRW|JPY|GBP|pcs|bn|mn|pp|K|k|M|B)/.source;
 const CUR = /(?:[₩$€¥£]|USD|EUR|KRW|JPY|GBP)/.source;
+const SYM = '[₩$€¥£]';
+const SCALE = /(?:thousand|million|billion|bn|mn|K|k|M|B)/.source;
+// "$120K" keeps the symbol and the scale as one unit ("$K"); word scales keep their space ("$ million").
+const symScale = (sym, scale) => `${sym}${/^[A-Za-z]{2,}$/.test(scale) && !/^(?:bn|mn)$/.test(scale) ? ' ' : ''}${scale}`;
 export function parseCell(text) {
     const s = text.trim(), ws = '[ \\t]*';
     let m, sign = '', unit = '', notation;
     if ((m = s.match(/^([+−-]?)(\d{1,3}(?:,\d{3})+(?:\.\d+)?|(?:\d+(?:\.\d*)?|\.\d+)(?:[eE][+-]?\d+)?)$/))) sign = m[1];
     else if ((m = s.match(new RegExp(`^([+\\-−△]?)${ws}(${CUR})${ws}(${NUM})$`)))) { sign = m[1]; unit = m[2]; m = [m[0], sign, m[3]]; }
+    else if ((m = s.match(new RegExp(`^([+\\-−△]?)${ws}(${SYM})${ws}(${NUM})${ws}(${SCALE})$`)))) { sign = m[1]; unit = symScale(m[2], m[4]); m = [m[0], sign, m[3]]; }
+    else if ((m = s.match(new RegExp(`^\\(${ws}(${SYM})${ws}(${NUM})${ws}(${SCALE})${ws}\\)$`)))) { unit = symScale(m[1], m[3]); m = [m[0], '', m[2]]; notation = '()'; }
     else if ((m = s.match(new RegExp(`^([+\\-−△]?)${ws}(${NUM})${ws}(${UNIT})$`)))) { sign = m[1]; unit = m[3]; }
     else if ((m = s.match(new RegExp(`^(△)${ws}(${NUM})$`)))) sign = m[1];
     else {

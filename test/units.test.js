@@ -73,7 +73,9 @@ test('E6 English units: parseCell, mixed-unit rejection, profile, display spacin
         ['12 pp', 12, 'pp'], ['50 pcs', 50, 'pcs'], ['10 units', 10, 'units'],
         ['20 people', 20, 'people'], ['5 cases', 5, 'cases'], ['8 items', 8, 'items'],
         ['(1.2K)', -1.2, 'K', '()'], ['(USD 1,200)', -1200, 'USD', '()'],
-        ['USD (1,200)', -1200, 'USD', '()'], ['(1,200 USD)', -1200, 'USD', '()']
+        ['USD (1,200)', -1200, 'USD', '()'], ['(1,200 USD)', -1200, 'USD', '()'],
+        ['$120K', 120, '$K'], ['€2.5M', 2.5, '€M'], ['$3 million', 3, '$ million'], ['£4bn', 4, '£bn'],
+        ['($1.2K)', -1.2, '$K', '()'], ['-$5K', -5, '$K']
     ]) {
         assert.deepEqual(parseCell(input), { value, unit, ...(notation ? { notation } : {}) }, input);
     }
@@ -114,4 +116,20 @@ test('E6 English units: parseCell, mixed-unit rejection, profile, display spacin
     assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'USD' }, { beforeLimit: 2 }).series[0].sumOfShown, 3);
     assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'people' }, { beforeLimit: 2 }).series[0].sumOfShown, 3);
     assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'pp' }, { beforeLimit: 2 }).series[0].sumOfShown, undefined);
+});
+
+test('currency symbol with a scale suffix: one unit, prefix display, additive, mixed refused', async () => {
+    const { joinUnit, displayGroup } = await import('../src/chart-facts.js');
+    const { buildChartDefinition } = await import('../src/chart-builder.js');
+    assert.equal(joinUnit('120', '$K'), '$120K');
+    assert.equal(joinUnit('3', '$ million'), '$3 million');
+    assert.deepEqual(displayGroup([120, 96], { unit: '$K' }).strings, ['$120K', '$96K']);
+    // Same sign placement as a bare "$" unit ("$−24").
+    assert.deepEqual(displayGroup([-24, 26], { unit: '$K', quantity: 'difference' }).strings, ['$−24K', '$+26K']);
+    const ds = parseDataset('g,v\nA,$120K\nB,$96K');
+    assert.equal(analyze(ds, { type: 'aggregate', columns: ['g', 'v'], function: 'sum' }).unit, '$K');
+    assert.throws(() => analyze(parseDataset('g,v\nA,$120K\nB,96K'), { type: 'aggregate', columns: ['g', 'v'], function: 'sum' }), /mixed units|단위가 섞여/);
+    const indicator = buildChartDefinition({ type: 'indicator', series: [{ values: [120] }], unit: '$K' });
+    assert.equal(indicator.data[0].number.prefix, '$');
+    assert.equal(indicator.data[0].number.suffix, 'K');
 });

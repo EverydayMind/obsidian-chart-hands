@@ -8,6 +8,8 @@ const SPACED_UNIT_RE = /^(?!kg$|km$)[A-Za-z]{2,}$/;
 export function joinUnit(number, unit = '') {
     if (!unit) return String(number);
     if (CURRENCY.has(unit) || unit === '&#36;') return `${unit}${number}`;
+    const scaled = /^([₩$€£¥])(.+)$/.exec(unit);
+    if (scaled) return `${scaled[1]}${number}${scaled[2]}`;
     return SPACED_UNIT_RE.test(unit) ? `${number} ${unit}` : `${number}${unit}`;
 }
 
@@ -55,7 +57,8 @@ const ADDITIVE_UNITS = new Set([
     '원', '천원', '만원', '백만원', '억원', '조원', '달러', ...CURRENCY, '건', '개', '회', '곳', '개소', '톤', 'kg',
     'K', 'k', 'M', 'B', 'bn', 'mn', 'thousand', 'million', 'billion',
     'USD', 'EUR', 'KRW', 'JPY', 'GBP',
-    'pcs', 'units', 'people', 'cases', 'items'
+    'pcs', 'units', 'people', 'cases', 'items',
+    ...[...CURRENCY].flatMap(c => ['K', 'k', 'M', 'B', 'bn', 'mn', ' thousand', ' million', ' billion'].map(s => c + s))
 ]);
 const SINGLE = ['pie', 'donut', 'treemap', 'sunburst', 'waterfall', 'indicator'];
 const ADDITIVE_TYPES = ['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel'];

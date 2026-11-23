@@ -5,6 +5,7 @@
 - Match English requests in `suggest_chart` at parity with Korean: English negation (`except`, `without`, `not`, `n't`, …), direction phrases (`compared with/to`, `against`, `relative to`, `from A to B`, `as the base/baseline`), prior-period comparison phrases (`year over year`, `YoY`, `MoM`, `QoQ`, …), highlight/display/table wording, English number words (`one`–`ten`), rank and delta quantities, target values (`target of N`, `90% target`, …), and expanded goal keywords.
 - Parse English numeric units and currency codes (`K`, `k`, `M`, `B`, `bn`, `mn`, `thousand`, `million`, `billion`, `USD`, `EUR`, `KRW`, `JPY`, `GBP`, `pp`, `pcs`, `units`, `people`, `cases`, `items`, including prefix currency codes and parenthesized negatives) in EDA and charts, with consistent unit spacing (`3 million`, `1,200 USD`, `12 pp` vs `1.2K`, `10kg`) shared between `chart-facts` and `chart-builder`.
 - Recognize English month names (`Jan 2025`, `January 2025`, `Jan. 2025`, `Jan-2025`, `2025 Jan`, and standalone month names in period columns) and half-years (`H1 2025`, `2025 H1`, `2025-H1`, `H1`, `H2`) in `periodKey`, column role classification, and `suggest_chart` requests.
+- Read a currency symbol with a scale suffix (`$120K`, `€2.5M`, `$3 million`, `($1.2K)`) as one additive unit, shown as `$120K` / `$3 million`.
 - Add side-by-side period comparison candidates to `suggest_chart` when `goal` is `compare` on repeated categories with a period column (and warn when no period is specified so the aggregate combines periods).
 
 ## 0.11.2

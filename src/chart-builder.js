@@ -510,7 +510,8 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         data.forEach(trace => {
             if (type === 'combo' && trace.type === 'bar' && trace.texttemplate) trace.texttemplate = format(trace.texttemplate);
             if (trace.type === 'funnel') trace.texttemplate = `${format('%{value:,.12~g}')}<br>%{percentInitial}`;
-            if (trace.type === 'indicator') trace.number = { ...trace.number, [prefix ? 'prefix' : 'suffix']: prefix ? args.unit : suffix };
+            const scaled = /^([₩$€£¥])(.+)$/.exec(args.unit);
+            if (trace.type === 'indicator') trace.number = { ...trace.number, ...(scaled ? { prefix: scaled[1], suffix: scaled[2] } : { [prefix ? 'prefix' : 'suffix']: prefix ? args.unit : suffix }) };
         });
     }
     if (args.target) {

@@ -8,7 +8,8 @@ const ADDITIVE_UNITS = new Set([
     '원', '천원', '만원', '백만원', '억원', '조원', '달러', '₩', '$', '€', '£', '¥', '건', '개', '회', '곳', '개소', '톤', 'kg',
     'K', 'k', 'M', 'B', 'bn', 'mn', 'thousand', 'million', 'billion',
     'USD', 'EUR', 'KRW', 'JPY', 'GBP',
-    'pcs', 'units', 'people', 'cases', 'items'
+    'pcs', 'units', 'people', 'cases', 'items',
+    ...['₩', '$', '€', '£', '¥'].flatMap(c => ['K', 'k', 'M', 'B', 'bn', 'mn', ' thousand', ' million', ' billion'].map(s => c + s))
 ]);
 const KOREAN_NUMERALS = { 한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10 };
 const ENGLISH_NUMERALS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
