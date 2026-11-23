@@ -1,5 +1,6 @@
 import * as obsidian from 'obsidian';
 import { parseDataset, profile, analyze, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
+import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-table.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
@@ -449,7 +450,8 @@ const tools = [
         name: 'eda_profile', title: 'Profile a CSV dataset',
         description: 'Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; a numeric column needs every nonblank value to be a number in one unit (1,234, 12%, ₩5, △5 negative; a unitless 0 takes the column unit). Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path'], properties: {
-            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
+            table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
             from: { type: 'integer', minimum: 1, description: '1-based first column of this page; defaults to 1. When more columns remain, the result gives nextFrom: call again with from set to it.' }
         } }, annotations: { readOnlyHint: true }, _meta: edaMeta()
     },
@@ -457,7 +459,8 @@ const tools = [
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
         description: 'filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {"column":"연월","op":"gte","value":"2025-01"} plus lte. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year\'s monthly average with a filter. With 2–8 columns it also gives each column\'s share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have shares and chart data. rows: cells and row numbers, paged by limit and offset. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.',
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
-            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+            path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
+            table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
                 type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate', 'rows'] },
                 columns: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string' } },
@@ -530,7 +533,8 @@ const tools = [
                 type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
                 title: { type: 'string', maxLength: 200, description: 'Chart title.' },
                 source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
-                    path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path.' },
+                    path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
+                    table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
                     labels: { type: 'string', description: 'CSV category column; required for per-label chart types.' },
                     x: { type: 'string', description: 'Numeric CSV x column; required for scatter and bubble.' },
                     filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
@@ -794,22 +798,21 @@ const problemLines = (problems) => {
 };
 // Fenced blocks whose language is exactly "plotly", with the 1-based line range of the fence.
 const findChartBlocks = (markdown) => {
-    const lines = markdown.split(/\r?\n/);
+    const lines = splitLines(markdown).map(line => line.text);
     const charts = [];
     let dataview = 0;
     for (let index = 0; index < lines.length; index++) {
-        const open = /^ {0,3}(`{3,}|~{3,})\s*([^\s`]*)[^`]*$/.exec(lines[index]);
+        const open = fenceOpen(lines[index]);
         if (!open) {
             continue;
         }
-        const fence = open[1];
-        const language = open[2].toLowerCase();
+        const fence = open.fence;
+        const language = (open.info.split(/\s/)[0] || '').toLowerCase();
         const body = [];
         const startLine = index + 1;
         let closed = false;
         for (index++; index < lines.length; index++) {
-            const close = /^ {0,3}(`{3,}|~{3,})\s*$/.exec(lines[index]);
-            if (close && close[1][0] === fence[0] && close[1].length >= fence.length) {
+            if (fenceClose(lines[index], fence)) {
                 closed = true;
                 break;
             }
@@ -860,34 +863,44 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
     const candidateText = (paths) => locale === 'ko'
         ? ` CSV 후보: ${paths.length ? paths.join(', ') : '(없음)'}. 후보의 path로 다시 호출하세요.`
         : ` CSV candidates: ${paths.length ? paths.join(', ') : '(none)'}. Call again with a candidate path.`;
-    const readDataset = async (rawPath) => {
+    const readDataset = async (rawPath, table) => {
         const path = normalizeAgentPath(rawPath);
         const file = plugin.app.vault.getAbstractFileByPath(path);
         if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}` + candidateText(csvCandidates(path)), true);
-        if (file.extension.toLowerCase() !== 'csv') throw new AgentToolError('UNSUPPORTED_FORMAT', (locale === 'ko' ? 'CSV가 아닙니다. CSV 파일(.csv)만 분석할 수 있습니다.' : 'This is not a CSV. Only CSV files (.csv) can be analyzed.') + candidateText(csvCandidates(path, true)), true);
-        if (file.stat && file.stat.size > 5 * 1024 * 1024) throw new AgentToolError('INVALID_ARGUMENT', 'CSV must be at most 5 MiB.', true);
-        try { return { path, dataset: parseDataset(await plugin.app.vault.cachedRead(file)) }; }
-        catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+        const ext = file.extension.toLowerCase();
+        if (!['csv', 'md'].includes(ext)) throw new AgentToolError('UNSUPPORTED_FORMAT', (locale === 'ko' ? 'CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다.' : 'Only CSV files (.csv) or Markdown notes (.md) containing tables can be analyzed.') + candidateText(csvCandidates(path, true)), true);
+        if (ext === 'csv' && table !== undefined) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'table은 Markdown 노트(.md)에만 씁니다.' : 'table is only for Markdown notes (.md).', true);
+        if (file.stat && file.stat.size > 5 * 1024 * 1024) throw new AgentToolError('INVALID_ARGUMENT', ext === 'csv' ? 'CSV must be at most 5 MiB.' : 'Markdown must be at most 5 MiB.', true);
+        try {
+            const text = await plugin.app.vault.cachedRead(file);
+            if (ext === 'md' && text.length > 5 * 1024 * 1024) throw new Error('Markdown must be at most 5 MiB.');
+            return { path, dataset: ext === 'csv' ? parseDataset(text) : tableDataset(text, table, locale) };
+        }
+        catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message + (ext === 'md' && /no pipe tables|파이프 표가 없습니다/.test(error.message) ? candidateText(csvCandidates(path, true)) : ''), true); }
     };
     const handlers = {
         eda_profile: async (args) => {
-            const { path, dataset } = await readDataset(args.path);
+            const { path, dataset } = await readDataset(args.path, args.table);
             const from = args.from === undefined ? 1 : args.from;
             if (!Number.isInteger(from) || from < 1 || from > dataset.headers.length) throw new AgentToolError('INVALID_ARGUMENT', 'from must identify a column, starting at 1.', true);
             const result = profile(dataset, from - 1);
+            if (dataset.table) result.table = dataset.table;
             result.from = from;
             result.to = from + result.columns.length - 1;
             result.complete = result.to === result.columnCount;
             if (!result.complete) result.nextFrom = result.to + 1;
-            const text = locale === 'ko' ? `CSV ${path}: ${result.rowCount}행, ${result.columnCount}열. 열 ${result.from}~${result.to}을 반환했습니다.` : `CSV ${path}: ${result.rowCount} rows, ${result.columnCount} columns. Returned columns ${result.from}–${result.to}.`;
+            const prefix = dataset.table ? (locale === 'ko' ? `표 ${dataset.table.index}(${path}, ${dataset.table.startLine}줄)` : `Table ${dataset.table.index} in ${path} (line ${dataset.table.startLine})`) : `CSV ${path}`;
+            const text = locale === 'ko' ? `${prefix}: ${result.rowCount}행, ${result.columnCount}열. 열 ${result.from}~${result.to}을 반환했습니다.` : `${prefix}: ${result.rowCount} rows, ${result.columnCount} columns. Returned columns ${result.from}–${result.to}.`;
             return { content: [{ type: 'text', text }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         eda_analyze: async (args) => {
-            const { path, dataset } = await readDataset(args.path);
+            const { path, dataset } = await readDataset(args.path, args.table);
             let result;
             try { result = analyze(dataset, args.analysis, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
-            const text = locale === 'ko' ? `CSV ${path}: ${result.type} 분석, 전체 ${result.totalRows}행 중 ${result.filteredRows ?? result.totalRows}행을 선택했습니다.` : `CSV ${path}: ${result.type} analysis selected ${result.filteredRows ?? result.totalRows} of ${result.totalRows} rows.`;
+            if (dataset.table) result.table = dataset.table;
+            const prefix = dataset.table ? (locale === 'ko' ? `표 ${dataset.table.index}(${path}, ${dataset.table.startLine}줄)` : `Table ${dataset.table.index} in ${path} (line ${dataset.table.startLine})`) : `CSV ${path}`;
+            const text = locale === 'ko' ? `${prefix}: ${result.type} 분석, 전체 ${result.totalRows}행 중 ${result.filteredRows ?? result.totalRows}행을 선택했습니다.` : `${prefix}: ${result.type} analysis selected ${result.filteredRows ?? result.totalRows} of ${result.totalRows} rows.`;
             return { content: [{ type: 'text', text }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         get_chart_guide: (args) => {
@@ -907,12 +920,12 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
             if (Object.hasOwn(args, 'source')) {
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
-                const { path, dataset } = await readDataset(args.source?.path);
+                const { path, dataset } = await readDataset(args.source?.path, args.source?.table);
                 const requestedSource = args.source;
                 try { args = resolveChartSource(dataset, args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const labels = args.labels ?? args.series[0].x ?? [];
-                source = { path, rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
+                source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
             } else if (Array.isArray(args.series) && args.series.some(s => s && (Object.hasOwn(s, 'column') || Object.hasOwn(s, 'sizeColumn')))) {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요.' : 'series[].column/sizeColumn requires source. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. For direct input use values:[1,2] instead of column.', true);
             } else if (!Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || !Array.isArray(s.values) || !s.values.length)) {

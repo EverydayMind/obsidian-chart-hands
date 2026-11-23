@@ -42,6 +42,20 @@ const provide = (markdown) => createAgentProvider({
 const text = (result) => result.content.map(part => part.text).join('\n');
 const errorCode = (result) => result._meta && result._meta['dev.agentinterop/error'] && result._meta['dev.agentinterop/error'].code;
 
+test('Markdown tables work through all data providers and tilde fences hide charts', async () => {
+    const note = '| name | value |\n|---|---|\n| A | 1 |\n\n| name | value |\n|---|---|\n| B | 2 |';
+    const p = provide(note);
+    const prof = await p.callTool('eda_profile', { path: 'notes/chart.md', table: 2 });
+    assert.equal(prof.structuredContent.table.startLine, 5);
+    const rows = await p.callTool('eda_analyze', { path: 'notes/chart.md', table: 2, analysis: { type: 'rows', columns: ['name'] } });
+    assert.equal(rows.structuredContent.rows[0].line, 7);
+    const chart = await p.callTool('build_chart', { type: 'bar', source: { path: 'notes/chart.md', table: 2, labels: 'name' }, series: [{ column: 'value' }] });
+    assert.equal(chart.structuredContent.source.table.index, 2);
+    const fenced = provide('~~~ text `code`\n```plotly\n{}\n```\n~~~');
+    const read = await fenced.callTool('read_charts', { path: 'notes/chart.md' });
+    assert.equal(read.structuredContent.charts, 0);
+});
+
 // What an agentinterop host accepts: JSON only, no undefined, no class instances.
 const assertPlainJson = (value, where = '$') => {
     if (value === null || typeof value === 'string' || typeof value === 'boolean') return;

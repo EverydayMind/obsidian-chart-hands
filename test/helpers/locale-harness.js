@@ -85,16 +85,21 @@ function loadHarness(code, locale) {
         setNavigator(value) { context.window.navigator = value; } };
 }
 
-const files = {
+const fixtureFiles = {
     'data.csv': 'month,value,other\n2025-01,2,3\n2025-02,4,6',
     'empty.csv': 'month,value,other\n',
     'bad.csv': 'duplicate,duplicate\n1,2',
     'units.csv': 'label,value\na,$1\nb,€2',
     'unit-mismatch.csv': 'label,value\na,1\nb,$2',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
-    'empty.md': '', 'file.pdf': 'synthetic'
+    'empty.md': '', 'file.pdf': 'synthetic',
+    'table.md': '| amount | label |\n|---|---|\n' + ['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum'].map((v, i) => `| ${i % 2 ? '1원' : '2명'} | ${v} |`).join('\n'),
+    'invalid.md': '| x | x |\n|---|---|',
+    'many.md': Array(1001).fill('| x |\n|---|\n').join('\n'),
+    'long.md': '| x |\n|---|\n' + '| 1 |\n'.repeat(100001)
 };
 async function captureExtended(code, locale) {
+    const files = { ...fixtureFiles, ...(locale === 'en' ? { 'table.md': '| amount | label |\n|---|---|\n| 1 | total |' } : {}) };
     const h = loadHarness(code, locale);
     const events = {};
     const plugin = new h.exports.default();
@@ -141,6 +146,8 @@ async function captureExtended(code, locale) {
         calls.push({ name, args, result });
     };
     for (const args of [{ path: 'data.csv' }, { path: 'empty.csv' }, { path: 'bad.csv' }, { path: 'missing.csv' }, { path: 'file.pdf' }, { path: 'data.csv', from: 20 }]) await call('eda_profile', args);
+    for (const args of [{ path: 'table.md' }, { path: 'table.md', table: 2 }, { path: 'empty.md' }, { path: 'invalid.md' }, { path: 'many.md' }, { path: 'long.md' }, { path: 'data.csv', table: 1 }]) await call('eda_profile', args);
+    await call('eda_analyze', { path: 'table.md', analysis: { type: 'rows', columns: ['label'] } });
     for (const type of ['summary', 'histogram', 'correlation', 'aggregate', 'rows']) {
         const columns = type === 'correlation' ? ['value', 'other'] : type === 'aggregate' ? ['month', 'value'] : ['value'];
         for (const path of ['data.csv', 'empty.csv']) await call('eda_analyze', { path, analysis: { type, columns } });

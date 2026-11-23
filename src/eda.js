@@ -102,7 +102,13 @@ function indexOf(dataset, name, locale = 'en') {
     return index;
 }
 export function profile(dataset, from = 0, limit = 10) {
-    return { rowCount: dataset.rows.length, columnCount: dataset.headers.length, columns: dataset.headers.slice(from, from + limit).map((name, offset) => {
+    const target = dataset.headers.findIndex((_, i) => dataset.rows.some(row => !missing(row[i]) && !parseCell(row[i])));
+    const names = new Set(['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum']);
+    const candidates = target < 0 ? [] : dataset.rows.flatMap((row, i) => {
+        const label = row[target].trim().replace(/^\*\*(.*?)\*\*$/, '$1').trim();
+        return names.has(label.toLowerCase()) ? [{ rowNumber: i + 1, column: dataset.headers[target], label, ...(dataset.lines ? { line: dataset.lines[i] } : {}) }] : [];
+    });
+    return { rowCount: dataset.rows.length, columnCount: dataset.headers.length, ...(candidates.length ? { summaryRowCandidates: candidates.slice(0, 10), summaryRowCount: candidates.length } : {}), columns: dataset.headers.slice(from, from + limit).map((name, offset) => {
         const i = from + offset;
         const values = dataset.rows.map(row => row[i]).filter(v => !missing(v));
         const facts = columnFacts(dataset.rows, i), nums = facts.parsed.filter(n => n !== null);
@@ -185,7 +191,7 @@ function aggregate(dataset, spec, locale) {
 // Shared by analysis and CSV chart input. Never paginate or shorten cells here.
 export function selectRows(dataset, filter, locale = 'en', filterName = 'analysis.filter') {
     const spec = { filter };
-    let selected = dataset.rows.map((row, i) => ({ row, rowNumber: i + 1 }));
+    let selected = dataset.rows.map((row, i) => ({ row, rowNumber: i + 1, ...(dataset.lines ? { line: dataset.lines[i] } : {}) }));
     if (spec.filter !== undefined) {
         if (!Array.isArray(spec.filter) || spec.filter.length > 4) throw new Error(`${filterName} must be an array of at most 4 conditions.`);
         const ops = ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'];
@@ -277,9 +283,9 @@ export function analyze(dataset, spec, locale = 'ko') {
         }
         const page = selected.slice(offset, offset + limit);
         const truncated = offset + page.length < selected.length;
-        result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc', order: spec.sort === 'desc' ? 'descending (largest first)' : 'ascending (smallest first)' } : {}), ...(sortNote ? { sortNote } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber }) => {
+        result = { type: 'rows', columns: cols, ...(spec.sort_by !== undefined ? { sortedBy: spec.sort_by, sort: spec.sort ?? 'asc', order: spec.sort === 'desc' ? 'descending (largest first)' : 'ascending (smallest first)' } : {}), ...(sortNote ? { sortNote } : {}), matchedRows: selected.length, rows: page.map(({ row, rowNumber, line }) => {
             const truncatedColumns = cols.filter((_, j) => row[indexes[j]].length > 200);
-            return { rowNumber, values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
+            return { rowNumber, ...(line !== undefined ? { line } : {}), values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
         }), truncated, nextOffset: truncated ? offset + page.length : null,
         ...(requestedLimit > 100 ? { limitApplied: 100, note: locale === 'ko' ? '100행까지만 반환합니다. 이어 받으려면 offset에 nextOffset을 주세요.' : 'Returns at most 100 rows. To continue, set offset to nextOffset.' } : {}) };
     } else {
@@ -299,8 +305,8 @@ export function analyze(dataset, spec, locale = 'ko') {
 export function validateChartSource(args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = args.source;
-    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'labels', 'x', 'filter', 'sort', 'limit'].includes(k))) {
-        fail('source는 path, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
+    if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'table', 'labels', 'x', 'filter', 'sort', 'limit'].includes(k))) {
+        fail('source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, table, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
     if (source.sort !== undefined && (!source.sort || typeof source.sort !== 'object' || Array.isArray(source.sort) || typeof source.sort.column !== 'string' || !source.sort.column || Object.keys(source.sort).some(k => !['column', 'order'].includes(k)) || (source.sort.order !== undefined && !['desc', 'asc'].includes(source.sort.order)))) fail('source.sort는 column과 선택적 order(desc 또는 asc)가 필요합니다.', 'source.sort requires column and an optional order (desc or asc).');
     if (source.limit !== undefined && (!Number.isInteger(source.limit) || source.limit < 1 || source.limit > 200)) fail('source.limit은 1~200의 정수여야 합니다.', 'source.limit must be an integer from 1 to 200.');

@@ -23,7 +23,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 4096,
-              "description": "Vault-relative CSV path."
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
             },
             "from": {
               "type": "integer",
@@ -94,7 +100,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 4096,
-              "description": "Vault-relative CSV path."
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
             },
             "analysis": {
               "type": "object",
@@ -488,7 +500,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 4096,
-                  "description": "Vault-relative CSV path."
+                  "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+                },
+                "table": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
                 },
                 "labels": {
                   "type": "string",
@@ -934,7 +952,7 @@
         "content": [
           {
             "type": "text",
-            "text": "CSV가 아닙니다. CSV 파일(.csv)만 분석할 수 있습니다. CSV 후보: bad.csv, data.csv, empty.csv, unit-mismatch.csv, units.csv. 후보의 path로 다시 호출하세요."
+            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, data.csv, empty.csv, unit-mismatch.csv, units.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -971,6 +989,414 @@
           "dev.agentinterop/error": {
             "code": "INVALID_ARGUMENT",
             "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "table.md"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1(table.md, 1줄): 10행, 2열. 열 1~2을 반환했습니다."
+          }
+        ],
+        "structuredContent": {
+          "rowCount": 10,
+          "columnCount": 2,
+          "summaryRowCandidates": [
+            {
+              "rowNumber": 1,
+              "column": "label",
+              "label": "합계",
+              "line": 3
+            },
+            {
+              "rowNumber": 2,
+              "column": "label",
+              "label": "총계",
+              "line": 4
+            },
+            {
+              "rowNumber": 3,
+              "column": "label",
+              "label": "소계",
+              "line": 5
+            },
+            {
+              "rowNumber": 4,
+              "column": "label",
+              "label": "계",
+              "line": 6
+            },
+            {
+              "rowNumber": 5,
+              "column": "label",
+              "label": "합",
+              "line": 7
+            },
+            {
+              "rowNumber": 6,
+              "column": "label",
+              "label": "총합",
+              "line": 8
+            },
+            {
+              "rowNumber": 7,
+              "column": "label",
+              "label": "total",
+              "line": 9
+            },
+            {
+              "rowNumber": 8,
+              "column": "label",
+              "label": "subtotal",
+              "line": 10
+            },
+            {
+              "rowNumber": 9,
+              "column": "label",
+              "label": "grand total",
+              "line": 11
+            },
+            {
+              "rowNumber": 10,
+              "column": "label",
+              "label": "sum",
+              "line": 12
+            }
+          ],
+          "summaryRowCount": 10,
+          "columns": [
+            {
+              "name": "amount",
+              "type": "text",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 2,
+              "top": [
+                {
+                  "value": "1원",
+                  "count": 5
+                },
+                {
+                  "value": "2명",
+                  "count": 5
+                }
+              ],
+              "mixedUnits": [
+                "명",
+                "원"
+              ]
+            },
+            {
+              "name": "label",
+              "type": "text",
+              "missing": 0,
+              "missingRate": 0,
+              "distinct": 10,
+              "top": [
+                {
+                  "value": "계",
+                  "count": 1
+                },
+                {
+                  "value": "소계",
+                  "count": 1
+                },
+                {
+                  "value": "총계",
+                  "count": 1
+                },
+                {
+                  "value": "총합",
+                  "count": 1
+                },
+                {
+                  "value": "합",
+                  "count": 1
+                }
+              ]
+            }
+          ],
+          "table": {
+            "index": 1,
+            "startLine": 1
+          },
+          "from": 1,
+          "to": 2,
+          "complete": true
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "table.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "table.md",
+        "table": 2
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1개: 표 1: 1줄, 머리글 amount, label. table로 다시 호출하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "empty.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, data.csv, unit-mismatch.csv, units.csv. 후보의 path로 다시 호출하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "invalid.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1의 1줄 머리글이 유효하지 않습니다: x, x. 머리글은 1~100개이며 비지 않고 서로 달라야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "many.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "표가 1,000개를 넘는 노트는 읽지 않습니다"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "long.md"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "표가 자료 행 100000개를 넘습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_profile",
+      "args": {
+        "path": "data.csv",
+        "table": 1
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "table은 Markdown 노트(.md)에만 씁니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "table.md",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "label"
+          ]
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "표 1(table.md, 1줄): rows 분석, 전체 10행 중 10행을 선택했습니다."
+          }
+        ],
+        "structuredContent": {
+          "type": "rows",
+          "columns": [
+            "label"
+          ],
+          "matchedRows": 10,
+          "rows": [
+            {
+              "rowNumber": 1,
+              "line": 3,
+              "values": [
+                "합계"
+              ]
+            },
+            {
+              "rowNumber": 2,
+              "line": 4,
+              "values": [
+                "총계"
+              ]
+            },
+            {
+              "rowNumber": 3,
+              "line": 5,
+              "values": [
+                "소계"
+              ]
+            },
+            {
+              "rowNumber": 4,
+              "line": 6,
+              "values": [
+                "계"
+              ]
+            },
+            {
+              "rowNumber": 5,
+              "line": 7,
+              "values": [
+                "합"
+              ]
+            },
+            {
+              "rowNumber": 6,
+              "line": 8,
+              "values": [
+                "총합"
+              ]
+            },
+            {
+              "rowNumber": 7,
+              "line": 9,
+              "values": [
+                "total"
+              ]
+            },
+            {
+              "rowNumber": 8,
+              "line": 10,
+              "values": [
+                "subtotal"
+              ]
+            },
+            {
+              "rowNumber": 9,
+              "line": 11,
+              "values": [
+                "grand total"
+              ]
+            },
+            {
+              "rowNumber": 10,
+              "line": 12,
+              "values": [
+                "sum"
+              ]
+            }
+          ],
+          "truncated": false,
+          "nextOffset": null,
+          "totalRows": 10,
+          "table": {
+            "index": 1,
+            "startLine": 1
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "table.md"
           }
         }
       }
@@ -3727,7 +4153,7 @@
         "content": [
           {
             "type": "text",
-            "text": "source는 path, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+            "text": "source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
           }
         ],
         "structuredContent": {

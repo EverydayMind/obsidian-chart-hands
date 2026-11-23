@@ -23,7 +23,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 4096,
-              "description": "Vault-relative CSV path."
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
             },
             "from": {
               "type": "integer",
@@ -94,7 +100,13 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 4096,
-              "description": "Vault-relative CSV path."
+              "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+            },
+            "table": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 1000,
+              "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
             },
             "analysis": {
               "type": "object",
@@ -488,7 +500,13 @@
                   "type": "string",
                   "minLength": 1,
                   "maxLength": 4096,
-                  "description": "Vault-relative CSV path."
+                  "description": "Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1)."
+                },
+                "table": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "description": "Markdown notes only: which pipe table to read, 1-based; default 1."
                 },
                 "labels": {
                   "type": "string",
@@ -742,7 +760,7 @@
       }
     ]
   },
-  "digest": "c79574cedba89b31aae75d00e4243140a2f1719dc72e95d60d129bdcf907c8f1",
+  "digest": "6e073ee178a40d6e588a4d17157ece29a907a8badd9db27dedb7e3eab1ae09e7",
   "results": [
     {
       "name": "eda_profile",
