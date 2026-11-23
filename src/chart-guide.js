@@ -45,9 +45,13 @@ Prefer the simplest chart that answers the question. Use an advanced type when t
 
 Keep the user's units and order. If a unit is unclear, do not convert it; show the original unit in an axis title.
 
-Workflow: write the block, call check_chart with the block content (without the fence lines), fix every problem it reports, then insert the block into the note with the host's note-editing tools. These tools never change notes themselves. build_chart produces a checked block for every [name] type above; write the other types by hand from the topic examples.`;
+Workflow: write the block, call check_chart with the block content (without the fence lines), fix every problem it reports, then insert the block into the note with the host's note-editing tools. These tools never change notes themselves. build_chart produces a checked block for every [name] type above; write the other types by hand from the topic examples.
 
-const STYLE = `Apply this only when the user asks for a polished, clean or report-ready look. These are structure hints, not a finished chart: rewrite the real data, units, titles, hover text and annotations every time.
+For report, briefing or approval charts built from vault data, read the report topic.`;
+
+const STYLE = `For report, briefing or approval charts built from vault data, read the report topic.
+
+Apply this only when the user asks for a polished, clean or report-ready look. These are structure hints, not a finished chart: rewrite the real data, units, titles, hover text and annotations every time.
 
 Palette (always quoted in YAML): primary "${PALETTE.primary}", highlight "${PALETTE.highlight}", neutral "${PALETTE.neutral}", grid "${PALETTE.grid}", text "${PALETTE.text}", title "${PALETTE.title}", series 2 "${PALETTE.series2}", series 3 "${PALETTE.series3}". Do not tell series apart by colour alone: also vary the line dash, marker symbol or labels.
 
@@ -67,6 +71,18 @@ Notes:
 - Annotations: use only when needed (1 to 3), set xref and yref, and base causes or events on the user's material, never on the data alone.
 - Plotly.js draws a white background and does not inherit the Obsidian theme. State a white background only for report or print requests; for a dark look set explicit colours for paper_bgcolor, plot_bgcolor, font and grid.
 - When editing an existing chart, keep its data, layout, config, colours, axis ranges and uirevision and merge only the style properties you need.`;
+
+const REPORT = `Report charts: a chart for a report, briefing or approval document, built from vault data so every number can be traced.
+
+Workflow:
+1. Find the data: a CSV, or a pipe table in a Markdown note (pass path and table). Run eda_profile to see units, missing cells and summary-row candidates such as Total or Subtotal (Korean names are detected too). A summary row added to the other rows counts twice: exclude it with a filter {"column": …, "op": "ne", "value": "Total"} when it is not wanted.
+2. Pick the chart: suggest_chart with the user's request (request) or a goal. When its result has confirm or needs, ask the user for those items before building. When a candidate has build, pass build to build_chart as it is.
+3. Compute with tools, never by hand: eda_analyze aggregate (one value per group) or compare (two periods, or value against plan or target). To chart a result, use build_chart with source.analysis instead of copying numbers.
+4. Build: style "report" (or "print" for black-and-white printing, "slides" for presentations). target draws a goal line; highlight marks labels, top or bottom groups, or groups below or above the target. unit, axis titles and a source caption come from the data.
+5. Check: run check_chart. Fix every problem. Advice items are optional notes for the user; do not rebuild just to clear them.
+6. Write: the result's titleDraft is a factual title made from the facts; use it with title_from "facts" or write a title that states the same facts. Insert reportSnippet (chart, fact lines and source line) with the host's note-editing tools. Below it, add two or three sentences that keep apart what the data shows, possible causes (only when the notes give evidence) and what still needs checking. Quote numbers as the fact lines show them.
+
+Rules: no judgement words that the data does not support; a ratio against a plan is not "achieved" unless the plan is the target; a percent change is not a %p difference; shares, rates and ratios are drawn in percent.`;
 
 const EXAMPLES = `Line chart:
 \`\`\`plotly
@@ -506,6 +522,7 @@ const ERRORS = `- The block shows as plain code: the Chart Hands plugin is disab
 export const GUIDE_TOPICS = {
     basics: BASICS,
     style: STYLE,
+    report: REPORT,
     examples: EXAMPLES,
     statistical: STATISTICAL,
     hierarchy: HIERARCHY,

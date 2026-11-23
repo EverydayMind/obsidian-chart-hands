@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.11.0
+
+- Parse formatted numbers with units, currency symbols and negative notations (`12%`, `3억원`, `△5`, `(1,234)`), and refuse columns or comparisons that mix units.
+- Read pipe tables from Markdown notes (`.md` with 1-based `table`) in `eda_profile`, `eda_analyze`, `build_chart` and `suggest_chart`, and flag summary-row candidates.
+- Add `compare` analysis to `eda_analyze` for two-period comparisons and value-against-plan comparisons with common-group totals and unit checks.
+- Add report-ready charting to `build_chart`: `report`, `print` and `slides` styles, `target`, `highlight`, `unit`, `caption`, `source.analysis`, `title_from`, provenance comments (`# chart-hands source:`), and deterministic `facts`, `titleDraft`, `factLines` and `reportSnippet` outputs.
+- Add non-blocking presentation `advice` to `check_chart` and `build_chart`, report provenance and advice counts in `read_charts`, and add the `report` topic to `get_chart_guide`.
+- Add the `suggest_chart` tool to recommend chart types and ready-to-run `build_chart` arguments from a dataset's shape and user request, and raise data tool result limits to 16,000 characters (returning `RESULT_TOO_LARGE` instead of truncating oversized chart outputs).
+- The tool descriptor changes (new suggest_chart tool, new arguments and result limits), so hosts must reapprove the provider.
+
 ## 0.10.16
 
 - The "New Plotly chart" commands keep the code fence on its own lines, so inserting mid-sentence or above a heading no longer breaks the chart.

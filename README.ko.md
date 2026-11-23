@@ -6,7 +6,7 @@ LLM 에이전트가 차트 블록을 노트에 쓰기 전에 만들고 검사할
 
 Dmitriy Shulha의 [obsidian-plotly](https://github.com/Dmitriy-Shulha/obsidian-plotly)(MIT)를 바탕으로 Plotly.js 4, D3 7로 올리고, 폭 맞춤·PDF 내보내기 지원·에이전트 도구를 더했습니다. 데스크톱과 모바일에서 모두 동작합니다.
 
-**목차:** [빠르게 시작하기](#빠르게-시작하기) · [plotly 블록 쓰는 법](#plotly-블록-쓰는-법) · [plotly.com 예제 가져오기](#plotlycom-예제-가져오기) · [노트 데이터로 그리기 (DataviewJS)](#노트-데이터로-그리기-dataviewjs) · [차트가 안 보일 때](#차트가-안-보일-때) · [설정](#설정) · [예제](#예제) · [LLM 에이전트용 도구](#llm-에이전트용-도구) · [설치](#설치)
+**목차:** [빠르게 시작하기](#빠르게-시작하기) · [plotly 블록 쓰는 법](#plotly-블록-쓰는-법) · [plotly.com 예제 가져오기](#plotlycom-예제-가져오기) · [노트 데이터로 그리기 (DataviewJS)](#노트-데이터로-그리기-dataviewjs) · [차트가 안 보일 때](#차트가-안-보일-때) · [설정](#설정) · [예제](#예제) · [보고서용 차트](#보고서용-차트) · [노트 속 표를 자료로](#노트-속-표를-자료로) · [LLM 에이전트용 도구](#llm-에이전트용-도구) · [설치](#설치)
 
 ## 빠르게 시작하기
 
@@ -631,26 +631,152 @@ dv.paragraph(`n=${s.count}, 평균 ${s.mean?.toFixed(2)}, 중앙값 ${s.median},
 - Pearson 상관계수, 요약, 히스토그램(1~50구간)만 제공합니다. 그 밖의 계산은 프로필 결과를 보고 직접 DataviewJS로 작성하세요.
 - 플러그인의 에이전트용 인터페이스를 직접 호출하는 방식이며 명령 팔레트 기능은 아닙니다. `app.plugins.plugins['chart-hands']`는 플러그인 폴더 이름이 `chart-hands`라고 가정합니다.
 
+## 보고서용 차트
+
+보고서·브리핑·결재 문서에 넣을 차트를 볼트 자료에서 만들 때 `build_chart`는 다음 기능을 지원합니다.
+
+- **양식(`style`)**: `report`(정돈된 글꼴, 왼쪽 정렬 제목, 옅은 격자), `print`(흑백 인쇄용 회색 팔레트, 막대 무늬, 흰 배경), `slides`(발표용 큰 글꼴).
+- **목표선과 강조**: `target`은 이름표가 붙은 점선 목표선을 그립니다. `highlight`는 지정한 `labels`, 상위·하위(`top`/`bottom`) 항목, 또는 목표 미달·이상(`below_target`/`above_target`) 막대를 강조합니다.
+- **단위·설명 줄·자동 값**: `unit`은 값 라벨과 축 제목에 단위를 일관되게 붙이고, `caption`은 차트 아래에 작은 설명 줄을 넣습니다. 볼트 자료(`source`)로 `report`·`print`·`slides` 차트를 만들면 값 축 제목과 출처 줄이 자료에서 자동으로 채워집니다.
+- **출처 주석(`# chart-hands source:`)**: 볼트 자료로 만든 블록은 첫 줄에 YAML 주석으로 자료 경로, 표 번호(Markdown 표), 행 수, 조건·정렬·개수 제한·분석 요약, 만든 날짜를 적습니다. Plotly 렌더러는 주석을 무시하고, `read_charts`가 이 줄을 읽어 알려 줍니다.
+
+예시: 분기별 집행률 CSV(수치는 예시입니다)에 `style: "report"`, `target: {value: 90}`, `highlight: {below_target: true}`, `title_from: "facts"`를 주었을 때 `build_chart`가 `reportSnippet`으로 돌려주는 내용 그대로입니다. 분기 라벨에 연도가 없어 시간 순서가 확인되지 않으므로, 제목은 변화가 아니라 목표에 못 미친 분기 수를 말합니다:
+
+````
+```plotly
+# chart-hands source: data/budget.csv · rows 4 of 4 · built 2026-11-24
+data:
+  - x:
+      - Q1
+      - Q2
+      - Q3
+      - Q4
+    y:
+      - 78
+      - 86
+      - 92
+      - 84
+    type: bar
+    name: Execution rate
+    marker:
+      color:
+        - "#C2410C"
+        - "#C2410C"
+        - "#CBD5E1"
+        - "#C2410C"
+    texttemplate: "%{text}"
+    textposition: outside
+    cliponaxis: false
+    text:
+      - 78%
+      - 86%
+      - 92%
+      - 84%
+layout:
+  title:
+    text: 목표 90% 미달 3/4항목 (표시 4항목 중 유효 4항목)
+    font:
+      color: "#0F172A"
+      size: 20
+    x: 0
+    xanchor: left
+  xaxis:
+    automargin: true
+    showgrid: false
+    showline: false
+    zeroline: false
+  yaxis:
+    title:
+      text: execution_rate(%)
+    automargin: true
+    showgrid: true
+    gridcolor: "#E2E8F0"
+    griddash: dot
+    showline: false
+    zeroline: false
+  margin:
+    l: 50
+    r: 30
+    t: 90
+    b: 90
+    autoexpand: true
+  font:
+    color: "#334155"
+    family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'
+    size: 13
+  shapes:
+    - type: line
+      xref: paper
+      x0: 0
+      x1: 1
+      yref: y
+      y0: 90
+      y1: 90
+      line:
+        dash: dot
+        color: "#C2410C"
+  annotations:
+    - xref: paper
+      x: 1
+      xanchor: right
+      yref: y
+      y: 90
+      yanchor: bottom
+      showarrow: false
+      text: 목표 90%
+    - xref: paper
+      yref: paper
+      x: 0
+      y: -0.2
+      xanchor: left
+      yanchor: top
+      showarrow: false
+      text: "자료: data/budget.csv · 4행"
+      font:
+        size: 11
+        color: "#6B7280"
+config:
+  responsive: true
+  displaylogo: false
+```
+
+- 목표 90% 미달 3/4항목 (표시 4항목 중 유효 4항목)
+- 실제 강조 3항목: Q1, Q2, Q4 (표시 4항목 중 유효 4항목)
+- 최댓값: Q3 92% (표시 4항목 중 유효 4항목)
+- 최솟값: Q1 78% (표시 4항목 중 유효 4항목)
+
+자료: data/budget.csv · 4행
+````
+
+## 노트 속 표를 자료로
+
+`eda_profile`, `eda_analyze`, `build_chart`, `suggest_chart`는 `.csv`뿐 아니라 Markdown 노트의 파이프 표도 직접 읽을 수 있습니다.
+
+- `path`에 볼트 상대 `.md` 경로를 주고 `table`(1부터 시작, 기본값 `1`; `build_chart`는 `source.table`)로 읽을 표를 고릅니다.
+- **지원하지 않는 표**: 인용문(`>`) 안, 목록 안, 4칸 이상 들여쓴 줄, 코드 블록 안의 표는 읽지 않습니다.
+- **합계 행 후보**: 첫 비수치 열이 `합계`, `총계`, `소계`, `Total`, `Subtotal`, `Sum` 등인 행은 자동으로 빼지 않고 후보로 알립니다. 다른 행과 함께 더해져 이중 집계되지 않도록 필요할 때 `filter`로 제외할 수 있습니다.
+
 ## LLM 에이전트용 도구
 
 옵시디언에서 AI 에이전트를 쓰지 않는다면 이 부분은 건너뛰어도 됩니다.
 
 플러그인 인스턴스에 agentinterop v1 provider가 있어, 호환되는 에이전트 호스트가 도구 정의를 읽고 호출할 수 있습니다(호스트에서 사용자가 승인해야 모델에 보입니다).
 
-- `get_chart_guide`: 작성 안내를 주제별로 돌려줍니다. 필요한 부분만 읽습니다. `basics`는 차트가 답할 질문(추세, 비교, 비중, 분포, 관계, 행렬, 계층, 흐름, 단계, 프로필, KPI)에 맞는 차트 종류를 알려 주고, `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps`, `layout`은 Plotly 고급 차트의 검증된 예제를 담고 있습니다(박스·바이올린, 상관 히트맵, splom, 트리맵·선버스트, 생키, 폭포, 기간 버튼이 있는 캔들스틱, 게이지, 등고선·3D, 극좌표, 삼각 좌표, 평행 좌표, 지도, 서브플롯, 버튼·슬라이더). `style`, `examples`, `dataviewjs`, `errors`는 꾸미기, 기본 예제, DataviewJS, 문제 해결을 다룹니다.
-- `build_chart`: 라벨과 계열 데이터로 `plotly` 블록을 만들어 줍니다(Chart Hands 팔레트 적용, 검사 포함). 종류: 선, 영역, 막대, 가로 막대, 콤보(막대+선, 보조 축 선택), 산점도, 버블, 파이, 도넛, 트리맵, 선버스트, 폭포, 깔때기, 히스토그램, 박스, 바이올린, 히트맵, 레이더, 지표(indicator). 선·영역·막대·산점도 계열에는 범위 슬라이더를 붙일 수 있습니다.
+- `get_chart_guide`: 작성 안내를 주제별로 돌려줍니다. 필요한 부분만 읽습니다. `basics`는 차트가 답할 질문(추세, 비교, 비중, 분포, 관계, 행렬, 계층, 흐름, 단계, 프로필, KPI)에 맞는 차트 종류를 알려 주고, `report`는 볼트 자료로 보고서용 차트를 만드는 흐름·스타일·목표선·강조·사실 요약을 다룹니다. `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps`, `layout`은 Plotly 고급 차트의 검증된 예제를 담고 있습니다(박스·바이올린, 상관 히트맵, splom, 트리맵·선버스트, 생키, 폭포, 기간 버튼이 있는 캔들스틱, 게이지, 등고선·3D, 극좌표, 삼각 좌표, 평행 좌표, 지도, 서브플롯, 버튼·슬라이더). `style`, `examples`, `dataviewjs`, `errors`는 꾸미기, 기본 예제, DataviewJS, 문제 해결을 다룹니다.
+- `suggest_chart`: 볼트 CSV나 Markdown 표를 읽어 열 역할(기간·범주·단위 포함 수치)을 분류하고, 목적이나 사용자 `request`에 맞는 차트 후보 최대 3개를 바로 실행할 수 있는 `build_chart` 인자(`build`), 자료 주의사항, 부족하거나 애매한 항목(`needs`·`confirm`)과 함께 돌려줍니다.
+- `build_chart`: 직접 입력 데이터, 볼트 `source` 행, 또는 `source.analysis`(`eda_analyze`의 `aggregate`·`compare` 결과 직접 차트화)로 `plotly` 블록을 만들고 검사합니다. 보고서 스타일·목표선·강조·`title_from: "facts"`를 지원하며, 결정적으로 계산한 `facts`·`titleDraft`·`factLines`·`reportSnippet`을 함께 돌려줍니다. 종류: 선, 영역, 막대, 가로 막대, 콤보(막대+선, 보조 축 선택), 산점도, 버블, 파이, 도넛, 트리맵, 선버스트, 폭포, 깔때기, 히스토그램, 박스, 바이올린, 히트맵, 레이더, 지표(indicator). 선·영역·막대·산점도 계열에는 범위 슬라이더를 붙일 수 있습니다.
 
   호환되는 짧은 데이터에는 HWPX 내보내기용 `staticBlock`도 반환합니다. `chart-hands-static` 블록은 Chart Hands에서 미리 볼 수 있고 지원하는 HWPX Exporter가 데이터로부터 PNG를 생성합니다. 입력에는 JSON 데이터만 허용합니다. `<`, `>`, `&`, `$`는 원문 문자로 표시하며 HTML이나 수식으로 해석하지 않습니다. 제어 문자와 외부 소스는 지원하지 않습니다. 블록이 없으면 이 경로를 사용할 수 없습니다. 실제 저장은 내보내기 도구의 승인 절차를 따릅니다.
-- `check_chart`: `plotly` 블록 내용을 검사합니다(YAML/JSON, 최상위 키, `fit` 값, 따옴표 없는 `#` 색상·날짜·문자열 제목·JavaScript 값·배열 길이 불일치 같은 흔한 실수, 고급 트레이스의 데이터 형태(트리맵 parents, 생키 링크, 캔들스틱 가격, 폭포 measure, 격자 `z`, 없어진 mapbox 종류), Plotly 속성 검사).
-- `read_charts`: 노트의 `plotly` 블록 위치·트레이스·제목·문제를 20개씩 알려 줍니다.
+- `check_chart`: `plotly` 블록 내용을 검사합니다(YAML/JSON, 최상위 키, `fit` 값, 따옴표 없는 `#` 색상·날짜·문자열 제목·JavaScript 값·배열 길이 불일치 같은 흔한 실수, 고급 트레이스의 데이터 형태(트리맵 parents, 생키 링크, 캔들스틱 가격, 폭포 measure, 격자 `z`, 없어진 mapbox 종류), Plotly 속성 검사). 차트를 무효로 만들지 않는 선택적 표현 참고(`advice`)도 함께 알립니다.
+- `read_charts`: 노트의 `plotly` 블록 위치·트레이스·제목·출처 주석·문제·advice 수를 20개씩 알려 줍니다.
 
-어떤 도구도 노트를 바꾸거나 차트를 그리지 않습니다. 에이전트는 돌려받은 블록을 호스트의 노트 편집 도구로 삽입합니다. 안내 문구는 영어입니다.
+데이터 도구(`eda_profile`, `eda_analyze`, `build_chart`, `suggest_chart`)의 결과 한도는 16,000자(`maxResultChars`)입니다. 어떤 도구도 노트를 바꾸거나 차트를 그리지 않습니다. 에이전트는 돌려받은 블록을 호스트의 노트 편집 도구로 삽입합니다. 안내 문구는 영어입니다.
 
 ### 에이전트용 CSV 탐색
 
-호환 에이전트 호스트에서 `eda_profile`에 볼트 상대 CSV `path`를 전달하면 열별 추정 자료형, 결측 건수와 비율, 고유값 수, 빈도가 높은 텍스트 값, 숫자의 사분위수·평균·표본 표준편차를 조회합니다. 한 번에 열 5개를 반환하며 `nextFrom`으로 이어서 읽습니다. CSV는 고유하고 비어 있지 않은 열 이름을 포함해야 하며 최대 100열, 데이터 100,000행, 5 MiB입니다. 따옴표로 감싼 필드와 줄바꿈을 지원합니다. 빈 값과 공백만 있는 값은 결측이며, 비어 있지 않은 모든 값이 유한한 숫자일 때만 숫자 열로 추정합니다. 다른 결측 표시 문자열은 자동 추정하지 않습니다.
+호환 에이전트 호스트에서 `eda_profile`에 볼트 상대 CSV `path`를 전달하면 열별 추정 자료형, 결측 건수와 비율, 고유값 수, 빈도가 높은 텍스트 값, 숫자의 사분위수·평균·표본 표준편차를 조회합니다. 한 번에 열 5개를 반환하며 `nextFrom`으로 이어서 읽습니다. CSV는 고유하고 비어 있지 않은 열 이름을 포함해야 하며 최대 100열, 데이터 100,000행, 5 MiB입니다. 따옴표로 감싼 필드와 줄바꿈을 지원합니다. 빈 값과 공백만 있는 값은 결측입니다. 단일 단위의 숫자 표기(`12%`, `3억원`, `△5`, `(1,234)`)는 숫자로 인식하며, 단위가 섞인 열은 계산을 거절합니다.
 
-`eda_analyze`에 `path`와 분석 명세를 전달합니다. 예: `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` 또는 `{"type":"summary","columns":["score"]}`. 빈 값이나 숫자가 아닌 값으로 제외된 행 수를 반환합니다. 상관계수는 두 열이 모두 숫자인 행으로 계산하며 유효 쌍이 두 개 미만이거나 어느 한 열의 분산이 0이면 `null`입니다. 사분위수는 선형 보간하며 표준편차는 표본 기준입니다. 도구는 볼트를 읽기만 하고 파일의 코드나 SQL을 실행하지 않으며 Plotly와 D3를 로드하지 않습니다. 분석 결과는 차트 정의와 분리되어 있어 에이전트가 결과를 바탕으로 `build_chart` 또는 Plotly 블록을 사용할 수 있습니다. `build_chart`는 Plotly 없이 기본 검사를 수행하며 전체 속성 검사는 `check_chart`를 사용합니다.
+`eda_analyze`에 `path`와 분석 명세를 전달합니다. 예: `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` 또는 `{"type":"summary","columns":["score"]}`. `compare`는 두 기간 비교(`period: {column, base, target}`) 또는 계획·기준 열 대비 비교를 수행해 그룹별 증감·증감률(또는 달성 비율)·한쪽 기간에만 있는 그룹·공통 그룹 합계를 돌려줍니다. 빈 값이나 숫자가 아닌 값으로 제외된 행 수를 반환합니다. 상관계수는 두 열이 모두 숫자인 행으로 계산하며 유효 쌍이 두 개 미만이거나 어느 한 열의 분산이 0이면 `null`입니다. 사분위수는 선형 보간하며 표준편차는 표본 기준입니다. 도구는 볼트를 읽기만 하고 파일의 코드나 SQL을 실행하지 않으며 Plotly와 D3를 로드하지 않습니다. 분석 결과는 차트 정의와 분리되어 있어 에이전트가 결과를 바탕으로 `build_chart` 또는 Plotly 블록을 사용할 수 있습니다. `build_chart`는 Plotly 없이 기본 검사를 수행하며 전체 속성 검사는 `check_chart`를 사용합니다.
 
 `aggregate`의 `analysis.limit` 기본값은 60이고 허용 범위는 1–100입니다. 결과에는 `groupCount`, `truncated`, `groups`, 차트 레이블과 값이 포함됩니다. 잘린 경우 반환된 묶음 수 `returnedGroups`, 적용된 `limit`, `maxLimit`, 나머지를 얻는 방법을 설명하는 `note`도 포함됩니다. 묶음이 100개를 넘으면 더 작은 CSV를 사용하세요. 이 도구에는 필터나 페이지 매개변수가 없습니다.
 

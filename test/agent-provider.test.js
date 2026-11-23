@@ -30,7 +30,7 @@ const { default: Plugin, createAgentProvider } = bundle.exports;
 Module._load = load;
 
 const MANIFEST = { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3' };
-const provide = (markdown) => createAgentProvider({
+const provide = (markdown, locale) => createAgentProvider({
     app: {
         vault: {
             getAbstractFileByPath: (file) => file === 'notes/chart.md' ? { path: file, extension: 'md' }
@@ -39,7 +39,7 @@ const provide = (markdown) => createAgentProvider({
         }
     },
     manifest: MANIFEST
-});
+}, locale);
 const text = (result) => result.content.map(part => part.text).join('\n');
 const errorCode = (result) => result._meta && result._meta['dev.agentinterop/error'] && result._meta['dev.agentinterop/error'].code;
 
@@ -84,6 +84,16 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     assert.ok(descriptor.instructions.includes('quote its computed numbers instead of doing arithmetic yourself.'));
     assert.ok(descriptor.instructions.includes('summary for one overall total or average of a column (with filter for a period), aggregate for one value per group'));
     assert.ok(descriptor.instructions.includes('For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks.'));
+    for (const locale of ['ko', 'en']) {
+        const localized = await provide('', locale).describe();
+        assert.ok(localized.instructions.length <= 1950, `${locale}: instructions length`);
+        assert.ok(localized.instructions.includes('compare for two periods or a value against its plan'), locale);
+        assert.ok(localized.instructions.includes('suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report.'), locale);
+        assert.ok(localized.instructions.includes('advice items are optional notes.'), locale);
+        for (const tool of localized.tools) {
+            assert.ok(tool.description.length <= 1000, `${locale} ${tool.name}: description length`);
+        }
+    }
     const description = descriptor.tools.find(tool => tool.name === 'eda_analyze').description;
     for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows', '1–8 numeric columns over matching rows', "e.g. a year's monthly average with a filter", 'label and original give change from the previous group', '1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.']) assert.ok(description.includes(phrase));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
@@ -249,6 +259,7 @@ test('get_chart_guide returns each topic and rejects unknown ones', async () => 
     const provider = provide('');
     const descriptor = await provider.describe();
     const tool = descriptor.tools.find(item => item.name === 'get_chart_guide');
+    assert.ok(tool.inputSchema.properties.topic.enum.includes('report'));
     for (const topic of tool.inputSchema.properties.topic.enum) {
         const result = await provider.callTool('get_chart_guide', { topic });
         assert.notEqual(result.isError, true, topic);
@@ -256,6 +267,7 @@ test('get_chart_guide returns each topic and rejects unknown ones', async () => 
         assert.ok(text(result).length > 200 && text(result).length <= 8000, `${topic} fits one result`);
         assert.equal(result.structuredContent.topic, topic);
     }
+    assert.ok(text(await provider.callTool('get_chart_guide', { topic: 'report' })).startsWith('Report charts: a chart for a report, briefing or approval document, built from vault data so every number can be traced.'));
     assert.match(text(await provider.callTool('get_chart_guide', {})), /top-level keys/);
     assert.equal(errorCode(await provider.callTool('get_chart_guide', { topic: 'nope' })), 'INVALID_ARGUMENT');
 });

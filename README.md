@@ -6,7 +6,7 @@ Chart Hands also gives LLM agents a pair of "hands": tools that build and check 
 
 It is a fork of [obsidian-plotly](https://github.com/Dmitriy-Shulha/obsidian-plotly) by Dmitriy Shulha (MIT), updated to Plotly.js 4 and D3 7. It adds width fitting, PDF export support and the agent tools. It works on desktop and mobile.
 
-**Contents:** [Quick start](#quick-start) · [Writing a plotly block](#writing-a-plotly-block) · [Using examples from plotly.com](#using-examples-from-plotlycom) · [Charts from vault data (DataviewJS)](#charts-from-vault-data-dataviewjs) · [When a chart doesn't show](#when-a-chart-doesnt-show) · [Settings](#settings) · [Examples](#examples) · [Tools for LLM agents](#tools-for-llm-agents) · [Installation](#installation)
+**Contents:** [Quick start](#quick-start) · [Writing a plotly block](#writing-a-plotly-block) · [Using examples from plotly.com](#using-examples-from-plotlycom) · [Charts from vault data (DataviewJS)](#charts-from-vault-data-dataviewjs) · [When a chart doesn't show](#when-a-chart-doesnt-show) · [Settings](#settings) · [Examples](#examples) · [Report charts](#report-charts) · [Data from Markdown tables](#data-from-markdown-tables) · [Tools for LLM agents](#tools-for-llm-agents) · [Installation](#installation)
 
 ## Quick start
 
@@ -631,26 +631,152 @@ When the mean and the median differ a lot, the data is skewed or has outliers.
 - Only Pearson correlation, summary and histogram (1 to 50 bins) are available. For anything else, use the profile results to decide what to compute in your own DataviewJS.
 - This calls the plugin's agent interface directly. It is not a separate commands-palette feature, and its `app.plugins.plugins['chart-hands']` lookup assumes the plugin folder is named `chart-hands`.
 
+## Report charts
+
+For reports, briefings and approval documents, `build_chart` supports presentation options that keep every number traceable to vault data:
+
+- **Styles (`style`)**: `report` (clean typography, left-aligned title and subtle gridlines), `print` (greyscale palette, bar patterns and white background for black-and-white printing) and `slides` (larger fonts for presentations).
+- **Targets and highlights**: `target` draws a dashed goal line with a label; `highlight` emphasizes specific `labels`, `top`/`bottom` items, or bars `below_target`/`above_target`.
+- **Units, captions and defaults**: `unit` formats value labels and axis titles consistently, and `caption` places a small note under the chart. When charting from a vault `source` with `report`, `print` or `slides`, value-axis titles and a source caption line are filled in automatically from the data.
+- **Provenance comment (`# chart-hands source:`)**: blocks built from vault data start with a YAML comment on the first line recording the source path, table number (for Markdown tables), row counts, filter/sort/limit/analysis summary and build date. The Plotly YAML renderer ignores comments, while `read_charts` reads and reports the provenance line.
+
+Example, as `build_chart` returns it in `reportSnippet` for a CSV of quarterly execution rates (illustrative numbers) with `style: "report"`, `target: {value: 90}`, `highlight: {below_target: true}` and `title_from: "facts"`. The quarter labels have no year, so the title counts the quarters below the target instead of describing a change over time:
+
+````
+```plotly
+# chart-hands source: data/budget.csv · rows 4 of 4 · built 2026-11-24
+data:
+  - x:
+      - Q1
+      - Q2
+      - Q3
+      - Q4
+    y:
+      - 78
+      - 86
+      - 92
+      - 84
+    type: bar
+    name: Execution rate
+    marker:
+      color:
+        - "#C2410C"
+        - "#C2410C"
+        - "#CBD5E1"
+        - "#C2410C"
+    texttemplate: "%{text}"
+    textposition: outside
+    cliponaxis: false
+    text:
+      - 78%
+      - 86%
+      - 92%
+      - 84%
+layout:
+  title:
+    text: 3/4 items below target 90% (4 items shown, 4 items valid)
+    font:
+      color: "#0F172A"
+      size: 20
+    x: 0
+    xanchor: left
+  xaxis:
+    automargin: true
+    showgrid: false
+    showline: false
+    zeroline: false
+  yaxis:
+    title:
+      text: execution_rate(%)
+    automargin: true
+    showgrid: true
+    gridcolor: "#E2E8F0"
+    griddash: dot
+    showline: false
+    zeroline: false
+  margin:
+    l: 50
+    r: 30
+    t: 90
+    b: 90
+    autoexpand: true
+  font:
+    color: "#334155"
+    family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif'
+    size: 13
+  shapes:
+    - type: line
+      xref: paper
+      x0: 0
+      x1: 1
+      yref: y
+      y0: 90
+      y1: 90
+      line:
+        dash: dot
+        color: "#C2410C"
+  annotations:
+    - xref: paper
+      x: 1
+      xanchor: right
+      yref: y
+      y: 90
+      yanchor: bottom
+      showarrow: false
+      text: Target 90%
+    - xref: paper
+      yref: paper
+      x: 0
+      y: -0.2
+      xanchor: left
+      yanchor: top
+      showarrow: false
+      text: "Source: data/budget.csv · 4 rows"
+      font:
+        size: 11
+        color: "#6B7280"
+config:
+  responsive: true
+  displaylogo: false
+```
+
+- 3/4 items below target 90% (4 items shown, 4 items valid)
+- 3 items highlighted: Q1, Q2, Q4 (4 items shown, 4 items valid)
+- Maximum: Q3 92% (4 items shown, 4 items valid)
+- Minimum: Q1 78% (4 items shown, 4 items valid)
+
+Source: data/budget.csv · 4 rows
+````
+
+## Data from Markdown tables
+
+`eda_profile`, `eda_analyze`, `build_chart` and `suggest_chart` can read pipe tables directly from Markdown notes as well as `.csv` files:
+
+- Pass a vault-relative `.md` note in `path` and choose which pipe table to read with `table` (1-based, default `1`; `source.table` in `build_chart`).
+- **Unsupported tables**: pipe tables inside blockquotes (`>`), list items, indented 4 or more spaces, or fenced code blocks are ignored.
+- **Summary-row candidates**: rows whose first non-numeric column matches a total label (such as `Total`, `Subtotal`, `Sum`, `합계`, `총계`, `소계`) are reported as candidates rather than dropped automatically, so you can exclude them with a `filter` when they would double-count.
+
 ## Tools for LLM agents
 
 You can skip this section if you don't use an AI agent in Obsidian.
 
 Chart Hands exposes an agentinterop v1 capability provider on the plugin instance. A compatible agent host can read the tool definitions and call them, once you approve them in the host:
 
-- `get_chart_guide`: returns writing guidance by topic, so the agent reads only what it needs. `basics` maps the question a chart answers (trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile, KPI) to a chart type; `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps` and `layout` give checked examples of Plotly's advanced charts (box and violin, correlation heatmaps, splom, treemap and sunburst, sankey, waterfall, candlestick with range buttons, gauges, contour and 3D, polar, ternary, parallel coordinates, maps, subplots, buttons and sliders). `style`, `examples`, `dataviewjs` and `errors` cover the look, basic examples, DataviewJS and fixes.
-- `build_chart`: builds a ready-to-insert `plotly` block from plain data (labels and series), with the Chart Hands palette, and checks it. Types: line, area, bar, barh, combo (bars and lines with an optional secondary axis), scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar and indicator. Line, area, bar and scatter charts can add a range slider.
+- `get_chart_guide`: returns writing guidance by topic, so the agent reads only what it needs. `basics` maps the question a chart answers (trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile, KPI) to a chart type; `report` covers the vault-data report chart workflow, styles, targets, highlights and facts; `statistical`, `hierarchy`, `timeseries`, `scientific`, `maps` and `layout` give checked examples of Plotly's advanced charts (box and violin, correlation heatmaps, splom, treemap and sunburst, sankey, waterfall, candlestick with range buttons, gauges, contour and 3D, polar, ternary, parallel coordinates, maps, subplots, buttons and sliders). `style`, `examples`, `dataviewjs` and `errors` cover the look, basic examples, DataviewJS and fixes.
+- `suggest_chart`: reads a vault CSV or Markdown table, classifies columns (period, category, numeric with unit), and suggests up to three chart candidates for a goal or user `request` with runnable `build_chart` arguments (`build`), data cautions, and `needs`/`confirm` when required details are missing or ambiguous.
+- `build_chart`: builds a ready-to-insert `plotly` block from plain data, vault `source` rows, or `source.analysis` (charting `eda_analyze` `aggregate` or `compare` results directly), with report styles, targets, highlights and `title_from: "facts"`. It returns deterministic `facts`, `titleDraft`, `factLines` and `reportSnippet` alongside the checked block. Types: line, area, bar, barh, combo (bars and lines with an optional secondary axis), scatter, bubble, pie, donut, treemap, sunburst, waterfall, funnel, histogram, box, violin, heatmap, radar and indicator. Line, area, bar and scatter charts can add a range slider.
 
   Compatible compact inputs also return `staticBlock` for HWPX export. The `chart-hands-static` block previews in Chart Hands; a compatible HWPX Exporter renders it to PNG from its data. It accepts JSON data only. Text including `<`, `>`, `&` and `$` is displayed literally, not interpreted as HTML or math. Control characters and external sources are unsupported. If the block is absent, this path is unavailable. Saving still requires the export tool's approval flow.
-- `check_chart`: validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value, common mistakes (unquoted `#` colours, dates, plain-string titles, JavaScript-like values, mismatched array lengths), the data shapes of advanced traces (treemap parents, sankey links, candlestick prices, waterfall measures, grid `z`, removed mapbox types) and Plotly's own attribute check.
-- `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles and problems, 20 charts at a time.
+- `check_chart`: validates the content of a `plotly` block: YAML/JSON syntax, top-level keys, the `fit` value, common mistakes (unquoted `#` colours, dates, plain-string titles, JavaScript-like values, mismatched array lengths), the data shapes of advanced traces (treemap parents, sankey links, candlestick prices, waterfall measures, grid `z`, removed mapbox types) and Plotly's own attribute check. It also returns optional presentation `advice` notes that never mark a chart invalid.
+- `read_charts`: finds the `plotly` blocks in a note and reports line ranges, traces, titles, provenance comments, problems and advice counts, 20 charts at a time.
 
-None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
+Data tools (`eda_profile`, `eda_analyze`, `build_chart` and `suggest_chart`) declare a 16,000-character result limit (`maxResultChars`). None of the tools edits a note or draws a chart. The agent inserts the returned block with the host's own note-editing tools. The plugin works the same without an agent host.
 
 ### CSV exploration for agents
 
-A compatible agent host can call `eda_profile` with a vault-relative CSV `path` to inspect inferred column types, missing counts and rates, distinct counts, frequent text values, and numeric quartiles, mean, and sample standard deviation. Results contain five columns per page; continue with `nextFrom`. CSV files must have a header with unique nonempty names, at most 100 columns and 100,000 data rows, and be no larger than 5 MiB. Quoted fields and newlines are supported. Blank or whitespace-only cells are missing. A column is numeric only when every nonblank value is a finite number; other missing-value conventions are not inferred.
+A compatible agent host can call `eda_profile` with a vault-relative CSV `path` to inspect inferred column types, missing counts and rates, distinct counts, frequent text values, and numeric quartiles, mean, and sample standard deviation. Results contain five columns per page; continue with `nextFrom`. CSV files must have a header with unique nonempty names, at most 100 columns and 100,000 data rows, and be no larger than 5 MiB. Quoted fields and newlines are supported. Blank or whitespace-only cells are missing. Formatted numbers with a single consistent unit or negative notation (`12%`, `3억원`, `△5`, `(1,234)`) are parsed as numeric, while columns that mix different units are refused in calculations.
 
-Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
+Call `eda_analyze` with `path` and an analysis specification, for example `{"type":"correlation","columns":["duration","score"],"method":"pearson"}` or `{"type":"summary","columns":["score"]}`. `compare` compares two periods (`period: {column, base, target}`) or values against a plan/reference column, returning per-group differences, rates or ratios, one-sided groups, and common-group totals. It reports the number of excluded nonnumeric or blank rows; correlation uses complete pairs and is `null` if fewer than two pairs or either variable has no variation. Quartiles use linear interpolation and standard deviation is the sample statistic. These tools read the vault without changing it, do not execute SQL or code from the file, and do not load Plotly or D3. The result is separate from a chart definition; an agent can use `build_chart` or write a Plotly block using the results. `build_chart` performs basic checks without loading Plotly; use `check_chart` for full Plotly schema validation.
 
 For `aggregate`, `analysis.limit` defaults to 60 and accepts 1–100. The result includes `groupCount`, `truncated`, `groups`, and chart labels and values. When truncated, it also includes `returnedGroups`, the applied `limit`, `maxLimit`, and a `note` explaining how to obtain more groups. If there are more than 100 groups, use a smaller CSV; this tool has no filter or pagination parameter.
 
