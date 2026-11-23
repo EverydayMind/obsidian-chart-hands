@@ -133,3 +133,14 @@ test('currency symbol with a scale suffix: one unit, prefix display, additive, m
     assert.equal(indicator.data[0].number.prefix, '$');
     assert.equal(indicator.data[0].number.suffix, 'K');
 });
+
+test('tie-breaks and label sorts use one fixed collation, not the machine locale', () => {
+    const fs = require('node:fs');
+    for (const file of fs.readdirSync(path.join(__dirname, '..', 'src')).filter(f => f.endsWith('.js'))) {
+        const text = fs.readFileSync(path.join(__dirname, '..', 'src', file), 'utf8');
+        assert.equal(/\.localeCompare\(/.test(text), false, `${file} uses locale-dependent localeCompare`);
+    }
+    const ds = parseDataset('label\ngrand total\n계\nsum\n소계\nB\nA');
+    const groups = analyze(ds, { type: 'aggregate', columns: ['label'], function: 'count', sort: 'desc' }).groups.map(g => g.group);
+    assert.deepEqual(groups, ['계', '소계', 'A', 'B', 'grand total', 'sum']);
+});

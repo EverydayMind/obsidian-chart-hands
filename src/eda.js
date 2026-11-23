@@ -34,6 +34,10 @@ export function parseDataset(source) {
     if (rows.some(r => r.length !== headers.length)) throw new Error('CSV rows must have the same number of fields as the header.');
     return { headers, rows };
 }
+// One fixed collation for tie-breaks and label sorts, so results do not depend on the machine's locale
+// (String.prototype.localeCompare without a locale follows the OS: ko-KR and en-US order Hangul and Latin differently).
+export const compareText = new Intl.Collator('ko').compare;
+export const compareNatural = new Intl.Collator('ko', { numeric: true }).compare;
 const missing = value => value.trim() === '';
 const withAxisUnit = (name, unit, locale) => unit ? `${name}${locale !== 'ko' && /[A-Za-z0-9)]$/.test(name) ? ' ' : ''}(${unit})` : name;
 const NUM = '(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d*)?|\\.\\d+)';
@@ -129,7 +133,7 @@ export function profile(dataset, from = 0, limit = 10) {
         const numeric = facts.strictNumeric;
         const counts = new Map();
         for (const v of values) counts.set(v, (counts.get(v) || 0) + 1);
-        const top = [...counts].sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0])).slice(0, 5).map(([value, count]) => ({ value: [...value.slice(0, 80)].map(c => c.charCodeAt(0) < 32 ? ' ' : c).join(''), count }));
+        const top = [...counts].sort((a, b) => b[1] - a[1] || compareText(a[0], b[0])).slice(0, 5).map(([value, count]) => ({ value: [...value.slice(0, 80)].map(c => c.charCodeAt(0) < 32 ? ' ' : c).join(''), count }));
         return { name, type: numeric ? 'number' : values.length ? 'text' : 'empty', missing: dataset.rows.length - values.length, missingRate: dataset.rows.length ? (dataset.rows.length - values.length) / dataset.rows.length : 0, distinct: counts.size, ...(numeric ? { statistics: summary(nums) } : { top }), ...(facts.units.length === 1 && facts.units[0] ? { unit: facts.units[0] } : {}), ...(facts.notation.length ? { notation: facts.notation } : {}), ...(facts.units.length > 1 ? { mixedUnits: facts.units } : {}), ...(facts.leadingZeros ? { leadingZeros: true } : {}) };
     }) };
 }
@@ -178,9 +182,9 @@ function aggregate(dataset, spec, locale) {
     const total = additive ? list.reduce((a, g) => a + g.value, 0) : null;
     const allValues = additive ? [] : [...groups.values()].flatMap(group => group.values);
     const overall = allValues.length ? reduce({ values: allValues }) : null;
-    if (sort === 'desc') list.sort((a, b) => b.value - a.value || a.group.localeCompare(b.group));
-    else if (sort === 'asc') list.sort((a, b) => a.value - b.value || a.group.localeCompare(b.group));
-    else if (sort === 'label') list.sort((a, b) => a.group.localeCompare(b.group, undefined, { numeric: true }));
+    if (sort === 'desc') list.sort((a, b) => b.value - a.value || compareText(a.group, b.group));
+    else if (sort === 'asc') list.sort((a, b) => a.value - b.value || compareText(a.group, b.group));
+    else if (sort === 'label') list.sort((a, b) => compareNatural(a.group, b.group));
     const finite = n => Number.isFinite(n) ? n : null;
     list = list.map((g, i) => {
         const result = { ...g, value: finite(g.value) };
@@ -254,8 +258,8 @@ function compare(dataset, spec, locale) {
         return { ...(periodMode ? { base: a, target: b } : { value: a, reference: b }), difference, [relative]: difference === null || !denominator ? null : finite(periodMode ? difference / Math.abs(denominator) : a / denominator) };
     };
     let list = common.map(g => ({ group: g.name, ...result(reduce(g.a), reduce(g.b)) }));
-    if (sort === 'label') list.sort((a, b) => a.group.localeCompare(b.group, undefined, { numeric: true }));
-    else if (sort !== 'original') list.sort((a, b) => a[rankedBy] === null ? (b[rankedBy] === null ? a.group.localeCompare(b.group) : 1) : b[rankedBy] === null ? -1 : (sort === 'desc' ? b[rankedBy] - a[rankedBy] : a[rankedBy] - b[rankedBy]) || a.group.localeCompare(b.group));
+    if (sort === 'label') list.sort((a, b) => compareNatural(a.group, b.group));
+    else if (sort !== 'original') list.sort((a, b) => a[rankedBy] === null ? (b[rankedBy] === null ? compareText(a.group, b.group) : 1) : b[rankedBy] === null ? -1 : (sort === 'desc' ? b[rankedBy] - a[rankedBy] : a[rankedBy] - b[rankedBy]) || compareText(a.group, b.group));
     const allA = common.flatMap(g => g.a), allB = common.flatMap(g => g.b);
     const overall = { ...result(allA.length ? reduce(allA) : null, allB.length ? reduce(allB) : null), method: fn === 'sum' ? 'sum of common groups' : 'mean of rows in common groups' };
     const shown = list.slice(0, limit), notes = summaryNotes(list, cols[0], locale);
@@ -354,7 +358,7 @@ export function analyze(dataset, spec, locale = 'ko') {
             selected.sort((a, b) => {
                 const x = a.row[sortIndex], y = b.row[sortIndex];
                 if (missing(x) || missing(y)) return missing(x) === missing(y) ? a.rowNumber - b.rowNumber : missing(x) ? 1 : -1;
-                const comparison = numeric ? parsed.get(a) - parsed.get(b) : x.trim().localeCompare(y.trim());
+                const comparison = numeric ? parsed.get(a) - parsed.get(b) : compareText(x.trim(), y.trim());
                 return (direction === 'desc' ? -comparison : comparison) || a.rowNumber - b.rowNumber;
             });
         }

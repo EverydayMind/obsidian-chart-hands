@@ -1,4 +1,4 @@
-import { analyze, parseCell, profile, selectRows } from './eda.js';
+import { analyze, compareNatural, compareText, parseCell, profile, selectRows } from './eda.js';
 import { periodKey } from './period.js';
 import { inspectColumn } from './column-roles.js';
 
@@ -515,7 +515,7 @@ function aggregateFunctionForUnit(unit) {
 }
 
 function periodLabelsInChronologicalOrder(distinctValues, keyMap) {
-    const sorted = [...distinctValues].sort((a, b) => a.localeCompare(b, undefined, { numeric: true }));
+    const sorted = [...distinctValues].sort((a, b) => compareNatural(a, b));
     for (let i = 1; i < sorted.length; i++) {
         if (keyMap.get(sorted[i]) <= keyMap.get(sorted[i - 1])) return false;
     }
@@ -1185,8 +1185,8 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                         const shownLimit = compareSpec.limit ?? 60;
                         const displayed = comp.groups.slice(0, shownLimit);
                         const filtered = reqHighlight.kind === 'decrease'
-                            ? displayed.filter(g => g.difference !== null && g.difference < 0).sort((a, b) => a.difference - b.difference || a.group.localeCompare(b.group))
-                            : displayed.filter(g => g.difference !== null && g.difference > 0).sort((a, b) => b.difference - a.difference || a.group.localeCompare(b.group));
+                            ? displayed.filter(g => g.difference !== null && g.difference < 0).sort((a, b) => a.difference - b.difference || compareText(a.group, b.group))
+                            : displayed.filter(g => g.difference !== null && g.difference > 0).sort((a, b) => b.difference - a.difference || compareText(a.group, b.group));
                         const picked = filtered.slice(0, reqHighlight.count).map(g => g.group);
                         parsed.entries.highlight.selected = picked.length;
                         if (picked.length > 0) {
