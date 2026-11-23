@@ -389,6 +389,8 @@ export function validateChartSource(args, locale = 'ko') {
 export function resolveChartSource(dataset, args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = validateChartSource(args, locale);
+    if (source.x !== undefined && !['scatter', 'bubble'].includes(args.type)) fail('source.x는 scatter와 bubble에만 씁니다. 범주 열은 source.labels를 쓰세요.', 'source.x is only for scatter and bubble; use source.labels for categories.');
+    if (args.type !== 'bubble' && args.series.some(s => s.sizeColumn !== undefined)) fail('sizeColumn은 bubble에만 씁니다.', 'sizeColumn is only for bubble.');
     let selected = selectRows(dataset, source.filter, locale, 'source.filter');
     const selectedRows = selected.map(item => item.row), units = {};
     const numericIndex = name => {
@@ -435,6 +437,26 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
         const { column: name, sizeColumn, ...rest } = entry;
         return { ...rest, values: column(name, 'series[].column', true), ...(points ? { x } : {}), ...(args.type === 'bubble' ? { size: column(sizeColumn, 'series[].sizeColumn', true) } : {}) };
     });
+    const seriesUnits = args.series.map(s => units[s.column] || '');
+    for (const secondary of [false, true]) {
+        const entries = args.series.filter(s => Boolean(s.secondary) === secondary);
+        if (new Set(entries.map(s => units[s.column] || '')).size > 1) fail(`같은 축에 단위가 다른 계열: ${entries.map(s => `${s.column}(${units[s.column] || '단위 없음'})`).join(', ')} — 하나를 secondary로 옮기세요.`, `Series on the same axis have different units: ${entries.map(s => `${s.column}(${units[s.column] || 'no unit'})`).join(', ')}; move one to secondary.`);
+    }
+    if (args.unit !== undefined) for (const s of args.series) if (units[s.column] && units[s.column] !== args.unit) fail(`unit "${args.unit}"이 열 ${s.column}의 단위 "${units[s.column]}"과 다릅니다. 표시 단위만 바꾸는 환산은 하지 않습니다.`, `unit "${args.unit}" differs from column ${s.column} unit "${units[s.column]}"; units are not converted.`);
+    if (args.unit === undefined && new Set(seriesUnits).size === 1 && seriesUnits[0]) resolved.unit = seriesUnits[0];
+    const normalize = (s, max) => { const v = String(s).replace(/\p{Cc}/gu, ' '); return v.length > max ? `${v.slice(0, max - 1)}…` : v; };
+    const axisTitle = s => normalize(`${s.column}${units[s.column] ? `(${units[s.column]})` : ''}`, 100);
+    if (!['pie', 'donut', 'treemap', 'sunburst', 'radar', 'indicator', 'funnel', 'heatmap'].includes(args.type)) {
+        const key = ['barh', 'histogram'].includes(args.type) ? 'x_title' : 'y_title';
+        if (!resolved[key]) resolved[key] = axisTitle(args.series.find(s => !s.secondary) || args.series[0]);
+        const secondary = args.series.find(s => s.secondary);
+        if (secondary && !resolved.y2_title) resolved.y2_title = axisTitle(secondary);
+        if (['scatter', 'bubble'].includes(args.type) && !resolved.x_title) resolved.x_title = normalize(`${source.x}${units[source.x] ? `(${units[source.x]})` : ''}`, 100);
+    }
+    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) {
+        const filter = source.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+        resolved.caption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
+    }
     if (Object.keys(units).length) Object.defineProperty(resolved, 'sourceUnits', { value: units, enumerable: false });
     return resolved;
 }

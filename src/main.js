@@ -2,7 +2,7 @@ import * as obsidian from 'obsidian';
 import { parseDataset, profile, analyze, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
 import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-table.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
-import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition } from './chart-builder.js';
+import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 import { getLocale, initLocale } from './locale.js';
 
@@ -575,7 +575,11 @@ const tools = [
                 stacked: { type: 'boolean', description: 'Stack several bar, area or histogram series instead of grouping or overlaying them.' },
                 bins: { type: 'integer', minimum: 1, maximum: 200, description: 'histogram: the maximum number of bins.' },
                 range_slider: { type: 'boolean', description: 'line, area, bar, combo, scatter, bubble: add a range slider under the x axis for long series.' },
-                style: { type: 'string', enum: ['clean', 'plain'], description: 'clean (default) applies the palette and tidy layout; plain adds nothing beyond the data.' }
+                style: { type: 'string', enum: ['clean', 'plain', 'report', 'print', 'slides'], description: 'Chart presentation style.' },
+                target: { type: 'object', additionalProperties: false, required: ['value'], properties: { value: { type: 'number' }, label: { type: 'string', maxLength: 100 }, series: { type: 'integer', minimum: 0 } } },
+                highlight: { type: 'object', additionalProperties: false, properties: { labels: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string' } }, top: { type: 'integer', minimum: 1, maximum: 50 }, bottom: { type: 'integer', minimum: 1, maximum: 50 }, below_target: { type: 'boolean' }, above_target: { type: 'boolean' } } },
+                unit: { type: 'string', maxLength: 12, description: 'Display unit.' },
+                caption: { type: 'string', maxLength: 200, description: 'Source or other caption below the chart.' }
             }
         },
         annotations: { readOnlyHint: true },
@@ -674,7 +678,7 @@ const lintChart = (source, json, problems) => {
     };
     const lines = source.split(/\r?\n/);
     lines.forEach((line, index) => {
-        if (UNQUOTED_HEX.test(line)) {
+        if (!/^\s*#/.test(line) && UNQUOTED_HEX.test(line)) {
             add(`Line ${index + 1}: unquoted colour. YAML reads # as a comment, so the value becomes null. Write it in quotes, e.g. color: "#2563EB".`);
         }
     });
@@ -837,7 +841,7 @@ const normalizeAgentPath = (value) => {
     }
     return parts.filter(part => part && part !== '.').join('/');
 };
-const createAgentProvider = (plugin, locale = getLocale()) => {
+const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Date() } = {}) => {
     const descriptor = {
         provider: {
             id: plugin.manifest.id,
@@ -919,6 +923,11 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
         build_chart: async (args) => {
             let definition;
             let source;
+            let provenance;
+            let ignoredArgs;
+            const validationArgs = args.source ? { ...args, source: { ...args.source, x: undefined }, series: args.series?.map(s => ({ ...s, sizeColumn: undefined })) } : args;
+            try { ignoredArgs = validateBuildArgs(validationArgs, locale); }
+            catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
             if (Object.hasOwn(args, 'source')) {
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
@@ -928,18 +937,27 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const labels = args.labels ?? args.series[0].x ?? [];
                 source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
+                const date = now();
+                const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+                const details = [`# chart-hands source: ${path}${dataset.table ? ` table ${dataset.table.index}` : ''}`, `rows ${source.rows} of ${dataset.rows.length}`];
+                if (requestedSource.filter) details.push(`filter ${requestedSource.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
+                if (requestedSource.sort) details.push(`sort ${requestedSource.sort.column} ${requestedSource.sort.order || 'desc'}`);
+                if (requestedSource.limit !== undefined) details.push(`limit ${requestedSource.limit}`);
+                details.push(`built ${day}`);
+                const line = details.join(' · ').replace(/\p{Cc}/gu, ' ');
+                provenance = line.length > 300 ? `${line.slice(0, 299)}…` : line;
             } else if (Array.isArray(args.series) && args.series.some(s => s && (Object.hasOwn(s, 'column') || Object.hasOwn(s, 'sizeColumn')))) {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요.' : 'series[].column/sizeColumn requires source. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. For direct input use values:[1,2] instead of column.', true);
             } else if (!Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || !Array.isArray(s.values) || !s.values.length)) {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'source가 없으면 각 series에 values 숫자 배열이 필요합니다. 예: labels:["A"],series:[{values:[1]}]. CSV는 source와 series[].column을 주세요.' : 'Without source each series requires a numeric values array. Example: labels:["A"],series:[{values:[1]}]. For CSV use source and series[].column.', true);
             }
             try {
-                definition = buildChartDefinition(args);
+                definition = buildChartDefinition(args, { locale });
             }
             catch (error) {
                 throw new AgentToolError('INVALID_ARGUMENT', error.message, true);
             }
-            const yaml = obsidian.stringifyYaml(definition).trimEnd();
+            const yaml = `${provenance ? `${provenance}\n` : ''}${obsidian.stringifyYaml(definition).trimEnd()}`;
             const chart = analyzeChart(yaml);
             const staticSource = JSON.stringify(args);
             let staticBlock;
@@ -950,6 +968,7 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
                 }
             }
             catch { /* The interactive chart can support inputs that the static renderer cannot. */ }
+            const staticBlockMissing = staticBlock ? undefined : staticSource.length > 2000 ? 'too_long' : 'unsupported';
             const notes = [];
             if (SINGLE_SERIES_TYPES.includes(args.type) && Array.isArray(args.series) && args.series.length > 1) {
                 notes.push(`A ${args.type} chart shows one series; only the first was used.`);
@@ -958,13 +977,15 @@ const createAgentProvider = (plugin, locale = getLocale()) => {
                 chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
                 ...problemLines(chart.problems),
                 ...notes,
+                ...(ignoredArgs.length ? [`${locale === 'ko' ? '쓰이지 않아 무시한 인자' : 'Ignored unused arguments'}: ${ignoredArgs.join(', ')}`] : []),
+                ...(staticBlockMissing ? [locale === 'ko' ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${source ? 'source.limit을' : 'labels·series 값 개수를'} 줄이세요.` : '지원하지 않는 입력입니다.'}` : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${source ? 'source.limit' : 'the number of labels and series values'}.` : 'unsupported input.'}`] : []),
                 '```plotly',
                 yaml,
                 '```'
             ].join('\n');
             return {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : {}), ...(source ? { source } : {}) },
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}) },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
         },

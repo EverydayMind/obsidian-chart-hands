@@ -15,7 +15,7 @@ Module._load = function (request, ...rest) {
         return {
             Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'ko' },
             // An unquoted # starts a YAML comment, which leaves the value null.
-            parseYaml: (text) => JSON.parse(text.replace(/#[0-9a-fA-F]{3,8}/g, 'null')),
+            parseYaml: (text) => JSON.parse(text.replace(/^\s*#.*$/gm, '').replace(/#[0-9a-fA-F]{3,8}/g, 'null')),
             stringifyYaml: (value) => JSON.stringify(value, null, 2) + '\n'
         };
     }

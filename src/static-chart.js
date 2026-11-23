@@ -2,7 +2,7 @@ import { buildChartDefinition, CHART_TYPES } from './chart-builder.js';
 
 // A distinct internal API for frozen report inputs, not the Markdown renderer.
 export const STATIC_CHART_API = Symbol.for('dev.chart-hands.static-chart-v1');
-const TOP_KEYS = new Set(['type', 'title', 'labels', 'parents', 'measure', 'series', 'x_title', 'y_title', 'y2_title', 'stacked', 'bins', 'range_slider', 'style']);
+const TOP_KEYS = new Set(['type', 'title', 'labels', 'parents', 'measure', 'series', 'x_title', 'y_title', 'y2_title', 'stacked', 'bins', 'range_slider', 'style', 'target', 'highlight', 'unit', 'caption']);
 const SERIES_KEYS = new Set(['name', 'values', 'x', 'size', 'text', 'kind', 'secondary']);
 const text = (value, max) => typeof value === 'string' && value.length <= max
     && !Array.from(value).some(char => char.codePointAt(0) < 32 || char.codePointAt(0) === 127);
@@ -20,14 +20,17 @@ export function parseStaticChart(source) {
     let args;
     try { args = JSON.parse(source); } catch { return invalid(); }
     if (!object(args, TOP_KEYS) || !CHART_TYPES.includes(args.type)) return invalid();
-    for (const key of ['title', 'x_title', 'y_title', 'y2_title']) {
-        if (args[key] !== undefined && !text(args[key], key === 'title' ? 200 : 100)) return invalid();
+    const strict = ['target', 'highlight', 'unit', 'caption'].some(key => Object.hasOwn(args, key)) || ['report', 'print', 'slides'].includes(args.style);
+    for (const key of ['title', 'x_title', 'y_title', 'y2_title', 'unit', 'caption']) {
+        if (args[key] !== undefined && !text(args[key], key === 'unit' ? 12 : ['title', 'caption'].includes(key) ? 200 : 100)) return invalid();
     }
+    if (args.target !== undefined && (!object(args.target, new Set(['value', 'label', 'series'])) || args.target.label !== undefined && !text(args.target.label, 100))) return invalid();
+    if (args.highlight !== undefined && (!object(args.highlight, new Set(['labels', 'top', 'bottom', 'below_target', 'above_target'])) || args.highlight.labels !== undefined && !stringArray(args.highlight.labels, 50, 100))) return invalid();
     for (const key of ['labels', 'parents', 'measure']) {
         if (args[key] !== undefined && !stringArray(args[key], 200, 100)) return invalid();
     }
     if (args.measure && args.measure.some(item => !['relative', 'total', 'absolute'].includes(item))) return invalid();
-    if (args.style !== undefined && !['clean', 'plain'].includes(args.style)) return invalid();
+    if (args.style !== undefined && !['clean', 'plain', 'report', 'print', 'slides'].includes(args.style)) return invalid();
     for (const key of ['stacked', 'range_slider']) if (args[key] !== undefined && typeof args[key] !== 'boolean') return invalid();
     if (args.bins !== undefined && (!Number.isInteger(args.bins) || args.bins < 1 || args.bins > 200)) return invalid();
     if (!Array.isArray(args.series) || args.series.length < 1 || args.series.length > 12) return invalid();
@@ -42,13 +45,15 @@ export function parseStaticChart(source) {
         if (series.secondary !== undefined && typeof series.secondary !== 'boolean') return invalid();
     }
     if (total > 10000) return invalid();
-    for (const key of ['title', 'x_title', 'y_title', 'y2_title']) if (args[key] !== undefined) args[key] = literal(args[key]);
+    for (const key of ['title', 'x_title', 'y_title', 'y2_title', 'unit', 'caption']) if (args[key] !== undefined) args[key] = literal(args[key]);
+    if (args.target?.label !== undefined) args.target.label = literal(args.target.label);
+    if (args.highlight?.labels) args.highlight.labels = args.highlight.labels.map(literal);
     for (const key of ['labels', 'parents']) if (args[key] !== undefined) args[key] = args[key].map(literal);
     for (const series of args.series) {
         if (series.name !== undefined) series.name = literal(series.name);
         if (series.text !== undefined) series.text = series.text.map(literal);
     }
-    return buildChartDefinition(args);
+    return buildChartDefinition(args, { mode: strict ? 'strict' : 'legacy' });
 }
 
 /** Keep the caller responsive even if Plotly or its loader never settles. */

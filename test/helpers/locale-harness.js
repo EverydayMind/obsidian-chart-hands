@@ -64,7 +64,7 @@ function loadHarness(code, locale) {
         },
         Notice: class { constructor(...values) { record('notice', ...values); } hide() {} },
         MarkdownRenderChild: class {},
-        parseYaml: JSON.parse, stringifyYaml: value => JSON.stringify(value, null, 2) + '\n'
+        parseYaml: text => JSON.parse(text.replace(/^\s*#.*$/gm, '')), stringifyYaml: value => JSON.stringify(value, null, 2) + '\n'
     };
     const module = { exports: {} };
     const context = vm.createContext({ module, exports: module.exports, window: { setTimeout: fn => fn() },
@@ -95,6 +95,7 @@ const fixtureFiles = {
     'compare.md': '| label | value | reference |\n|---|---|---|\n| total | 1 | 2 |',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
     'empty.md': '', 'file.pdf': 'synthetic',
+    'large.csv': 'name,value\n' + Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n'),
     'table.md': '| amount | label |\n|---|---|\n' + ['합계', '총계', '소계', '계', '합', '총합', 'total', 'subtotal', 'grand total', 'sum'].map((v, i) => `| ${i % 2 ? '1원' : '2명'} | ${v} |`).join('\n'),
     'invalid.md': '| x | x |\n|---|---|',
     'many.md': Array(1001).fill('| x |\n|---|\n').join('\n'),
@@ -140,7 +141,7 @@ async function captureExtended(code, locale) {
     plugin.ensureLibraries = async () => ({});
     for (const source of ['null', '{"other":1}']) await h.processors.plotly(source, el, { addChild() {} });
     for (const child of el.children) if (child.textContent) h.ui.push({ kind: 'render-error', values: [child.textContent] });
-    const p = h.exports.createAgentProvider({ manifest: plugin.manifest, app: plugin.app }, locale);
+    const p = h.exports.createAgentProvider({ manifest: plugin.manifest, app: plugin.app }, locale, { now: () => new Date(2026, 10, 23) });
     const descriptor = await p.describe();
     const calls = [];
     const call = async (name, args, ctx) => {
@@ -189,13 +190,31 @@ async function captureExtended(code, locale) {
     for (const topic of [...topics, 'invalid', '']) await call('get_chart_guide', { topic });
     const types = descriptor.tools.find(t => t.name === 'build_chart').inputSchema.properties.type.enum;
     for (const type of types) {
-        const args = { type, labels: ['A', 'B'], series: [{ name: 'Series', values: [1, 2], x: [1, 2], size: [2, 3] }] };
+        const args = { type, labels: ['A', 'B'], series: [{ name: 'Series', values: [1, 2] }] };
+        if (['scatter', 'bubble'].includes(type)) args.series[0].x = [1, 2];
+        if (type === 'bubble') args.series[0].size = [2, 3];
         if (['treemap', 'sunburst'].includes(type)) args.parents = ['', 'A'];
         await call('build_chart', args);
     }
     for (const args of [{ type: 'bar', labels: [], series: [] }, { type: 'invalid', series: [] },
         { type: 'bar', labels: ['A'], series: [{ values: [] }] },
         { type: 'pie', labels: ['A'], series: [{ values: [1] }, { values: [2] }] }]) await call('build_chart', args);
+    {
+        const bar = { type: 'bar', labels: ['A'], series: [{ values: [1] }] };
+        for (const args of [
+            { ...bar, bins: 2 }, { ...bar, target: {} }, { ...bar, highlight: {} }, { ...bar, highlight: { labels: ['missing'] } },
+            { type: 'combo', labels: ['A'], series: [{ values: [1] }, { values: [2], secondary: true }], target: { value: 1, series: 1 }, highlight: { below_target: true } },
+            { ...bar, y2_title: 'unused' }, { ...bar, style: 'report', target: { value: 1 } },
+            { ...bar, caption: 'a'.repeat(199), labels: Array(200).fill('long category name'), series: [{ values: Array(200).fill(1) }] },
+            { type: 'bar', source: { path: 'large.csv', labels: 'name' }, series: [{ column: 'value' }] },
+            { ...bar, title: 'a'.repeat(201) },
+            { type: 'bar', source: { path: 'data.csv', labels: 'month', x: 'value' }, series: [{ column: 'value' }] },
+            { type: 'bar', source: { path: 'data.csv', labels: 'month' }, series: [{ column: 'value', sizeColumn: 'other' }] },
+            { type: 'bar', source: { path: 'compare-units.csv', labels: 'label' }, series: [{ column: 'value' }, { column: 'reference' }] },
+            { type: 'bar', unit: 'wrong', source: { path: 'compare-units.csv', labels: 'label' }, series: [{ column: 'value' }] },
+            { type: 'bar', style: 'report', source: { path: 'data.csv', labels: 'month', filter: [{ column: 'value', op: 'gt', value: '0' }] }, series: [{ column: 'value' }] }
+        ]) await call('build_chart', args);
+    }
     {
         await call('eda_profile', { path: 'absent/xy.csv' });
         await call('eda_analyze', { path: 'data.csv', analysis: { type: 'rows', columns: ['value'], limit: 200 } });

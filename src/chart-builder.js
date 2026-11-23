@@ -16,6 +16,7 @@ const RANGE_SLIDER = ['line', 'area', 'bar', 'combo', 'scatter', 'bubble'];
 const MEASURES = ['relative', 'total', 'absolute'];
 
 const SERIES_COLORS = [PALETTE.primary, PALETTE.series2, PALETTE.series3, PALETTE.highlight, PALETTE.neutral];
+const PRINT_COLORS = ['#111827', '#4B5563', '#9CA3AF', '#D1D5DB', '#6B7280'];
 const LINE_DASHES = ['solid', 'dash', 'dot', 'dashdot'];
 const MARKER_SYMBOLS = ['circle', 'square', 'diamond', 'triangle-up'];
 const SEQUENTIAL_SCALE = [[0, '#EFF6FF'], [0.5, '#60A5FA'], [1, '#1E3A8A']];
@@ -26,6 +27,49 @@ const BUBBLE_MAX_PX = 40;
 const fail = (message) => {
     throw new Error(message);
 };
+export function validateBuildArgs(args, locale = 'ko') {
+    const { type, series = [] } = args;
+    const error = (ko, en) => fail(locale === 'ko' ? ko : en);
+    const reject = (key, allowed) => error(`${key}은 ${allowed}에만 쓸 수 있습니다. 해당 유형으로 바꾸거나 인자를 빼세요.`, `${key} is only supported for ${allowed}; change the type or omit it.`);
+    if (args.style !== undefined && !['clean', 'plain', 'report', 'print', 'slides'].includes(args.style)) reject('style', 'clean, plain, report, print, slides');
+    for (const [key, types] of [['parents', ['treemap', 'sunburst']], ['measure', ['waterfall']], ['bins', ['histogram']]]) if (args[key] !== undefined && !types.includes(type)) reject(key, types.join(', '));
+    if (args.range_slider && !RANGE_SLIDER.includes(type)) reject('range_slider', RANGE_SLIDER.join(', '));
+    if (args.source?.x !== undefined && !POINTS.includes(type)) reject('source.x', 'scatter, bubble; source.labels');
+    series.forEach((s, i) => {
+        if (!s) return;
+        for (const [key, types] of [['x', POINTS], ['size', ['bubble']], ['sizeColumn', ['bubble']], ['kind', ['combo']]]) if (s[key] !== undefined && !types.includes(type)) reject(`series[${i}].${key}`, types.join(', '));
+        if (s.secondary && !SECONDARY_AXIS.includes(type)) reject(`series[${i}].secondary`, SECONDARY_AXIS.join(', '));
+    });
+    if (args.stacked) {
+        const bars = series.filter((s, i) => type === 'combo' ? (s.kind || (i ? 'line' : 'bar')) === 'bar' : ['bar', 'barh'].includes(type)).length;
+        if (!(type === 'area' || type === 'histogram' && series.length >= 2 || ['bar', 'barh', 'combo'].includes(type) && (bars >= 2 || type === 'combo' && series.some(s => s.kind === 'area')))) reject('stacked', 'bar/barh/combo with two bars, combo with area, area, or histogram with two series');
+    }
+    const ignored = [];
+    if (NO_AXES.includes(type)) for (const key of ['x_title', 'y_title']) if (args[key] !== undefined) ignored.push(key);
+    if (type === 'funnel' && args.x_title !== undefined) ignored.push('x_title');
+    if (args.y2_title !== undefined && !series.some(s => s?.secondary)) ignored.push('y2_title');
+    if (['scatter', 'bubble', 'histogram', 'box', 'violin', 'indicator'].includes(type)) {
+        if (args.labels !== undefined) ignored.push('labels');
+        if (args.source?.labels !== undefined) ignored.push('source.labels');
+    }
+    if (!POINTS.includes(type)) series.forEach((s, i) => { if (s?.text?.length) ignored.push(`series[${i}].text`); });
+    for (const [key, max] of [['unit', 12], ['caption', 200]]) if (args[key] !== undefined && (typeof args[key] !== 'string' || args[key].length > max || /\p{Cc}/u.test(args[key]))) reject(key, `string ≤ ${max}`);
+    if (args.target !== undefined) {
+        if (!['line', 'area', 'bar', 'barh', 'combo'].includes(type)) reject('target', 'line, area, bar, barh, combo');
+        const t = args.target;
+        if (!t || typeof t !== 'object' || Array.isArray(t) || Object.keys(t).some(k => !['value', 'label', 'series'].includes(k)) || !Number.isFinite(t.value) || t.label !== undefined && (typeof t.label !== 'string' || t.label.length > 100 || /\p{Cc}/u.test(t.label)) || t.series !== undefined && (!Number.isInteger(t.series) || t.series < 0 || t.series >= series.length) || series.some(s => s.secondary) && t.series === undefined) error('target의 값 또는 계열이 잘못되었습니다. 보조축이 있으면 target.series를 지정하세요.', 'Invalid target value or series; specify target.series when a secondary axis is present.');
+    }
+    if (args.highlight !== undefined) {
+        const h = args.highlight, keys = h && typeof h === 'object' && !Array.isArray(h) ? Object.keys(h) : [];
+        const k = keys[0];
+        if (keys.length !== 1 || !['labels', 'top', 'bottom', 'below_target', 'above_target'].includes(k) || (k === 'labels' ? !Array.isArray(h[k]) || !h[k].length || h[k].length > 50 || h[k].some(v => typeof v !== 'string') : ['top', 'bottom'].includes(k) ? !Number.isInteger(h[k]) || h[k] < 1 || h[k] > 50 : h[k] !== true || !args.target)) error('highlight 선택자가 잘못되었습니다. labels, top, bottom, below_target, above_target 중 하나를 지정하세요.', 'Invalid highlight selector; specify exactly one of labels, top, bottom, below_target or above_target.');
+        if (k === 'labels' && Array.isArray(args.labels) && h.labels.some(v => !args.labels.includes(v))) error(`highlight.labels는 실제 labels에서 선택하세요: ${args.labels.join(', ')}`, `Choose highlight.labels from the actual labels: ${args.labels.join(', ')}`);
+        const bar = type === 'combo' ? series.findIndex((s, i) => (s.kind || (i ? 'line' : 'bar')) === 'bar') : 0;
+        if (!(type === 'combo' && bar >= 0 || ['bar', 'barh'].includes(type) && series.length === 1)) reject('highlight', 'single-series bar, barh, or combo with a bar');
+        if (['below_target', 'above_target'].includes(k) && (args.target.series ?? 0) !== bar) error('목표를 단 계열과 강조할 막대 계열이 다릅니다.', 'The target series differs from the highlighted bar series.');
+    }
+    return ignored;
+}
 // CSV blanks are gaps, never zeroes.
 const isNumberList = (value) => Array.isArray(value) && value.every(item => item === null || typeof item === 'number' && Number.isFinite(item));
 const translucent = (hex, alpha) => {
@@ -101,7 +145,8 @@ const checkSeries = (args, labels) => {
 const buildTrace = (args, labels, entry, index, count, clean) => {
     const { type } = args;
     const name = entry.name || (count > 1 || type === 'box' || type === 'violin' ? `Series ${index + 1}` : undefined);
-    const color = SERIES_COLORS[index % SERIES_COLORS.length];
+    const colors = args.style === 'print' ? PRINT_COLORS : SERIES_COLORS;
+    const color = colors[index % colors.length];
     const kind = type === 'combo' ? (entry.kind || (index === 0 ? 'bar' : 'line')) : type;
     const trace = {};
     if (kind === 'line' || kind === 'area') {
@@ -214,7 +259,8 @@ const buildPie = (args, labels, entry, clean) => {
         trace.name = entry.name;
     }
     if (clean) {
-        trace.marker = { colors: labels.map((_, index) => SERIES_COLORS[index % SERIES_COLORS.length]), line: { color: '#FFFFFF', width: 2 } };
+        const colors = args.style === 'print' ? PRINT_COLORS : SERIES_COLORS;
+        trace.marker = { colors: labels.map((_, index) => colors[index % colors.length]), line: { color: '#FFFFFF', width: 2 } };
         trace.textinfo = 'label+percent';
         trace.sort = false;
     }
@@ -257,9 +303,9 @@ const buildWaterfall = (args, labels, entry, clean) => {
         trace.texttemplate = measure.map(item => (item === 'relative' ? '%{delta:+,.12~g}' : '%{final:,.12~g}'));
         trace.textposition = 'outside';
         trace.cliponaxis = false;
-        trace.increasing = { marker: { color: PALETTE.series2 } };
-        trace.decreasing = { marker: { color: PALETTE.highlight } };
-        trace.totals = { marker: { color: PALETTE.primary } };
+        trace.increasing = { marker: { color: args.style === 'print' ? PRINT_COLORS[1] : PALETTE.series2 } };
+        trace.decreasing = { marker: { color: args.style === 'print' ? PRINT_COLORS[2] : PALETTE.highlight } };
+        trace.totals = { marker: { color: args.style === 'print' ? PRINT_COLORS[0] : PALETTE.primary } };
         trace.connector = { line: { color: PALETTE.neutral, dash: 'dot', width: 1 } };
     }
     return trace;
@@ -390,8 +436,9 @@ const buildLayout = (args, data, clean) => {
 };
 
 // Returns { data, layout, config }. Throws an Error with a message the agent can act on.
-export const buildChartDefinition = (args) => {
+export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = {}) => {
     const type = args.type;
+    if (mode !== 'legacy') validateBuildArgs(args, locale);
     if (!CHART_TYPES.includes(type)) {
         fail(`type must be one of: ${CHART_TYPES.join(', ')}.`);
     }
@@ -422,5 +469,44 @@ export const buildChartDefinition = (args) => {
     else {
         data = series.map((entry, index) => buildTrace(args, labels, entry, index, series.length, clean));
     }
-    return { data, layout: buildLayout(args, data, clean), config };
+    const layout = buildLayout(args, data, clean);
+    if (['report', 'print', 'slides'].includes(args.style)) {
+        layout.font = { ...layout.font, family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif', size: args.style === 'slides' ? 16 : 13 };
+        if (layout.title) Object.assign(layout.title, { x: 0, xanchor: 'left', font: { color: PALETTE.title, size: args.style === 'slides' ? 26 : 20 } });
+        if (args.style === 'print') {
+            layout.colorway = PRINT_COLORS;
+            layout.paper_bgcolor = layout.plot_bgcolor = '#FFFFFF';
+            if (type === 'heatmap') data[0].colorscale = [[0, '#F9FAFB'], [1, '#111827']];
+            data.forEach((trace, i) => { if (trace.type === 'bar') trace.marker = { ...trace.marker, color: layout.colorway[i % 5], ...(data.filter(t => t.type === 'bar').length > 1 ? { pattern: { shape: ['', '/', 'x', '.'][i % 4] } } : {}) }; });
+        }
+    }
+    if (args.unit) {
+        const prefix = /^[₩$€£¥]$/.test(args.unit);
+        const format = value => prefix ? `${args.unit}${value}` : `${value}${args.unit}`;
+        data.forEach(trace => {
+            if (trace.type === 'bar' && trace.texttemplate) trace.texttemplate = format(trace.texttemplate);
+            if (trace.type === 'funnel') trace.texttemplate = `${format('%{value:,.12~g}')}<br>%{percentInitial}`;
+            if (trace.type === 'indicator') trace.number = { ...trace.number, [prefix ? 'prefix' : 'suffix']: args.unit };
+        });
+    }
+    if (args.target) {
+        const t = args.target, horizontal = type === 'barh', axis = series[t.series ?? 0]?.secondary ? 'y2' : 'y';
+        const line = { dash: 'dot', color: args.style === 'print' ? PRINT_COLORS[0] : PALETTE.highlight };
+        layout.shapes = [horizontal ? { type: 'line', xref: 'x', x0: t.value, x1: t.value, yref: 'paper', y0: 0, y1: 1, line } : { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: axis, y0: t.value, y1: t.value, line }];
+        const targetValue = /^[₩$€£¥]$/.test(args.unit || '') ? `${args.unit}${t.value}` : `${t.value}${args.unit || ''}`;
+        layout.annotations = [{ ...(horizontal ? { xref: 'x', x: t.value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: t.value }), yanchor: 'bottom', showarrow: false, text: t.label ?? `${locale === 'ko' ? '목표' : 'Target'} ${targetValue}` }];
+    }
+    if (args.highlight) {
+        const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0, h = args.highlight, key = Object.keys(h)[0], values = series[i].values;
+        let chosen = [];
+        if (key === 'labels') chosen = labels.map((v, n) => h.labels.includes(v) ? n : -1).filter(n => n >= 0);
+        else if (key === 'top' || key === 'bottom') chosen = values.map((v, n) => ({ v, n })).filter(x => x.v !== null).sort((a, b) => (key === 'top' ? b.v - a.v : a.v - b.v) || a.n - b.n).slice(0, h[key]).map(x => x.n);
+        else chosen = values.map((v, n) => v !== null && (key === 'above_target' ? v >= args.target.value : v < args.target.value) ? n : -1).filter(n => n >= 0);
+        data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.includes(n) ? (args.style === 'print' ? '#111827' : PALETTE.highlight) : (args.style === 'print' ? '#D1D5DB' : '#CBD5E1')) };
+    }
+    if (args.caption) {
+        layout.annotations = [...(layout.annotations || []), { xref: 'paper', yref: 'paper', x: 0, y: -0.2, xanchor: 'left', yanchor: 'top', showarrow: false, text: args.caption, font: { size: 11, color: '#6B7280' } }];
+        layout.margin = { ...layout.margin, b: Math.max(layout.margin?.b || 0, 90) };
+    }
+    return { data, layout, config };
 };

@@ -749,9 +749,72 @@
               "type": "string",
               "enum": [
                 "clean",
-                "plain"
+                "plain",
+                "report",
+                "print",
+                "slides"
               ],
-              "description": "clean (default) applies the palette and tidy layout; plain adds nothing beyond the data."
+              "description": "Chart presentation style."
+            },
+            "target": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "series": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "highlight": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 50,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "below_target": {
+                  "type": "boolean"
+                },
+                "above_target": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "unit": {
+              "type": "string",
+              "maxLength": 12,
+              "description": "Display unit."
+            },
+            "caption": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Source or other caption below the chart."
             }
           }
         },
@@ -984,7 +1047,7 @@
         "content": [
           {
             "type": "text",
-            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, compare-units.csv, data.csv, empty.csv, unit-mismatch.csv. 후보의 path로 다시 호출하세요."
+            "text": "CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다. CSV 후보: bad.csv, compare-units.csv, data.csv, empty.csv, large.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -1206,7 +1269,7 @@
         "content": [
           {
             "type": "text",
-            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, compare-units.csv, data.csv, unit-mismatch.csv. 후보의 path로 다시 호출하세요."
+            "text": "이 노트에는 파이프 표가 없습니다. CSV나 표가 있는 노트를 주세요. CSV 후보: empty.csv, bad.csv, compare-units.csv, data.csv, large.csv. 후보의 path로 다시 호출하세요."
           }
         ],
         "structuredContent": {
@@ -3904,14 +3967,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -3927,7 +3982,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines+markers\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"dash\": \"solid\",\n        \"width\": 2\n      },\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"size\": 7\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"line\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"line\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -3945,14 +4000,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -3968,7 +4015,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"lines\",\n      \"fill\": \"tozeroy\",\n      \"name\": \"Series\",\n      \"line\": {\n        \"color\": \"#2563EB\",\n        \"width\": 2\n      },\n      \"fillcolor\": \"rgba(37, 99, 235, 0.18)\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"area\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"area\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -3986,14 +4033,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4009,7 +4048,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4027,14 +4066,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4050,7 +4081,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{x:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"barh\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"barh\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4068,14 +4099,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4091,7 +4114,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"combo\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"combo\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4113,10 +4136,6 @@
             "x": [
               1,
               2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4125,14 +4144,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"size\": 8,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"size\": 8,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"size\": 8,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"scatter\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"scatter\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4166,14 +4188,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"marker\": {\n        \"size\": [\n          2,\n          3\n        ],\n        \"sizemode\": \"area\",\n        \"sizeref\": 0.00375,\n        \"sizemin\": 4,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"opacity\": 0.7,\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      },\n      \"name\": \"Series\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"marker\": {\n        \"size\": [\n          2,\n          3\n        ],\n        \"sizemode\": \"area\",\n        \"sizeref\": 0.00375,\n        \"sizemin\": 4,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"opacity\": 0.7,\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      },\n      \"name\": \"Series\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"scatter\",\n      \"mode\": \"markers\",\n      \"marker\": {\n        \"size\": [\n          2,\n          3\n        ],\n        \"sizemode\": \"area\",\n        \"sizeref\": 0.00375,\n        \"sizemin\": 4,\n        \"color\": \"#2563EB\",\n        \"symbol\": \"circle\",\n        \"opacity\": 0.7,\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      },\n      \"name\": \"Series\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"bubble\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bubble\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4191,14 +4216,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4214,7 +4231,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"pie\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4232,14 +4249,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4255,7 +4264,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"pie\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"hole\": 0.55,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"colors\": [\n          \"#2563EB\",\n          \"#0F766E\"\n        ],\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent\",\n      \"sort\": false\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"legend\": {\n      \"orientation\": \"h\",\n      \"x\": 0,\n      \"y\": 1.02,\n      \"yanchor\": \"bottom\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"donut\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"donut\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4273,14 +4282,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ],
@@ -4300,7 +4301,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"treemap\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+value+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"treemap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}],\"parents\":[\"\",\"A\"]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"treemap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}],\"parents\":[\"\",\"A\"]}\n```"
         }
       }
     },
@@ -4318,14 +4319,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ],
@@ -4345,7 +4338,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"sunburst\",\n      \"labels\": [\n        \"A\",\n        \"B\"\n      ],\n      \"parents\": [\n        \"\",\n        \"A\"\n      ],\n      \"values\": [\n        1,\n        2\n      ],\n      \"name\": \"Series\",\n      \"marker\": {\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 2\n        }\n      },\n      \"textinfo\": \"label+percent parent\"\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 10,\n      \"r\": 10,\n      \"t\": 20,\n      \"b\": 10,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"colorway\": [\n      \"#2563EB\",\n      \"#0F766E\",\n      \"#7C3AED\",\n      \"#C2410C\",\n      \"#64748B\"\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"sunburst\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}],\"parents\":[\"\",\"A\"]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"sunburst\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}],\"parents\":[\"\",\"A\"]}\n```"
         }
       }
     },
@@ -4363,14 +4356,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4386,7 +4371,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"waterfall\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        1,\n        2\n      ],\n      \"measure\": [\n        \"relative\",\n        \"relative\"\n      ],\n      \"name\": \"Series\",\n      \"texttemplate\": [\n        \"%{delta:+,.12~g}\",\n        \"%{delta:+,.12~g}\"\n      ],\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"increasing\": {\n        \"marker\": {\n          \"color\": \"#0F766E\"\n        }\n      },\n      \"decreasing\": {\n        \"marker\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"totals\": {\n        \"marker\": {\n          \"color\": \"#2563EB\"\n        }\n      },\n      \"connector\": {\n        \"line\": {\n          \"color\": \"#64748B\",\n          \"dash\": \"dot\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"waterfall\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"waterfall\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4404,14 +4389,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4427,7 +4404,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"funnel\",\n      \"textinfo\": \"value+percent initial\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"funnel\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"funnel\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4445,14 +4422,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4461,14 +4430,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"type\": \"histogram\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"type\": \"histogram\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"type\": \"histogram\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\",\n        \"line\": {\n          \"color\": \"#FFFFFF\",\n          \"width\": 1\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"histogram\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"histogram\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4486,14 +4458,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4502,14 +4466,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"box\",\n      \"boxmean\": true,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"box\",\n      \"boxmean\": true,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"box\",\n      \"boxmean\": true,\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"box\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"box\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4527,14 +4494,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4543,14 +4502,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"violin\",\n      \"box\": {\n        \"visible\": true\n      },\n      \"meanline\": {\n        \"visible\": true\n      },\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"violin\",\n      \"box\": {\n        \"visible\": true\n      },\n      \"meanline\": {\n        \"visible\": true\n      },\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"y\": [\n        1,\n        2\n      ],\n      \"type\": \"violin\",\n      \"box\": {\n        \"visible\": true\n      },\n      \"meanline\": {\n        \"visible\": true\n      },\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"line\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"showlegend\": false,\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"violin\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"violin\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4568,14 +4530,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4591,7 +4545,7 @@
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"heatmap\",\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        \"Series\"\n      ],\n      \"z\": [\n        [\n          1,\n          2\n        ]\n      ],\n      \"colorscale\": [\n        [\n          0,\n          \"#EFF6FF\"\n        ],\n        [\n          0.5,\n          \"#60A5FA\"\n        ],\n        [\n          1,\n          \"#1E3A8A\"\n        ]\n      ],\n      \"xgap\": 2,\n      \"ygap\": 2,\n      \"texttemplate\": \"%{z:,}\"\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"autorange\": \"reversed\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"heatmap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"heatmap\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```"
         }
       }
     },
@@ -4609,14 +4563,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4655,14 +4601,6 @@
             "values": [
               1,
               2
-            ],
-            "x": [
-              1,
-              2
-            ],
-            "size": [
-              2,
-              3
             ]
           }
         ]
@@ -4671,14 +4609,17 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"number+delta\",\n      \"value\": 1,\n      \"delta\": {\n        \"reference\": 2,\n        \"relative\": true,\n        \"valueformat\": \".1%\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"title\": {\n        \"text\": \"Series\"\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: labels\n```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"number+delta\",\n      \"value\": 1,\n      \"delta\": {\n        \"reference\": 2,\n        \"relative\": true,\n        \"valueformat\": \".1%\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"title\": {\n        \"text\": \"Series\"\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
           "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"number+delta\",\n      \"value\": 1,\n      \"delta\": {\n        \"reference\": 2,\n        \"relative\": true,\n        \"valueformat\": \".1%\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"title\": {\n        \"text\": \"Series\"\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        }\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"indicator\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2],\"x\":[1,2],\"size\":[2,3]}]}\n```"
+          "staticBlock": "```chart-hands-static\n{\"type\":\"indicator\",\"labels\":[\"A\",\"B\"],\"series\":[{\"name\":\"Series\",\"values\":[1,2]}]}\n```",
+          "ignoredArgs": [
+            "labels"
+          ]
         }
       }
     },
@@ -4804,6 +4745,964 @@
       }
     },
     {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "bins": 2
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "bins은 histogram에만 쓸 수 있습니다. 해당 유형으로 바꾸거나 인자를 빼세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "target": {}
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "target의 값 또는 계열이 잘못되었습니다. 보조축이 있으면 target.series를 지정하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "highlight": {}
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "highlight 선택자가 잘못되었습니다. labels, top, bottom, below_target, above_target 중 하나를 지정하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "highlight": {
+          "labels": [
+            "missing"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "highlight.labels는 실제 labels에서 선택하세요: A"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "combo",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          },
+          {
+            "values": [
+              2
+            ],
+            "secondary": true
+          }
+        ],
+        "target": {
+          "value": 1,
+          "series": 1
+        },
+        "highlight": {
+          "below_target": true
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "목표를 단 계열과 강조할 막대 계열이 다릅니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "y2_title": "unused"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n쓰이지 않아 무시한 인자: y2_title\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}],\"y2_title\":\"unused\"}\n```",
+          "ignoredArgs": [
+            "y2_title"
+          ]
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "style": "report",
+        "target": {
+          "value": 1
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"shapes\": [\n      {\n        \"type\": \"line\",\n        \"xref\": \"paper\",\n        \"x0\": 0,\n        \"x1\": 1,\n        \"yref\": \"y\",\n        \"y0\": 1,\n        \"y1\": 1,\n        \"line\": {\n          \"dash\": \"dot\",\n          \"color\": \"#C2410C\"\n        }\n      }\n    ],\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"x\": 1,\n        \"xanchor\": \"right\",\n        \"yref\": \"y\",\n        \"y\": 1,\n        \"yanchor\": \"bottom\",\n        \"showarrow\": false,\n        \"text\": \"목표 1\"\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"shapes\": [\n      {\n        \"type\": \"line\",\n        \"xref\": \"paper\",\n        \"x0\": 0,\n        \"x1\": 1,\n        \"yref\": \"y\",\n        \"y0\": 1,\n        \"y1\": 1,\n        \"line\": {\n          \"dash\": \"dot\",\n          \"color\": \"#C2410C\"\n        }\n      }\n    ],\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"x\": 1,\n        \"xanchor\": \"right\",\n        \"yref\": \"y\",\n        \"y\": 1,\n        \"yanchor\": \"bottom\",\n        \"showarrow\": false,\n        \"text\": \"목표 1\"\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}],\"style\":\"report\",\"target\":{\"value\":1}}\n```"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name",
+          "long category name"
+        ],
+        "series": [
+          {
+            "values": [
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1,
+              1
+            ]
+          }
+        ],
+        "caption": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. labels·series 값 개수를 줄이세요.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\",\n        \"long category name\"\n      ],\n      \"y\": [\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1,\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlockMissing": "too_long"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "large.csv",
+          "labels": "name"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: JSON이 2,000자를 넘습니다. source.limit을 줄이세요.\n```plotly\n# chart-hands source: large.csv · rows 100 of 100 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa0\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa99\"\n      ],\n      \"y\": [\n        0,\n        1,\n        2,\n        3,\n        4,\n        5,\n        6,\n        7,\n        8,\n        9,\n        10,\n        11,\n        12,\n        13,\n        14,\n        15,\n        16,\n        17,\n        18,\n        19,\n        20,\n        21,\n        22,\n        23,\n        24,\n        25,\n        26,\n        27,\n        28,\n        29,\n        30,\n        31,\n        32,\n        33,\n        34,\n        35,\n        36,\n        37,\n        38,\n        39,\n        40,\n        41,\n        42,\n        43,\n        44,\n        45,\n        46,\n        47,\n        48,\n        49,\n        50,\n        51,\n        52,\n        53,\n        54,\n        55,\n        56,\n        57,\n        58,\n        59,\n        60,\n        61,\n        62,\n        63,\n        64,\n        65,\n        66,\n        67,\n        68,\n        69,\n        70,\n        71,\n        72,\n        73,\n        74,\n        75,\n        76,\n        77,\n        78,\n        79,\n        80,\n        81,\n        82,\n        83,\n        84,\n        85,\n        86,\n        87,\n        88,\n        89,\n        90,\n        91,\n        92,\n        93,\n        94,\n        95,\n        96,\n        97,\n        98,\n        99\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: large.csv · rows 100 of 100 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa0\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa99\"\n      ],\n      \"y\": [\n        0,\n        1,\n        2,\n        3,\n        4,\n        5,\n        6,\n        7,\n        8,\n        9,\n        10,\n        11,\n        12,\n        13,\n        14,\n        15,\n        16,\n        17,\n        18,\n        19,\n        20,\n        21,\n        22,\n        23,\n        24,\n        25,\n        26,\n        27,\n        28,\n        29,\n        30,\n        31,\n        32,\n        33,\n        34,\n        35,\n        36,\n        37,\n        38,\n        39,\n        40,\n        41,\n        42,\n        43,\n        44,\n        45,\n        46,\n        47,\n        48,\n        49,\n        50,\n        51,\n        52,\n        53,\n        54,\n        55,\n        56,\n        57,\n        58,\n        59,\n        60,\n        61,\n        62,\n        63,\n        64,\n        65,\n        66,\n        67,\n        68,\n        69,\n        70,\n        71,\n        72,\n        73,\n        74,\n        75,\n        76,\n        77,\n        78,\n        79,\n        80,\n        81,\n        82,\n        83,\n        84,\n        85,\n        86,\n        87,\n        88,\n        89,\n        90,\n        91,\n        92,\n        93,\n        94,\n        95,\n        96,\n        97,\n        98,\n        99\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlockMissing": "too_long",
+          "source": {
+            "path": "large.csv",
+            "rows": 100,
+            "labels": {
+              "first": "aaaaaaaaaaaaaaaaaaaaaaaaa0",
+              "last": "aaaaaaaaaaaaaaaaaaaaaaaaa99"
+            }
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "large.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A"
+        ],
+        "series": [
+          {
+            "values": [
+              1
+            ]
+          }
+        ],
+        "title": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\nHWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: 지원하지 않는 입력입니다.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"title\": {\n      \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"font\": {\n        \"color\": \"#0F172A\",\n        \"size\": 18\n      }\n    },\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"title\": {\n      \"text\": \"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\",\n      \"font\": {\n        \"color\": \"#0F172A\",\n        \"size\": 18\n      }\n    },\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlockMissing": "unsupported"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "x": "value"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.x는 scatter와 bubble에만 씁니다. 범주 열은 source.labels를 쓰세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "value",
+            "sizeColumn": "other"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "sizeColumn은 bubble에만 씁니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "compare-units.csv",
+          "labels": "label"
+        },
+        "series": [
+          {
+            "column": "value"
+          },
+          {
+            "column": "reference"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "같은 축에 단위가 다른 계열: value($), reference(kg) — 하나를 secondary로 옮기세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "unit": "wrong",
+        "source": {
+          "path": "compare-units.csv",
+          "labels": "label"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "unit \"wrong\"이 열 value의 단위 \"$\"과 다릅니다. 표시 단위만 바꾸는 환산은 하지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "style": "report",
+        "source": {
+          "path": "data.csv",
+          "labels": "month",
+          "filter": [
+            {
+              "column": "value",
+              "op": "gt",
+              "value": "0"
+            }
+          ]
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: data.csv · rows 2 of 2 · filter value gt 0 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"자료: data.csv · 2행 · 조건 value gt 0\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "block": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · filter value gt 0 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"자료: data.csv · 2행 · 조건 value gt 0\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"style\":\"report\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"],\"y_title\":\"value\",\"caption\":\"자료: data.csv · 2행 · 조건 value gt 0\"}\n```",
+          "source": {
+            "path": "data.csv",
+            "rows": 2,
+            "labels": {
+              "first": "2025-01",
+              "last": "2025-02"
+            }
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
       "name": "eda_profile",
       "args": {
         "path": "absent/xy.csv"
@@ -4898,14 +5797,14 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```"
           }
         ],
         "structuredContent": {
           "valid": true,
           "problems": 0,
-          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
-          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"]}\n```",
+          "block": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{y:,.12~g}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```",
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"values\":[2,4]}],\"labels\":[\"2025-01\",\"2025-02\"],\"y_title\":\"value\"}\n```",
           "source": {
             "path": "data.csv",
             "rows": 2,

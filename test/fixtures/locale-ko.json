@@ -749,9 +749,72 @@
               "type": "string",
               "enum": [
                 "clean",
-                "plain"
+                "plain",
+                "report",
+                "print",
+                "slides"
               ],
-              "description": "clean (default) applies the palette and tidy layout; plain adds nothing beyond the data."
+              "description": "Chart presentation style."
+            },
+            "target": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "value"
+              ],
+              "properties": {
+                "value": {
+                  "type": "number"
+                },
+                "label": {
+                  "type": "string",
+                  "maxLength": 100
+                },
+                "series": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              }
+            },
+            "highlight": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "labels": {
+                  "type": "array",
+                  "minItems": 1,
+                  "maxItems": 50,
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "top": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "bottom": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 50
+                },
+                "below_target": {
+                  "type": "boolean"
+                },
+                "above_target": {
+                  "type": "boolean"
+                }
+              }
+            },
+            "unit": {
+              "type": "string",
+              "maxLength": 12,
+              "description": "Display unit."
+            },
+            "caption": {
+              "type": "string",
+              "maxLength": 200,
+              "description": "Source or other caption below the chart."
             }
           }
         },
@@ -792,7 +855,7 @@
       }
     ]
   },
-  "digest": "0a47abc05a0b8d5c44dfba3e9d0b7c7b23f2a008d9e4dffc9ec589b6faef6f5c",
+  "digest": "6bb888bb2f9493eced9260de21a42cc75fc5b5c88ca12ea50725bc67d7281dbb",
   "results": [
     {
       "name": "eda_profile",

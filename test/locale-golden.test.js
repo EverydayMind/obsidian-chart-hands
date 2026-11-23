@@ -10,7 +10,7 @@ const load = Module._load;
 let appLanguage = 'ko';
 Module._load = function (name, ...args) {
     if (name === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {},
-        moment: { locale: () => appLanguage }, parseYaml: JSON.parse, stringifyYaml: value => JSON.stringify(value, null, 2) + '\n' };
+        moment: { locale: () => appLanguage }, parseYaml: text => JSON.parse(text.replace(/^\s*#.*$/gm, '')), stringifyYaml: value => JSON.stringify(value, null, 2) + '\n' };
     return load.call(this, name, ...args);
 };
 const bundle = new Module(path.join(__dirname, 'locale-plugin.js'), module);
