@@ -614,7 +614,7 @@ const tools = [
                 reference: { type: 'string', description: 'target goal: reference numeric column.' },
                 top: { type: 'integer', minimum: 1, maximum: 50, description: 'rank goal: number of items (default 10).' },
                 filter: { type: 'array', maxItems: 4, description: 'Up to four AND conditions applied before classification and charting.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' } } } },
-                period: { type: 'object', additionalProperties: false, required: ['base', 'target'], description: 'change goal: explicit period column and base/target values.', properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } },
+                period: { type: 'object', additionalProperties: false, required: ['base', 'target'], description: 'change or compare goal: explicit period column and base/target values.', properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } },
                 target_value: { type: 'number', description: 'Explicit numeric target line value.' },
                 highlight: { type: 'object', additionalProperties: false, description: 'Explicit bar highlight selector.', properties: { labels: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string' } }, top: { type: 'integer', minimum: 1, maximum: 50 }, bottom: { type: 'integer', minimum: 1, maximum: 50 }, below_target: { type: 'boolean' }, above_target: { type: 'boolean' } } }
             }

@@ -3,6 +3,13 @@ import { periodHeader, isIdentifierHeader } from './column-roles.js';
 
 // Numeric display shared by chart facts and visible value labels.
 const CURRENCY = new Set(['₩', '$', '€', '£', '¥']);
+const SPACED_UNIT_RE = /^(?!kg$|km$)[A-Za-z]{2,}$/;
+
+export function joinUnit(number, unit = '') {
+    if (!unit) return String(number);
+    if (CURRENCY.has(unit) || unit === '&#36;') return `${unit}${number}`;
+    return SPACED_UNIT_RE.test(unit) ? `${number} ${unit}` : `${number}${unit}`;
+}
 
 export function formatNumber(value, decimals) {
     const [coefficient, exponent = '0'] = String(Math.abs(value)).split('e');
@@ -39,12 +46,17 @@ export function displayGroup(values, { unit = '', quantity = 'value', target } =
         if (!Number.isFinite(value)) return null;
         let number = fallback.has(value) ? String(value).replace(/^-/, '−') : formatNumber(value, decimals);
         if (quantity === 'difference' && value > 0 && Number(number.replace(/,/g, '')) !== 0) number = `+${number}`;
-        return CURRENCY.has(displayUnit) ? `${displayUnit}${number}` : `${number}${displayUnit}`;
+        return joinUnit(number, displayUnit);
     };
     return { decimals, strings: values.map(render), ...(Number.isFinite(target) ? { targetString: render(target) } : {}) };
 }
 
-const ADDITIVE_UNITS = new Set(['원', '천원', '만원', '백만원', '억원', '조원', '달러', ...CURRENCY, '건', '개', '회', '곳', '개소', '톤', 'kg']);
+const ADDITIVE_UNITS = new Set([
+    '원', '천원', '만원', '백만원', '억원', '조원', '달러', ...CURRENCY, '건', '개', '회', '곳', '개소', '톤', 'kg',
+    'K', 'k', 'M', 'B', 'bn', 'mn', 'thousand', 'million', 'billion',
+    'USD', 'EUR', 'KRW', 'JPY', 'GBP',
+    'pcs', 'units', 'people', 'cases', 'items'
+]);
 const SINGLE = ['pie', 'donut', 'treemap', 'sunburst', 'waterfall', 'indicator'];
 const ADDITIVE_TYPES = ['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel'];
 const valid = Number.isFinite;
@@ -103,8 +115,7 @@ export function chartDisplay(args) {
 function withUnit(string, value, unit = '', quantity) {
     if (string == null) return string;
     const number = (quantity === 'difference' || quantity === 'rate') && value > 0 && +string.replace(/,/g, '') !== 0 ? `+${string}` : string;
-    if (CURRENCY.has(unit) || unit === '&#36;') return `${unit}${number}`;
-    return `${number}${quantity === 'difference' && unit === '%' ? '%p' : unit}`;
+    return joinUnit(number, quantity === 'difference' && unit === '%' ? '%p' : unit);
 }
 
 function groupedDisplay(values, target) {

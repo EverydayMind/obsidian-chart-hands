@@ -36,8 +36,8 @@ export function parseDataset(source) {
 }
 const missing = value => value.trim() === '';
 const NUM = '(?:\\d{1,3}(?:,\\d{3})+(?:\\.\\d+)?|\\d+(?:\\.\\d*)?|\\.\\d+)';
-const UNIT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤|kg|km)/.source;
-const CUR = '[₩$€¥£]';
+const UNIT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤|kg|km|thousand|million|billion|people|units|cases|items|USD|EUR|KRW|JPY|GBP|pcs|bn|mn|pp|K|k|M|B)/.source;
+const CUR = /(?:[₩$€¥£]|USD|EUR|KRW|JPY|GBP)/.source;
 export function parseCell(text) {
     const s = text.trim(), ws = '[ \\t]*';
     let m, sign = '', unit = '', notation;
@@ -489,7 +489,7 @@ function resolveAnalysisSource(dataset, args, locale) {
     checkDuplicateLabels(labels, locale);
     const fields = result.type === 'aggregate' ? (['sum', 'count'].includes(result.function) ? ['value', 'share'] : ['value']) : result.mode === 'period' ? ['base', 'target', 'difference', 'rate'] : ['value', 'reference', 'difference', 'ratio'];
     for (const s of args.series) if (!fields.includes(s.column)) fail(`분석 결과 필드는 ${fields.join(', ')} 중 하나여야 합니다.`, `Analysis result field must be one of: ${fields.join(', ')}.`);
-    if (args.type === 'waterfall' && (result.mode !== 'period' || result.function !== 'sum' || ['%', '%p'].includes(result.unit) || result.truncated || args.series.length !== 1 || args.series[0].column !== 'difference' || Object.hasOwn(args, 'measure'))) fail('waterfall은 더할 수 있는 증감(합계 기준, 잘리지 않은 결과)에만 씁니다. 평균이나 비율의 변화는 barh로 그리세요.', 'Use waterfall only for additive changes (sum, untruncated results). Use barh for changes in averages or ratios.');
+    if (args.type === 'waterfall' && (result.mode !== 'period' || result.function !== 'sum' || ['%', '%p', 'pp'].includes(result.unit) || result.truncated || args.series.length !== 1 || args.series[0].column !== 'difference' || Object.hasOwn(args, 'measure'))) fail('waterfall은 더할 수 있는 증감(합계 기준, 잘리지 않은 결과)에만 씁니다. 평균이나 비율의 변화는 barh로 그리세요.', 'Use waterfall only for additive changes (sum, untruncated results). Use barh for changes in averages or ratios.');
     const unitFor = field => ['share', 'rate', 'ratio'].includes(field) ? '%' : field === 'difference' && result.unit === '%' ? '%p' : result.function === 'count' ? '' : result.unit || '';
     const names = { value: result.type === 'aggregate' && result.function === 'count' ? (locale === 'ko' ? '건수' : 'Count') : spec.columns[1] || spec.columns[0], base: spec.period?.base, target: spec.period?.target, difference: locale === 'ko' ? '증감' : 'Change', rate: locale === 'ko' ? '증감률' : 'Change rate', ratio: locale === 'ko' ? '기준 대비' : 'Ratio to reference', reference: spec.columns[2], share: locale === 'ko' ? '비중' : 'Share' };
     const normalize = (v, max) => { const s = String(v).replace(/\p{Cc}/gu, ' '); return s.length > max ? `${s.slice(0, max - 1)}…` : s; };

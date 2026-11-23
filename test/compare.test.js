@@ -9,6 +9,15 @@ test('period keys normalize valid calendar forms', () => {
     assert.equal(periodKey('2025-02-29'), 'S:2025-02-29');
     assert.equal(periodKey('2024-02-29'), 'D2024-02-29');
     for (const [value, key] of [['202601', 'M2026-01'], ['20260105', 'D2026-01-05']]) { assert.equal(periodKey(value), `S:${value}`); assert.equal(periodKey(value, { compact: true }), key); }
+    for (const [key, values] of Object.entries({
+        'M2025-01': ['Jan 2025', 'January 2025', 'Jan. 2025', 'Jan-2025', '2025 Jan'],
+        'M?-01': ['Jan', 'January', 'Jan.'],
+        'M?-09': ['Sep', 'Sept', 'September'],
+        'H2025-1': ['H1 2025', '2025 H1', '2025-H1'],
+        'H?-1': ['H1'],
+        'H?-2': ['H2']
+    })) for (const value of values) assert.equal(periodKey(value), key, value);
+    assert.equal(periodKey('FY2025'), 'S:FY2025');
 });
 test('period comparison uses common rows, handles absent groups and truncation', () => {
     const ds = parseDataset('g,p,v\nA,2025,10\nA,2025,20\nA,2026,40\nB,2025,0\nB,2026,10\nC,2025,5\nD,2026,8\n,2026,3\nE,2026,x');

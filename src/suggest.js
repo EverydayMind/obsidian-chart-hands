@@ -4,41 +4,53 @@ import { inspectColumn } from './column-roles.js';
 
 export const SUGGEST_GOALS = ['trend', 'compare', 'rank', 'share', 'distribution', 'relationship', 'target', 'change', 'matrix'];
 
-const ADDITIVE_UNITS = new Set(['원', '천원', '만원', '백만원', '억원', '조원', '달러', '₩', '$', '€', '£', '¥', '건', '개', '회', '곳', '개소', '톤', 'kg']);
+const ADDITIVE_UNITS = new Set([
+    '원', '천원', '만원', '백만원', '억원', '조원', '달러', '₩', '$', '€', '£', '¥', '건', '개', '회', '곳', '개소', '톤', 'kg',
+    'K', 'k', 'M', 'B', 'bn', 'mn', 'thousand', 'million', 'billion',
+    'USD', 'EUR', 'KRW', 'JPY', 'GBP',
+    'pcs', 'units', 'people', 'cases', 'items'
+]);
 const KOREAN_NUMERALS = { 한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 일곱: 7, 여덟: 8, 아홉: 9, 열: 10 };
-const NEGATION_RE = /(?:말|빼고|제외|않|없이)/;
+const ENGLISH_NUMERALS = { one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10 };
+const NEGATION_RE = /(?:말|빼고|제외|않|없이)|\b(?:except|excluding|exclude|without|other\s+than|apart\s+from|not|omit|leave\s+out|skip)\b|n't\b/i;
 const METRIC_MASK_RE = /(?:집행률|달성률|비율|증가율|감소율)/g;
-const DIRECTION_WORD_RE = /(?:기준|대비|비해|보다|앞|뒤|이전|이후|전년|작년|올해|금년)/;
-const PRIOR_PERIOD_COMPARE_RE = /(?:전년\s*동기\s*대비|전년\s*대비|작년\s*대비|전월\s*대비|전기\s*대비)/g;
-const RELATIVE_PERIOD_RE = /(?:전년|작년|올해|금년)/;
-const LIST_OR_TABLE_RE = /(?:표로|목록|따로)/;
-const HIGHLIGHT_WORD_RE = /(?:강조|색|칠|눈에\s*띄게)/;
-const DISPLAY_WORD_RE = /(?:차트|그래프|보여|표시)/;
+const DIRECTION_WORD_RE = /(?:기준|대비|비해|보다|앞|뒤|이전|이후|전년|작년|올해|금년)|\b(?:compared|against|relative|than|since|baseline|base|previous|prior|earlier|later|before|after|last\s+year|this\s+year)\b|\bfrom\b(?=[^,.;!?]*\bto\b)/i;
+const PRIOR_PERIOD_COMPARE_RE = /(?:전년\s*동기\s*대비|전년\s*대비|작년\s*대비|전월\s*대비|전기\s*대비)|\b(?:year[\s-]+over[\s-]+year|yoy|y\/y|month[\s-]+over[\s-]+month|mom|quarter[\s-]+over[\s-]+quarter|qoq|(?:from|over|versus|vs\.?|compared\s+(?:with|to)|against)\s+the\s+(?:previous|prior|last)\s+(?:year|month|quarter|period))\b/gi;
+const RELATIVE_PERIOD_RE = /(?:전년|작년|올해|금년)|\b(?:last\s+year|this\s+year|previous\s+year|prior\s+year)\b/i;
+const LIST_OR_TABLE_RE = /(?:표로|목록|따로)|\b(?:as\s+a\s+table|in\s+a\s+table|list|separately)\b/i;
+const HIGHLIGHT_WORD_RE = /(?:강조|색|칠|눈에\s*띄게)|\b(?:highlight(?:ed|ing)?|emphasi[sz]ed?|emphasis|call\s+out|stand\s+out|colou?r)\b/i;
+const DISPLAY_WORD_RE = /(?:차트|그래프|보여|표시)|\b(?:chart|graph|plot|show|display|visuali[sz]e)\b/i;
 
 const GOAL_KEYWORDS = [
     ['target', [/계획 대비/, /예산 대비/, /목표/, /(?<![A-Za-z])target(?![A-Za-z])/i, /(?<![A-Za-z])plan(?![A-Za-z])/i]],
-    ['change', [/전년 대비/, /전년 동기/, /(?<![A-Za-z])year over year(?![A-Za-z])/i, /변화량/, /늘어난/, /줄어든/, /증감/, /증가/, /감소/, /(?<![A-Za-z])change(?![A-Za-z])/i]],
-    ['rank', [/순위/, /랭킹/, /(?<![A-Za-z])rank(?![A-Za-z])/i]],
-    ['share', [/구성비/, /비중/, /점유/, /차지/, /(?<![A-Za-z])composition(?![A-Za-z])/i, /(?<![A-Za-z])share(?![A-Za-z])/i]],
-    ['trend', [/(?<![A-Za-z])over time(?![A-Za-z])/i, /분기별/, /연도별/, /월별/, /추이/, /추세/, /흐름/, /(?<![A-Za-z])trend(?![A-Za-z])/i]],
+    ['change', [/전년 대비/, /전년 동기/, /(?<![A-Za-z])year over year(?![A-Za-z])/i, /변화량/, /늘어난/, /줄어든/, /증감/, /증가/, /감소/, /(?<![A-Za-z])(?:change|increases?|decreases?|declines?|growth|drops?|rises?|gains?|falls?)(?![A-Za-z])/i]],
+    ['rank', [/순위/, /랭킹/, /(?<![A-Za-z])(?:rank|ranking|ranked)(?![A-Za-z])/i]],
+    ['share', [/구성비/, /비중/, /점유/, /차지/, /(?<![A-Za-z])(?:composition|share|proportion|breakdown)(?![A-Za-z])/i]],
+    ['trend', [/(?<![A-Za-z])over time(?![A-Za-z])/i, /분기별/, /연도별/, /월별/, /추이/, /추세/, /흐름/, /(?<![A-Za-z])(?:trend|monthly|quarterly|yearly|annual)(?![A-Za-z])/i]],
     ['distribution', [/분포/, /편차/, /(?<![A-Za-z])distribution(?![A-Za-z])/i]],
     ['relationship', [/상관/, /관계/, /(?<![A-Za-z])correlation(?![A-Za-z])/i, /(?<![A-Za-z])relationship(?![A-Za-z])/i]],
     ['matrix', [/히트맵/, /매트릭스/, /(?<![A-Za-z])heatmap(?![A-Za-z])/i, /(?<![A-Za-z])matrix(?![A-Za-z])/i]],
-    ['compare', [/비교/, /(?<![A-Za-z])compare(?![A-Za-z])/i, /(?<![A-Za-z])vs(?![A-Za-z])/i]]
+    ['compare', [/비교/, /(?<![A-Za-z])(?:compare|comparison|vs)(?![A-Za-z])/i]]
 ];
 
+const EN_MONTH_PAT = /(?:january|february|march|april|may|june|july|august|september|october|november|december|sept|jan|feb|mar|apr|jun|jul|aug|sep|oct|nov|dec)/.source;
 const PERIOD_TOKEN_BODY = [
     /\d{4}년\s*\d{1,2}월\s*\d{1,2}일/,
     /\d{4}[-./]\d{1,2}[-./]\d{1,2}/,
     /\d{4}년\s*\d{1,2}월/,
     /\d{4}[-./]\d{1,2}/,
+    new RegExp(`${EN_MONTH_PAT}\\.?(?:\\s+|-)\\d{4}`),
+    new RegExp(`\\d{4}(?:\\s+|-)${EN_MONTH_PAT}\\.?`),
     /\d{4}년\s*[1-4]분기/,
     /\d{4}\s*-?\s*Q[1-4]/,
     /Q[1-4]\s+\d{4}/,
     /\d{4}(?:년)?\s*(?:상반기|하반기)/,
+    /\d{4}\s*-?\s*H[12]/,
+    /H[12](?:\s+|-)\d{4}/,
     /\d{4}(?:년도|년)?/,
     /[1-4]분기/,
     /Q[1-4]/,
+    /H[12]/,
     /\d{1,2}월/,
     /상반기/,
     /하반기/
@@ -47,15 +59,27 @@ const PERIOD_TOKEN_BODY = [
 const RIGHT_BOUNDARY = /(?=$|[\s.,;:!?()[\]{}·/~]|으로|은|는|이|가|을|를|의|에|만|로|과|와|및)/.source;
 const PERIOD_TOKEN_RE = new RegExp(`(^|[\\s.,;:!?()\\[\\]{}·/~])(${PERIOD_TOKEN_BODY})${RIGHT_BOUNDARY}`, 'gi');
 
-const UNIT_PAT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤|kg|km)/.source;
-const TARGET_PREFIX_PAT = /(?:목표(?:값)?|계획(?:값)?|target)\s*(?:은|는|이|가|is|:|=)?\s*/.source;
-const TARGET_NUM_PAT = /[+\-−△]?[₩$€¥£]?\s*(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d*)?|\.\d+)/.source;
+const KO_UNIT_PAT = /(?:%p|%|백만원|천원|만원|억원|조원|원|달러|개소|건|명|개|회|곳|톤)/.source;
+const EN_UNIT_PAT = /(?:thousand|million|billion|people|units|cases|items|USD|EUR|KRW|JPY|GBP|pcs|bn|mn|pp|kg|km|K|k|M|B)(?![A-Za-z])/.source;
+const UNIT_PAT = `(?:${KO_UNIT_PAT}|${EN_UNIT_PAT})`;
+const TARGET_PREFIX_PAT = /(?:목표(?:값)?|계획(?:값)?|\b(?:target\s+value\s+of|target\s+line\s+at|target\s+of|goal\s+of|target))\s*(?:은|는|이|가|is|:|=)?\s*/.source;
+const TARGET_NUM_PAT = /[+\-−△]?(?:[₩$€¥£]|(?:USD|EUR|KRW|JPY|GBP)\b)?\s*(?:\d{1,3}(?:,\d{3})+(?:\.\d+)?|\d+(?:\.\d*)?|\.\d+)/.source;
 const TARGET_VALUE_RE = new RegExp(`${TARGET_PREFIX_PAT}(${TARGET_NUM_PAT}(?:\\s*${UNIT_PAT})?)`, 'gi');
+const TARGET_SUFFIX_RE = new RegExp(`(?<![A-Za-z0-9.])(${TARGET_NUM_PAT}(?:\\s*${UNIT_PAT})?)\\s+(?:target|goal)\\b`, 'gi');
 
 const NUM_TOKEN = /(?:\d+(?:\.\d+)?%?|다섯|여섯|일곱|여덟|아홉|[한두세네열])/.source;
+const EN_NUM_TOKEN = /(?:\d+(?:\.\d+)?%?|\b(?:one|two|three|four|five|six|seven|eight|nine|ten)\b)/.source;
 const QTY_TAIL = /(?=$|[\s.,;:!?()[\]{}·/]|곳|개소|개|명|건|부서|기관|항목|은|는|이|가|을|를|의|에|만|로|으로|과|와|및)/.source;
 const DELTA_HIGHLIGHT_RE = new RegExp(`${/(감소|증가)(?:가|이)?\s*(?:폭이\s*)?(?:가장\s*)?큰\s*/.source}(${NUM_TOKEN})${QTY_TAIL}`);
-const RANK_QTY_RE = new RegExp(`${/(상위|하위|많은|적은|큰|작은|top|bottom)\s?/.source}(${NUM_TOKEN})${QTY_TAIL}`, 'i');
+const EN_DELTA_WORD = /(declines?|decreases?|drops?|falls?|increases?|gains?|rises?)/.source;
+const EN_DEC_WORD_RE = /^(?:declines?|decreases?|drops?|falls?)$/i;
+const EN_DELTA_RES = [
+    new RegExp(`\\b(${EN_NUM_TOKEN})\\s+(?:largest|biggest)\\s+${EN_DELTA_WORD}\\b`, 'i'),
+    new RegExp(`\\b(?:largest|biggest)\\s+(${EN_NUM_TOKEN})\\s+${EN_DELTA_WORD}\\b`, 'i'),
+    new RegExp(`\\b(${EN_NUM_TOKEN})\\s+(?:\\w+\\s+){0,2}with\\s+the\\s+(?:largest|biggest)\\s+${EN_DELTA_WORD}\\b`, 'i')
+];
+const RANK_QTY_RE = new RegExp(`(?:${/(상위|하위|많은|적은|큰|작은)\s?/.source}(${NUM_TOKEN})${QTY_TAIL}|\\b${/(top|bottom|highest|lowest|largest|smallest|biggest)/.source}\\s+(${EN_NUM_TOKEN})(?=$|[\\s.,;:!?()\\[\\]{}·/]))`, 'i');
+const EN_RANK_NUM_FIRST_RE = new RegExp(`\\b(${EN_NUM_TOKEN})\\s+(highest|lowest|largest|smallest|biggest)\\b`, 'i');
 const DIR_COMPARE_PAT = /(?:\s+대비\s+|에\s*비해\s+|보다\s+)/.source;
 const DIR_BASE_PAT = /(?:를|을|는|은)?\s*기준으로\s+.*/.source;
 
@@ -63,9 +87,17 @@ const t = (locale, ko, en) => (locale === 'ko' ? ko : en);
 
 function parseQuantity(token) {
     if (Object.hasOwn(KOREAN_NUMERALS, token)) return KOREAN_NUMERALS[token];
+    const lower = token.toLowerCase();
+    if (Object.hasOwn(ENGLISH_NUMERALS, lower)) return ENGLISH_NUMERALS[lower];
     if (/[.%]/.test(token)) return null;
     const n = Number(token);
     return Number.isInteger(n) ? n : null;
+}
+
+function hasOnlyBefore(request, matchIndex) {
+    const before = request.slice(0, matchIndex);
+    const clause = before.slice(Math.max(before.lastIndexOf(','), before.lastIndexOf('.'), before.lastIndexOf(';'), before.lastIndexOf('!'), before.lastIndexOf('?')) + 1);
+    return /\b(?:only|just)\b/i.test(clause);
 }
 
 function escapeRegExp(text) {
@@ -118,6 +150,13 @@ function matchDirectionInClause(request, tokA, tokB) {
             if (p1.test(clause)) return { base: xTok, target: yTok };
             const p2 = new RegExp(`${x}${DIR_BASE_PAT}${y}`);
             if (p2.test(clause)) return { base: xTok, target: yTok };
+            const pEnFrom = new RegExp(`\\bfrom\\s+${x}(?![A-Za-z0-9])\\s+to\\s+${y}(?![A-Za-z0-9])`, 'i');
+            if (pEnFrom.test(clause)) return { base: xTok, target: yTok };
+            const pEnCmp = new RegExp(`(?<![A-Za-z0-9])${y}(?![A-Za-z0-9])[^,.;!?]*?\\b(?:compared\\s+(?:with|to)|against|relative\\s+to)\\s+${x}(?![A-Za-z0-9])`, 'i');
+            if (pEnCmp.test(clause)) return { base: xTok, target: yTok };
+            const pEnBase = new RegExp(`(?:\\b(?:with|using)\\s+)?(?<![A-Za-z0-9])${x}\\s+as\\s+(?:the\\s+)?(?:baseline|base)\\b`, 'i');
+            const pHasY = new RegExp(`(?<![A-Za-z0-9])${y}(?![A-Za-z0-9])`, 'i');
+            if (pEnBase.test(clause) && pHasY.test(clause)) return { base: xTok, target: yTok };
             return null;
         };
         const fwd = checkPair(a, b, tokA, tokB);
@@ -235,41 +274,61 @@ export function parseRequest(request, cols, args, locale = 'ko') {
     const hasListOrTable = LIST_OR_TABLE_RE.test(request);
     const hasHighlightWord = HIGHLIGHT_WORD_RE.test(request);
     const hasDisplayWord = DISPLAY_WORD_RE.test(request);
-    const deltaMatch = request.match(DELTA_HIGHLIGHT_RE);
-    const qtyMatch = !deltaMatch ? request.match(RANK_QTY_RE) : null;
+    const koDeltaMatch = request.match(DELTA_HIGHLIGHT_RE);
+    let deltaInfo = koDeltaMatch
+        ? { raw: koDeltaMatch[0], index: koDeltaMatch.index, end: koDeltaMatch.index + koDeltaMatch[0].length, n: parseQuantity(koDeltaMatch[2]), kind: /^감소$/.test(koDeltaMatch[1]) ? 'decrease' : 'increase' }
+        : null;
+    if (!deltaInfo) {
+        for (const re of EN_DELTA_RES) {
+            const m = request.match(re);
+            if (m) {
+                deltaInfo = { raw: m[0], index: m.index, end: m.index + m[0].length, n: parseQuantity(m[1]), kind: EN_DEC_WORD_RE.test(m[2]) ? 'decrease' : 'increase' };
+                break;
+            }
+        }
+    }
+    let qtyInfo = null;
+    if (!deltaInfo) {
+        const m = request.match(RANK_QTY_RE);
+        if (m) {
+            qtyInfo = { raw: m[0], index: m.index, end: m.index + m[0].length, dirWord: (m[1] || m[3]).toLowerCase(), n: parseQuantity(m[2] || m[4]) };
+        } else {
+            const m2 = request.match(EN_RANK_NUM_FIRST_RE);
+            if (m2) qtyInfo = { raw: m2[0], index: m2.index, end: m2.index + m2[0].length, dirWord: m2[2].toLowerCase(), n: parseQuantity(m2[1]) };
+        }
+    }
 
     if (!overridden.highlight) {
-        if (deltaMatch) {
-            const n = parseQuantity(deltaMatch[2]);
-            const after = request.slice(deltaMatch.index + deltaMatch[0].length);
-            const hasMan = /^\s*(?:곳|개소|개|명|건|부서|기관|항목)?\s*만/.test(after);
+        if (deltaInfo) {
+            const { raw, index, end, n, kind } = deltaInfo;
+            const after = request.slice(end);
+            const hasMan = /^\s*(?:곳|개소|개|명|건|부서|기관|항목)?\s*만/.test(after) || hasOnlyBefore(request, index);
             if (n !== null) {
                 if (n < 1 || n > 50 || hasListOrTable || (hasHighlightWord && hasMan)) {
                     entries.highlight.status = 'ambiguous';
-                    entries.highlight.matched = [deltaMatch[0]];
+                    entries.highlight.matched = [raw];
                     confirm.push({ field: 'highlight', candidates: [] });
                 } else if (hasHighlightWord) {
                     entries.highlight.status = 'applied';
-                    entries.highlight.matched = [deltaMatch[0]];
-                    entries.highlight.value = { kind: /^감소$/.test(deltaMatch[1]) ? 'decrease' : 'increase', count: n };
+                    entries.highlight.matched = [raw];
+                    entries.highlight.value = { kind, count: n };
                 }
             }
-        } else if (qtyMatch) {
-            const dirWord = qtyMatch[1].toLowerCase();
-            const n = parseQuantity(qtyMatch[2]);
-            const after = request.slice(qtyMatch.index + qtyMatch[0].length);
-            const hasMan = /^\s*(?:곳|개소|개|명|건|부서|기관|항목)?\s*만/.test(after);
+        } else if (qtyInfo) {
+            const { raw, index, end, dirWord, n } = qtyInfo;
+            const after = request.slice(end);
+            const hasMan = /^\s*(?:곳|개소|개|명|건|부서|기관|항목)?\s*만/.test(after) || hasOnlyBefore(request, index);
             if (n !== null) {
                 if (n < 1 || n > 50 || hasListOrTable || (hasHighlightWord && hasMan)) {
                     entries.highlight.status = 'ambiguous';
-                    entries.highlight.matched = [qtyMatch[0]];
+                    entries.highlight.matched = [raw];
                     confirm.push({ field: 'highlight', candidates: [] });
-                } else if (hasMan && hasDisplayWord && !hasHighlightWord && (dirWord === '상위' || dirWord === '하위')) {
-                    rankOverride = { top: n, order: dirWord === '하위' ? 'asc' : 'desc', matched: qtyMatch[0] };
+                } else if (hasMan && hasDisplayWord && !hasHighlightWord && /^(?:상위|하위|top|bottom|highest|lowest|largest|smallest|biggest)$/.test(dirWord)) {
+                    rankOverride = { top: n, order: /^(?:하위|bottom|lowest|smallest)$/.test(dirWord) ? 'asc' : 'desc', matched: raw };
                 } else if (hasHighlightWord) {
-                    const isBottom = /^(?:하위|적은|작은|bottom)$/.test(dirWord);
+                    const isBottom = /^(?:하위|적은|작은|bottom|lowest|smallest)$/.test(dirWord);
                     entries.highlight.status = 'applied';
-                    entries.highlight.matched = [qtyMatch[0]];
+                    entries.highlight.matched = [raw];
                     entries.highlight.value = isBottom ? { bottom: n } : { top: n };
                 }
             }
@@ -316,7 +375,9 @@ export function parseRequest(request, cols, args, locale = 'ko') {
             : cols.find(c => c.role === 'numeric');
         const valueUnit = valueCol?.unit || '';
         TARGET_VALUE_RE.lastIndex = 0;
+        TARGET_SUFFIX_RE.lastIndex = 0;
         const matches = [];
+        const spans = [];
         let m;
         while ((m = TARGET_VALUE_RE.exec(request)) !== null) {
             const parsed = parseCell(m[1]);
@@ -325,7 +386,17 @@ export function parseRequest(request, cols, args, locale = 'ko') {
             const forbidden = /^\s*(?:이상|이하|초과|미만|곳|개소|기관|개|건|명)/.test(after);
             const allowedEnd = /^(?:$|[\s.,;:!?()[\]{}]|으로|로|에)/.test(after);
             if (!forbidden && !allowedEnd) continue;
+            spans.push([m.index, m.index + m[0].length]);
             matches.push({ raw: m[0].trim(), parsed, forbidden });
+        }
+        while ((m = TARGET_SUFFIX_RE.exec(request)) !== null) {
+            const start = m.index, end = start + m[0].length;
+            if (spans.some(([s, e]) => start < e && end > s)) continue;
+            const parsed = parseCell(m[1]);
+            if (!parsed) continue;
+            // "the 2026 target" names a period, not a target value: skip bare year-like numbers.
+            if (!parsed.unit && /^\s*\d{4}\s*$/.test(m[1]) && parsed.value >= 1900 && parsed.value <= 2100) continue;
+            matches.push({ raw: m[0].trim(), parsed, forbidden: false });
         }
         if (matches.length > 1 || (matches.length === 1 && matches[0].forbidden)) {
             entries['target.value'].status = 'ambiguous';
@@ -407,7 +478,7 @@ function validateExplicitArgs(dataset, args, cols, goal, locale) {
         }
     }
     if (args.period !== undefined) {
-        if (goal && goal !== 'change') fail('period는 change 목적에만 씁니다.', 'period is only for goal change.');
+        if (goal && goal !== 'change' && goal !== 'compare') fail('period는 change 또는 compare 목적에만 씁니다.', 'period is only for goal change or compare.');
         const p = args.period;
         if (!p || typeof p !== 'object' || Array.isArray(p) || Object.keys(p).some(k => !['column', 'base', 'target'].includes(k)) || typeof p.base !== 'string' || !p.base.trim() || typeof p.target !== 'string' || !p.target.trim()) {
             fail('period에는 base, target 문자열(과 선택적 column)이 필요합니다.', 'period requires base and target strings (and optional column).');
@@ -437,7 +508,7 @@ function validateExplicitArgs(dataset, args, cols, goal, locale) {
 }
 
 function aggregateFunctionForUnit(unit) {
-    if (unit === '%' || unit === '%p' || unit === '') return 'mean';
+    if (unit === '%' || unit === '%p' || unit === 'pp' || unit === '') return 'mean';
     if (ADDITIVE_UNITS.has(unit)) return 'sum';
     return null;
 }
@@ -711,6 +782,41 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                     if (!fn) {
                         topNeeds.push('function');
                     } else {
+                        const comparePeriodCols = periodCols.filter(c => c.name !== labelCol.name);
+                        const explicitPeriod = args.period;
+                        const parsedPeriod = parsed.entries.period.status === 'applied' ? parsed.entries.period.value : null;
+                        const pColName = explicitPeriod?.column ?? parsedPeriod?.column ?? (comparePeriodCols.length === 1 ? comparePeriodCols[0].name : null);
+                        const pCol = pColName ? colByName.get(pColName) : null;
+                        const pBase = explicitPeriod?.base ?? parsedPeriod?.base;
+                        const pTarget = explicitPeriod?.target ?? parsedPeriod?.target;
+                        const hasAppliedPeriod = Boolean(comparePeriodCols.length && pCol && pBase && pTarget && !pCol.period?.mixedNotation);
+                        if (hasAppliedPeriod) {
+                            const compareType = shortCats ? 'bar' : 'barh';
+                            const compareSpec = {
+                                type: 'compare',
+                                columns: [labelCol.name, valueCols[0].name],
+                                period: { column: pCol.name, base: pBase, target: pTarget },
+                                function: fn,
+                                ...(labelCol.distinct > 60 ? { limit: labelCol.distinct } : {})
+                            };
+                            const compareBuild = attachExtras({
+                                type: compareType,
+                                source: analysisSource(compareSpec),
+                                series: [
+                                    { column: 'base', name: pBase },
+                                    { column: 'target', name: pTarget }
+                                ],
+                                style: 'report'
+                            }, compareType, 2);
+                            addCandidate(compareType, t(locale,
+                                `${pBase}·${pTarget} 두 기간을 범주별로 나란히 비교합니다.`,
+                                `Compares ${pBase} and ${pTarget} side by side for each category.`), compareBuild);
+                        }
+                        const periodCaution = comparePeriodCols.length && !hasAppliedPeriod
+                            ? [t(locale,
+                                `기간 열 ${comparePeriodCols[0].name}이 있어 집계가 여러 기간을 합칩니다(${fn}). 기간별로 비교하려면 period를 주세요.`,
+                                `Period column ${comparePeriodCols[0].name} is present, so the aggregate combines periods (${fn}). Pass period to compare periods.`)]
+                            : [];
                         const makeBuild = (type, sort) => attachExtras({
                             type,
                             source: analysisSource({
@@ -724,11 +830,11 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                             style: 'report'
                         }, type, 1);
                         if (shortCats) {
-                            addCandidate('bar', t(locale, `범주 ${labelCol.distinct}개를 집계(${fn})해 세로 막대로 비교합니다.`, `Compares ${labelCol.distinct} aggregated (${fn}) categories vertically.`), makeBuild('bar', 'original'));
-                            addCandidate('barh', t(locale, '값 내림차순 가로 막대로 비교합니다.', 'Compares categories sorted descending horizontally.'), makeBuild('barh', 'desc'));
+                            addCandidate('bar', t(locale, `범주 ${labelCol.distinct}개를 집계(${fn})해 세로 막대로 비교합니다.`, `Compares ${labelCol.distinct} aggregated (${fn}) categories vertically.`), makeBuild('bar', 'original'), { cautions: periodCaution });
+                            addCandidate('barh', t(locale, '값 내림차순 가로 막대로 비교합니다.', 'Compares categories sorted descending horizontally.'), makeBuild('barh', 'desc'), { cautions: periodCaution });
                         } else {
-                            addCandidate('barh', t(locale, `범주 ${labelCol.distinct}개(최대 ${maxLen}자)를 값 내림차순 가로 막대로 비교합니다.`, `Horizontal bars fit ${labelCol.distinct} categories (up to ${maxLen} chars).`), makeBuild('barh', 'desc'));
-                            addCandidate('bar', t(locale, '세로 막대로 비교합니다.', 'Compares categories vertically.'), makeBuild('bar', 'desc'));
+                            addCandidate('barh', t(locale, `범주 ${labelCol.distinct}개(최대 ${maxLen}자)를 값 내림차순 가로 막대로 비교합니다.`, `Horizontal bars fit ${labelCol.distinct} categories (up to ${maxLen} chars).`), makeBuild('barh', 'desc'), { cautions: periodCaution });
+                            addCandidate('bar', t(locale, '세로 막대로 비교합니다.', 'Compares categories vertically.'), makeBuild('bar', 'desc'), { cautions: periodCaution });
                         }
                     }
                 }
@@ -1049,13 +1155,13 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                     notes.push(t(locale,
                         `비교할 두 기간을 지정하세요. 열 ${pCol.name} 고유값: ${periodValues.join(', ')}`,
                         `Specify two periods to compare. Distinct values in ${pCol.name}: ${periodValues.join(', ')}`));
-                    const fn = ['%', '%p'].includes(vc.unit) ? 'mean' : 'sum';
-                    const preferred = (reqHighlight || fn !== 'sum' || ['%', '%p'].includes(vc.unit)) ? 'barh' : 'waterfall';
+                    const fn = ['%', '%p', 'pp'].includes(vc.unit) ? 'mean' : 'sum';
+                    const preferred = (reqHighlight || fn !== 'sum' || ['%', '%p', 'pp'].includes(vc.unit)) ? 'barh' : 'waterfall';
                     addCandidate(preferred, t(locale,
                         `두 기간(${pCol.name})의 증감을 ${preferred}로 비교합니다(base·target 필요).`,
                         `Compares period-over-period change on ${pCol.name} as ${preferred} (needs base and target).`), null, { needs: ['period.base', 'period.target'] });
                 } else {
-                    const fn = ['%', '%p'].includes(vc.unit) ? 'mean' : 'sum';
+                    const fn = ['%', '%p', 'pp'].includes(vc.unit) ? 'mean' : 'sum';
                     const probeSpec = {
                         type: 'compare',
                         columns: [labelCol.name, vc.name],
@@ -1094,7 +1200,7 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                         }
                     }
 
-                    const canWaterfall = fn === 'sum' && !['%', '%p'].includes(vc.unit) && !comp.truncated;
+                    const canWaterfall = fn === 'sum' && !['%', '%p', 'pp'].includes(vc.unit) && !comp.truncated;
                     const barhBuild = attachExtras({
                         type: 'barh',
                         source: analysisSource(compareSpec),

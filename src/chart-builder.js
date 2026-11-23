@@ -1,6 +1,6 @@
 // Builds a Plotly chart definition for the build_chart agent tool. Pure: no DOM, no Obsidian API.
 import { PALETTE } from './chart-guide.js';
-import { chartDisplay, highlightIndices } from './chart-facts.js';
+import { chartDisplay, highlightIndices, joinUnit } from './chart-facts.js';
 
 export const CHART_TYPES = [
     'line', 'area', 'bar', 'barh', 'combo', 'scatter', 'bubble',
@@ -505,18 +505,19 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
     }
     if (args.unit) {
         const prefix = /^[₩$€£¥]$/.test(args.unit);
-        const format = value => prefix ? `${args.unit}${value}` : `${value}${args.unit}`;
+        const format = value => joinUnit(value, args.unit);
+        const suffix = joinUnit('', args.unit);
         data.forEach(trace => {
             if (type === 'combo' && trace.type === 'bar' && trace.texttemplate) trace.texttemplate = format(trace.texttemplate);
             if (trace.type === 'funnel') trace.texttemplate = `${format('%{value:,.12~g}')}<br>%{percentInitial}`;
-            if (trace.type === 'indicator') trace.number = { ...trace.number, [prefix ? 'prefix' : 'suffix']: args.unit };
+            if (trace.type === 'indicator') trace.number = { ...trace.number, [prefix ? 'prefix' : 'suffix']: prefix ? args.unit : suffix };
         });
     }
     if (args.target) {
         const t = args.target, horizontal = type === 'barh', axis = series[t.series ?? 0]?.secondary ? 'y2' : 'y';
         const line = { dash: 'dot', color: args.style === 'print' ? PRINT_COLORS[0] : PALETTE.highlight };
         layout.shapes = [horizontal ? { type: 'line', xref: 'x', x0: t.value, x1: t.value, yref: 'paper', y0: 0, y1: 1, line } : { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: axis, y0: t.value, y1: t.value, line }];
-        const targetValue = /^[₩$€£¥]$/.test(args.unit || '') ? `${args.unit}${t.value}` : `${t.value}${args.unit || ''}`;
+        const targetValue = joinUnit(t.value, args.unit || '');
         layout.annotations = [{ ...(horizontal ? { xref: 'x', x: t.value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: t.value }), yanchor: 'bottom', showarrow: false, text: t.label ?? `${locale === 'ko' ? '목표' : 'Target'} ${targetValue}` }];
     }
     if (args.highlight) {

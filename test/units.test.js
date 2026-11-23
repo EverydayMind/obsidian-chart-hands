@@ -59,3 +59,59 @@ test('build_chart reports source units', async () => {
     const result = await p.callTool('build_chart', { type: 'bar', source: { path: 'data.csv', labels: 'g' }, series: [{ column: 'v' }] });
     assert.deepEqual(JSON.parse(JSON.stringify(result.structuredContent.source.units)), { v: '원' });
 });
+
+test('E6 English units: parseCell, mixed-unit rejection, profile, display spacing and additive sums', async () => {
+    const { joinUnit, displayGroup, chartFacts } = await import('../src/chart-facts.js');
+    const { buildChartDefinition } = await import('../src/chart-builder.js');
+
+    for (const [input, value, unit, notation] of [
+        ['1.2K', 1.2, 'K'], ['3k', 3, 'k'], ['2.5M', 2.5, 'M'], ['1B', 1, 'B'],
+        ['4 bn', 4, 'bn'], ['5 mn', 5, 'mn'], ['3 million', 3, 'million'],
+        ['10 thousand', 10, 'thousand'], ['2 billion', 2, 'billion'],
+        ['USD 1,200', 1200, 'USD'], ['EUR 900', 900, 'EUR'], ['1,200 USD', 1200, 'USD'],
+        ['500 KRW', 500, 'KRW'], ['100 JPY', 100, 'JPY'], ['80 GBP', 80, 'GBP'],
+        ['12 pp', 12, 'pp'], ['50 pcs', 50, 'pcs'], ['10 units', 10, 'units'],
+        ['20 people', 20, 'people'], ['5 cases', 5, 'cases'], ['8 items', 8, 'items'],
+        ['(1.2K)', -1.2, 'K', '()'], ['(USD 1,200)', -1200, 'USD', '()'],
+        ['USD (1,200)', -1200, 'USD', '()'], ['(1,200 USD)', -1200, 'USD', '()']
+    ]) {
+        assert.deepEqual(parseCell(input), { value, unit, ...(notation ? { notation } : {}) }, input);
+    }
+
+    // Mixed English units are rejected
+    const mixed = parseDataset('g,v\na,1.2K\nb,2M');
+    assert.equal(profile(mixed).columns[1].type, 'text');
+    assert.deepEqual(profile(mixed).columns[1].mixedUnits, ['K', 'M']);
+    assert.throws(() => analyze(mixed, { type: 'summary', columns: ['v'] }, 'en'), /mixed units/);
+
+    // eda_profile detects E6 columns as numeric with unit
+    const prof = profile(parseDataset('m,rev,share_chg\nJan 2025,"USD 1,200",12 pp\nFeb 2025,"USD 1,500",14 pp')).columns;
+    assert.equal(prof[1].type, 'number');
+    assert.equal(prof[1].unit, 'USD');
+    assert.equal(prof[2].type, 'number');
+    assert.equal(prof[2].unit, 'pp');
+
+    // Display spacing: 2+ letter English units get a space; 1-letter and kg/km do not
+    assert.equal(joinUnit('3', 'million'), '3 million');
+    assert.equal(joinUnit('1,200', 'USD'), '1,200 USD');
+    assert.equal(joinUnit('1.2', 'K'), '1.2K');
+    assert.equal(joinUnit('12', 'pp'), '12 pp');
+    assert.equal(joinUnit('10', 'kg'), '10kg');
+    assert.equal(joinUnit('5', 'km'), '5km');
+    assert.deepEqual(displayGroup([3], { unit: 'million' }).strings, ['3 million']);
+    assert.deepEqual(displayGroup([1200], { unit: 'USD' }).strings, ['1,200 USD']);
+    assert.deepEqual(displayGroup([1.2], { unit: 'K' }).strings, ['1.2K']);
+    assert.deepEqual(displayGroup([12], { unit: 'pp' }).strings, ['12 pp']);
+    assert.deepEqual(displayGroup([5], { unit: 'pp', quantity: 'difference' }).strings, ['+5 pp']);
+
+    // build_chart uses the same spacing rule for target annotation and indicator suffix
+    assert.equal(buildChartDefinition({ type: 'bar', labels: ['A'], series: [{ values: [1] }], unit: 'USD', target: { value: 100 } }, { locale: 'en' }).layout.annotations[0].text, 'Target 100 USD');
+    assert.equal(buildChartDefinition({ type: 'bar', labels: ['A'], series: [{ values: [1] }], unit: 'K', target: { value: 1.2 } }, { locale: 'en' }).layout.annotations[0].text, 'Target 1.2K');
+    assert.equal(buildChartDefinition({ type: 'indicator', series: [{ values: [1200] }], unit: 'USD' }, { locale: 'en' }).data[0].number.suffix, ' USD');
+    assert.equal(buildChartDefinition({ type: 'indicator', series: [{ values: [1.2] }], unit: 'K' }, { locale: 'en' }).data[0].number.suffix, 'K');
+
+    // Additive units sum in chartFacts; pp does not
+    assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'USD' }, { beforeLimit: 2 }).series[0].sumOfShown, 3);
+    assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'people' }, { beforeLimit: 2 }).series[0].sumOfShown, 3);
+    assert.equal(chartFacts({ type: 'bar', labels: ['A', 'B'], series: [{ values: [1, 2] }], unit: 'pp' }, { beforeLimit: 2 }).series[0].sumOfShown, undefined);
+});

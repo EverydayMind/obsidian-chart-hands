@@ -1083,7 +1083,7 @@
                 "base",
                 "target"
               ],
-              "description": "change goal: explicit period column and base/target values.",
+              "description": "change or compare goal: explicit period column and base/target values.",
               "properties": {
                 "column": {
                   "type": "string"
@@ -11874,7 +11874,7 @@
       "name": "suggest_chart",
       "args": {
         "path": "data.csv",
-        "goal": "compare",
+        "goal": "rank",
         "period": {
           "base": "2025-01",
           "target": "2025-02"
@@ -11885,7 +11885,7 @@
         "content": [
           {
             "type": "text",
-            "text": "period는 change 목적에만 씁니다."
+            "text": "period는 change 또는 compare 목적에만 씁니다."
           }
         ],
         "structuredContent": {
@@ -11896,6 +11896,230 @@
           "dev.agentinterop/error": {
             "code": "INVALID_ARGUMENT",
             "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "goal": "compare",
+        "period": {
+          "column": "year",
+          "base": "2025",
+          "target": "2026"
+        }
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: bar, bar, barh\nbar: 2025·2026 두 기간을 범주별로 나란히 비교합니다.\nbar: 범주 1개를 집계(mean)해 세로 막대로 비교합니다.\nbarh: 값 내림차순 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "2025·2026 두 기간을 범주별로 나란히 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "compare",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "period": {
+                      "column": "year",
+                      "base": "2025",
+                      "target": "2026"
+                    },
+                    "function": "mean"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "base",
+                    "name": "2025"
+                  },
+                  {
+                    "column": "target",
+                    "name": "2026"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "bar",
+              "why": "범주 1개를 집계(mean)해 세로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "original"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "값 내림차순 가로 막대로 비교합니다.",
+              "cautions": [],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "suggest_chart",
+      "args": {
+        "path": "period.csv",
+        "goal": "compare"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "목적 compare · 후보: bar, barh\nbar: 범주 1개를 집계(mean)해 세로 막대로 비교합니다.\nbarh: 값 내림차순 가로 막대로 비교합니다."
+          }
+        ],
+        "structuredContent": {
+          "goal": "compare",
+          "dataShape": {
+            "rows": 2,
+            "labelColumn": "group",
+            "labelKind": "category",
+            "distinct": 1,
+            "valueColumns": [
+              {
+                "name": "value"
+              }
+            ],
+            "summaryRowCandidates": []
+          },
+          "candidates": [
+            {
+              "type": "bar",
+              "why": "범주 1개를 집계(mean)해 세로 막대로 비교합니다.",
+              "cautions": [
+                "기간 열 year이 있어 집계가 여러 기간을 합칩니다(mean). 기간별로 비교하려면 period를 주세요."
+              ],
+              "build": {
+                "type": "bar",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "original"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            },
+            {
+              "type": "barh",
+              "why": "값 내림차순 가로 막대로 비교합니다.",
+              "cautions": [
+                "기간 열 year이 있어 집계가 여러 기간을 합칩니다(mean). 기간별로 비교하려면 period를 주세요."
+              ],
+              "build": {
+                "type": "barh",
+                "source": {
+                  "path": "period.csv",
+                  "analysis": {
+                    "type": "aggregate",
+                    "columns": [
+                      "group",
+                      "value"
+                    ],
+                    "function": "mean",
+                    "sort": "desc"
+                  }
+                },
+                "series": [
+                  {
+                    "column": "value"
+                  }
+                ],
+                "style": "report"
+              }
+            }
+          ],
+          "readFromRequest": []
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "period.csv"
           }
         }
       }

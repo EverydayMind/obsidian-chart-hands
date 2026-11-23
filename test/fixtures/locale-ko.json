@@ -1083,7 +1083,7 @@
                 "base",
                 "target"
               ],
-              "description": "change goal: explicit period column and base/target values.",
+              "description": "change or compare goal: explicit period column and base/target values.",
               "properties": {
                 "column": {
                   "type": "string"
@@ -1181,7 +1181,7 @@
       }
     ]
   },
-  "digest": "daa478eb2d9f9a8863474911a1fd471ffb8135f6740b4bd6bc8c51d71d69c59c",
+  "digest": "c8542a91b77bc0f2c280654ad649bc2a2b8673cead57d36a54a1a50783282fd3",
   "results": [
     {
       "name": "eda_profile",
