@@ -105,7 +105,8 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
     assert.deepEqual(total.structuredContent, { type: 'aggregate', columns: ['region', 'amount'], function: 'sum', sort: 'desc', totalRows: 6, validRows: 3,
         excludedRows: 2, missingGroupRows: 1, groupCount: 2, truncated: false, total: 3000,
         groups: [{ group: '서울', rows: 2, value: 2700, share: 0.9 }, { group: '부산', rows: 1, value: 300, share: 0.1 }],
-        chart: { labels: ['서울', '부산'], values: [2700, 300] } });
+        chart: { labels: ['서울', '부산'], values: [2700, 300] }, display: { value: ['2,700', '300'], share: ['90%', '10%'] },
+        factLines: ['유효한 값이 없어 제외한 행: 2행 (표시 2항목 중 유효 2항목)', '최댓값: 서울 2,700 (표시 2항목 중 유효 2항목)', '최솟값: 부산 300 (표시 2항목 중 유효 2항목)'] });
     const trend = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'sum', sort: 'label', limit: 1 } });
     assert.deepEqual(trend.structuredContent.groups, [{ group: 'Q1', rows: 2, value: 1500, share: 1500 / 3010, change: null, changeRate: null }]);
     assert.equal(trend.structuredContent.truncated, true);

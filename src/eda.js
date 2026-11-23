@@ -457,10 +457,14 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
         if (secondary && !resolved.y2_title) resolved.y2_title = axisTitle(secondary);
         if (['scatter', 'bubble'].includes(args.type) && !resolved.x_title) resolved.x_title = normalize(`${source.x}${units[source.x] ? `(${units[source.x]})` : ''}`, 100);
     }
-    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) {
-        const filter = source.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
-        resolved.caption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
-    }
+    const filter = source.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+    const sourceCaption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
+    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) resolved.caption = sourceCaption;
+    Object.defineProperties(resolved, {
+        sourceCaption: { value: sourceCaption },
+        seriesUnits: { value: seriesUnits },
+        beforeLimit: { value: selectedRows.length }
+    });
     if (Object.keys(units).length) Object.defineProperty(resolved, 'sourceUnits', { value: units, enumerable: false });
     return resolved;
 }
@@ -478,7 +482,7 @@ function resolveAnalysisSource(dataset, args, locale) {
     for (const s of args.series) if (!fields.includes(s.column)) fail(`분석 결과 필드는 ${fields.join(', ')} 중 하나여야 합니다.`, `Analysis result field must be one of: ${fields.join(', ')}.`);
     if (args.type === 'waterfall' && (result.mode !== 'period' || result.function !== 'sum' || ['%', '%p'].includes(result.unit) || result.truncated || args.series.length !== 1 || args.series[0].column !== 'difference' || Object.hasOwn(args, 'measure'))) fail('waterfall은 더할 수 있는 증감(합계 기준, 잘리지 않은 결과)에만 씁니다. 평균이나 비율의 변화는 barh로 그리세요.', 'Use waterfall only for additive changes (sum, untruncated results). Use barh for changes in averages or ratios.');
     const unitFor = field => ['share', 'rate', 'ratio'].includes(field) ? '%' : field === 'difference' && result.unit === '%' ? '%p' : result.function === 'count' ? '' : result.unit || '';
-    const names = { value: spec.columns[1] || spec.columns[0], base: spec.period?.base, target: spec.period?.target, difference: locale === 'ko' ? '증감' : 'Change', rate: locale === 'ko' ? '증감률' : 'Change rate', ratio: locale === 'ko' ? '기준 대비' : 'Ratio to reference', reference: spec.columns[2], share: locale === 'ko' ? '비중' : 'Share' };
+    const names = { value: result.type === 'aggregate' && result.function === 'count' ? (locale === 'ko' ? '건수' : 'Count') : spec.columns[1] || spec.columns[0], base: spec.period?.base, target: spec.period?.target, difference: locale === 'ko' ? '증감' : 'Change', rate: locale === 'ko' ? '증감률' : 'Change rate', ratio: locale === 'ko' ? '기준 대비' : 'Ratio to reference', reference: spec.columns[2], share: locale === 'ko' ? '비중' : 'Share' };
     const normalize = (v, max) => { const s = String(v).replace(/\p{Cc}/gu, ' '); return s.length > max ? `${s.slice(0, max - 1)}…` : s; };
     const units = Object.fromEntries(fields.map(f => [f, unitFor(f)]));
     for (const secondary of [false, true]) {
@@ -498,12 +502,15 @@ function resolveAnalysisSource(dataset, args, locale) {
         if (secondary && !resolved.y2_title) resolved.y2_title = axis(secondary);
     }
     const summary = `${result.type} ${result.columns.join(' ')} ${result.function}${result.period ? ` ${result.period.base}→${result.period.target}` : ''}`;
-    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) {
-        const filter = spec.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
-        resolved.caption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${args.source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${result.filteredRows ?? result.totalRows}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''} · ${summary}`, 200);
-    }
-    Object.defineProperty(resolved, 'analysisResult', { value: result, enumerable: false });
-    Object.defineProperty(resolved, 'sourceUnits', { value: Object.fromEntries(args.series.map(s => [s.column, units[s.column]])), enumerable: false });
+    const filter = spec.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+    const sourceCaption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${args.source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${result.filteredRows ?? result.totalRows}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''} · ${summary}`, 200);
+    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) resolved.caption = sourceCaption;
+    Object.defineProperties(resolved, {
+        sourceCaption: { value: sourceCaption },
+        seriesUnits: { value: seriesUnits },
+        analysisResult: { value: result },
+        sourceUnits: { value: Object.fromEntries(args.series.map(s => [s.column, units[s.column]])) }
+    });
     return resolved;
 }
 

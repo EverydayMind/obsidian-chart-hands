@@ -94,6 +94,7 @@ const fixtureFiles = {
     'compare-units.csv': 'label,value,reference\na,$1,2kg',
     'compare.md': '| label | value | reference |\n|---|---|---|\n| total | 1 | 2 |',
     'period.csv': 'group,value,year\nA,1,2025\nA,2,2026',
+    'facts.csv': 'group,value,year\nA,$1,2025\nA,$2,2026\nB,$3,2025\nC,$4,2026\nC,n/a,2026',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
     'empty.md': '', 'file.pdf': 'synthetic',
     'large.csv': 'name,value\n' + Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n'),
@@ -104,6 +105,10 @@ const fixtureFiles = {
 };
 async function captureExtended(code, locale) {
     const files = { ...fixtureFiles, ...(locale === 'en' ? { 'table.md': '| amount | label |\n|---|---|\n| 1 | total |' } : {}) };
+    if (locale === 'ko') {
+        const units = ['천원', '만원', '백만원', '억원', '조원', '달러', '회', '곳', '개소', '톤'];
+        files['facts-ko.csv'] = `부서,${units.map((_, i) => `value${i}`).join(',')}\nA,${units.map(unit => `1${unit}`).join(',')}`;
+    }
     const h = loadHarness(code, locale);
     const events = {};
     const plugin = new h.exports.default();
@@ -207,6 +212,7 @@ async function captureExtended(code, locale) {
             { type: 'combo', labels: ['A'], series: [{ values: [1] }, { values: [2], secondary: true }], target: { value: 1, series: 1 }, highlight: { below_target: true } },
             { ...bar, y2_title: 'unused' }, { ...bar, style: 'report', target: { value: 1 } },
             { ...bar, caption: 'a'.repeat(199), labels: Array.from({ length: 200 }, (_, i) => `long category name ${i}`), series: [{ values: Array(200).fill(1) }] },
+            { ...bar, labels: Array.from({ length: 55 }, (_, i) => `${'a'.repeat(37)}${i}`), series: [{ values: Array(55).fill(1) }] },
             { type: 'bar', source: { path: 'large.csv', labels: 'name' }, series: [{ column: 'value' }] },
             { ...bar, title: 'a'.repeat(201) },
             { type: 'bar', source: { path: 'data.csv', labels: 'month', x: 'value' }, series: [{ column: 'value' }] },
@@ -233,6 +239,10 @@ async function captureExtended(code, locale) {
             ...['share', 'difference', 'ratio'].map(column => ({ type: 'bar', source: { path: 'compare.md', analysis: column === 'share' ? { type: 'aggregate', columns: ['label', 'value'] } : { type: 'compare', columns: ['label', 'value', 'reference'] } }, series: [{ column }] })),
             { type: 'bar', source: { path: 'period.csv', analysis: { type: 'compare', columns: ['group', 'value'], period: { column: 'year', base: '2025', target: '2026' } } }, series: [{ column: 'rate' }] }
         ]) await call('build_chart', args);
+        if (locale === 'ko') {
+            await call('eda_profile', { path: 'facts-ko.csv', from: 2 });
+            await call('build_chart', { type: 'bar', source: { path: 'facts-ko.csv', labels: '부서' }, series: [{ column: 'value3' }] });
+        }
     }
     {
         await call('eda_profile', { path: 'absent/xy.csv' });
@@ -247,6 +257,23 @@ async function captureExtended(code, locale) {
             { ...base, series: [{}] },
             { ...base, series: [{ column: 'month' }] },
             { type: 'bar', labels: ['A'], series: [{ column: 'value' }] }
+        ]) await call('build_chart', args);
+    }
+    {
+        const bar = { type: 'bar', labels: ['A', 'B', 'C'], series: [{ values: [1, 2, 3] }] };
+        const source = { path: 'facts.csv', analysis: { type: 'aggregate', columns: ['group', 'value'] } };
+        const compare = { type: 'compare', columns: ['group', 'value'], period: { column: 'year', base: '2025', target: '2026' } };
+        await call('eda_analyze', { path: 'facts.csv', analysis: compare });
+        for (const args of [
+            { ...bar, title_from: 'facts', title: 'Manual' },
+            { ...bar, title_from: 'facts', series: [{ values: [null, null, null] }] },
+            { ...bar, highlight: { bottom: 2 }, title_from: 'facts' },
+            { ...bar, highlight: { top: 2 } },
+            { type: 'bar', source, series: [{ column: 'value' }] },
+            { type: 'bar', source: { ...source, analysis: { type: 'aggregate', columns: ['group'], function: 'count' } }, series: [{ column: 'value' }] },
+            { type: 'bar', source: { ...source, path: 'large.csv', analysis: { ...source.analysis, columns: ['name', 'value'], limit: 100 } }, series: [{ column: 'value' }] },
+            { type: 'bar', source: { ...source, analysis: compare }, series: [{ column: 'difference' }] },
+            { type: 'bar', unit: '%', source: { path: 'data.csv', labels: 'month' }, series: [{ column: 'value' }], target: { value: 5 } }
         ]) await call('build_chart', args);
     }
     await call('unknown', {});

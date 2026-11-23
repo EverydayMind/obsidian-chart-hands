@@ -3,6 +3,7 @@ import { parseDataset, profile, analyze, resolveChartSource, validateChartSource
 import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-table.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
+import { analysisPresentation, chartFacts, factLines, titleDraft } from './chart-facts.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 import { getLocale, initLocale } from './locale.js';
 
@@ -420,6 +421,7 @@ const newPlotlyChartByDataviewjs = (editor, app) => {
 const AGENT_CAPABILITY_PROVIDER = Symbol.for('dev.agentinterop.capability-provider');
 const PROVIDERS_CHANGED_EVENT = 'agentinterop:providers-changed';
 const AGENT_MAX_RESULT_CHARS = 8000;
+const DATA_MAX_RESULT_CHARS = 16000;
 const AGENT_PAGE_CHARS = 6000;
 const AGENT_MAX_CHARTS = 20;
 const AGENT_MAX_PROBLEMS = 12;
@@ -435,14 +437,14 @@ const EDA_KEYWORDS = [
     'chart', 'graph', 'plot', 'visuali', 'histogram', 'heatmap', 'dashboard',
     '차트', '그래프', '시각화', '히트맵', '산점도', '대시보드'
 ];
-const agentMeta = (effect) => ({
+const agentMeta = (effect, maxResultChars = AGENT_MAX_RESULT_CHARS) => ({
     'dev.agentinterop/effect': effect,
     'dev.agentinterop/group': 'chart',
     'dev.agentinterop/resourceTypes': ['.md'],
     'dev.agentinterop/keywords': AGENT_KEYWORDS,
-    'dev.agentinterop/maxResultChars': AGENT_MAX_RESULT_CHARS
+    'dev.agentinterop/maxResultChars': maxResultChars
 });
-const edaMeta = () => ({ ...agentMeta('read'), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': EDA_KEYWORDS });
+const edaMeta = () => ({ ...agentMeta('read', DATA_MAX_RESULT_CHARS), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': EDA_KEYWORDS });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const createAgentTools = (locale) => {
 const tools = [
@@ -526,7 +528,7 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads CSV rows (1–200 after filtering and limit). For a top-N chart pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. source.labels names the category column; scatter/bubble require source.x; bubble also requires series[].sizeColumn. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps; non-numeric columns are rejected. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns block and compatible compact staticBlock for HWPX. Insert with host note-editing tools; no file is changed.',
+        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -534,6 +536,7 @@ const tools = [
             properties: {
                 type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
                 title: { type: 'string', maxLength: 200, description: 'Chart title.' },
+                title_from: { type: 'string', enum: ['facts'], description: 'facts: use the returned titleDraft as the chart title.' },
                 source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
                     path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
                     table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
@@ -589,7 +592,7 @@ const tools = [
             }
         },
         annotations: { readOnlyHint: true },
-        _meta: { ...agentMeta('read'), 'dev.agentinterop/resourceTypes': ['.csv'] }
+        _meta: { ...agentMeta('read', DATA_MAX_RESULT_CHARS), 'dev.agentinterop/resourceTypes': ['.csv'] }
     }
 ];
 if (locale === 'en') {
@@ -607,6 +610,8 @@ if (locale === 'en') {
 return tools;
 };
 const AGENT_INSTRUCTIONS = 'For CSV exploration use eda_profile for schema and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups, change between periods), histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. Choose charts from results; these tools never edit data. Tools for Plotly charts in Obsidian notes (Chart Hands). A chart is a plotly fenced block of YAML or JSON with only data (list of traces), layout, config and fit as top-level keys. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. Choose charts for the question (get_chart_guide basics): trend, comparison, share, distribution, relationship, matrix, hierarchy, flow, stages, profile or KPI. Use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots, buttons) when the data has that shape. Call get_chart_guide when unsure (topics: basics, style, examples, statistical, hierarchy, timeseries, scientific, maps, layout, dataviewjs, errors). For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not its appearance on screen.';
+const DATA_RESULT_CHARS = 15000;
+const resultLength = (content, structuredContent) => [...content.map(item => item.text), JSON.stringify(structuredContent)].join('\n').length;
 
 class AgentToolError extends Error {
     constructor(code, message, retryable) {
@@ -913,7 +918,22 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             if (dataset.table) result.table = dataset.table;
             const prefix = dataset.table ? (locale === 'ko' ? `표 ${dataset.table.index}(${path}, ${dataset.table.startLine}줄)` : `Table ${dataset.table.index} in ${path} (line ${dataset.table.startLine})`) : `CSV ${path}`;
             const text = locale === 'ko' ? `${prefix}: ${result.type} 분석, 전체 ${result.totalRows}행 중 ${result.filteredRows ?? result.totalRows}행을 선택했습니다.` : `${prefix}: ${result.type} analysis selected ${result.filteredRows ?? result.totalRows} of ${result.totalRows} rows.`;
-            return { content: [{ type: 'text', text }], structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
+            const content = [{ type: 'text', text }];
+            if (['aggregate', 'compare'].includes(result.type)) {
+                Object.assign(result, analysisPresentation(result, locale));
+                if (resultLength(content, result) > DATA_RESULT_CHARS) {
+                    delete result.display;
+                    result.displayOmitted = 'too_long';
+                    if (resultLength(content, result) > DATA_RESULT_CHARS) {
+                        delete result.chart;
+                        result.chartOmitted = 'too_long';
+                        if (resultLength(content, result) > DATA_RESULT_CHARS) {
+                            throw new AgentToolError('RESULT_TOO_LARGE', 'The analysis result is too large. Reduce analysis.limit (maximum 100) or use a smaller dataset.', true);
+                        }
+                    }
+                }
+            }
+            return { content, structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         get_chart_guide: (args) => {
             const topic = args.topic === undefined ? 'basics' : args.topic;
@@ -926,11 +946,16 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 structuredContent: { topic, topics: GUIDE_TOPIC_NAMES }
             });
         },
-        build_chart: async (args) => {
+        build_chart: async ({ title_from: titleFrom, ...args }) => {
+            if (titleFrom !== undefined && (titleFrom !== 'facts' || Object.hasOwn(args, 'title'))) {
+                throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'title_from은 facts만 받으며 title과 함께 쓸 수 없습니다.' : 'title_from accepts facts and cannot be combined with title.', true);
+            }
             let definition;
             let source;
             let provenance;
             let ignoredArgs;
+            let factsMeta;
+            let limitArg = 'labels·series';
             const validationArgs = args.source ? { ...args, source: { ...args.source, x: undefined }, series: args.series?.map(s => ({ ...s, sizeColumn: undefined })) } : args;
             try { ignoredArgs = validateBuildArgs(validationArgs, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
@@ -941,6 +966,13 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 const requestedSource = args.source;
                 try { args = resolveChartSource(dataset, args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+                limitArg = args.analysisResult ? 'source.analysis.limit' : 'source.limit';
+                factsMeta = {
+                    labelColumn: requestedSource.labels,
+                    beforeLimit: args.beforeLimit,
+                    valueSorted: Boolean(requestedSource.sort),
+                    xUnit: args.sourceUnits?.[requestedSource.x]
+                };
                 const labels = args.labels ?? args.series[0].x ?? [];
                 source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
                 if (args.analysisResult) {
@@ -969,7 +1001,19 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             catch (error) {
                 throw new AgentToolError('INVALID_ARGUMENT', error.message, true);
             }
-            const yaml = `${provenance ? `${provenance}\n` : ''}${obsidian.stringifyYaml(definition).trimEnd()}`;
+            const facts = chartFacts(args, factsMeta);
+            const draft = titleDraft(facts, locale);
+            const lines = factLines(facts, locale);
+            if (titleFrom === 'facts') {
+                if (!draft) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'facts로 만들 제목이 없습니다: 유효한 값이 없습니다. title을 주세요.' : 'No title template is available from facts. Supply a title.', true);
+                const title = draft.replace(/\p{Cc}/gu, ' ');
+                args.title = title.length > 200 ? `${title.slice(0, 199)}…` : title;
+                definition = buildChartDefinition(args, { locale });
+            }
+            // Compact JSON keeps large raw bar arrays within the same result budget without dropping data points.
+            const compact = source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40;
+            const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
+            const yaml = `${provenance ? `${provenance}\n` : ''}${body}`;
             const chart = analyzeChart(yaml);
             const staticSource = JSON.stringify(args);
             let staticBlock;
@@ -985,21 +1029,33 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             if (SINGLE_SERIES_TYPES.includes(args.type) && Array.isArray(args.series) && args.series.length > 1) {
                 notes.push(`A ${args.type} chart shows one series; only the first was used.`);
             }
+            const reduce = source ? `${limitArg}을` : 'labels·series 값 개수를';
+            const reduceEn = source ? limitArg : 'the number of labels and series values';
             const text = [
                 chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
                 ...problemLines(chart.problems),
                 ...notes,
                 ...(ignoredArgs.length ? [`${locale === 'ko' ? '쓰이지 않아 무시한 인자' : 'Ignored unused arguments'}: ${ignoredArgs.join(', ')}`] : []),
-                ...(staticBlockMissing ? [locale === 'ko' ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${source ? 'source.limit을' : 'labels·series 값 개수를'} 줄이세요.` : '지원하지 않는 입력입니다.'}` : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${source ? 'source.limit' : 'the number of labels and series values'}.` : 'unsupported input.'}`] : []),
-                '```plotly',
-                yaml,
-                '```'
+                ...(staticBlockMissing ? [locale === 'ko' ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${reduce} 줄이세요.` : '지원하지 않는 입력입니다.'}` : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${reduceEn}.` : 'unsupported input.'}`] : []),
+                ...lines
             ].join('\n');
-            return {
+            const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
+            const sourcePrefix = locale === 'ko' ? '자료: ' : 'Source: ';
+            const caption = source ? args.caption || args.sourceCaption : undefined;
+            const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
+            const result = {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, block: `\`\`\`plotly\n${yaml}\n\`\`\``, ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}) },
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
+            if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
+                delete result.structuredContent.reportSnippet;
+                Object.assign(result.structuredContent, { block, snippetOmitted: 'too_long' });
+                result.content[0].text += `\n${block}`;
+                const length = resultLength(result.content, result.structuredContent);
+                if (length > DATA_RESULT_CHARS) throw new AgentToolError('RESULT_TOO_LARGE', locale === 'ko' ? `${length}자: ${reduce} 줄이세요.` : `${length} characters: reduce ${reduceEn}.`, true);
+            }
+            return result;
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
             if (plugin.ensureLibraries) yield plugin.ensureLibraries();
@@ -1291,7 +1347,7 @@ ${error.message}`, 8000);
 
 export default ChartHandsPlugin;
 // For tests outside Obsidian; Obsidian itself only uses the default export.
-export { blockInsertion, createAgentProvider, isDataviewEnabled };
+export { blockInsertion, createAgentProvider, DATA_RESULT_CHARS, isDataviewEnabled };
 export { getLocale, resolveLocale, setLocaleForTests } from './locale.js';
 
 

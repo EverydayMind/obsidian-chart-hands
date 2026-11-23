@@ -5,6 +5,7 @@ import { analyze, parseDataset, profile, resolveChartSource } from '../src/eda.j
 import { parseStaticChart } from '../src/static-chart.js';
 
 const require = createRequire(import.meta.url);
+const { chartBlock } = require('./helpers/chart-block');
 const { loadHarness } = require('./helpers/locale-harness');
 const code = require('./helpers/build-plugin')();
 const csv = 'month,x,value,size,other\n2026-01,1,"1,234",4,8\n2026-02,2,,9,10\n2026-10,3,57,16,12';
@@ -17,7 +18,7 @@ function provider(files = { 'data.csv': csv }, locale = 'en') {
     } } }, locale);
 }
 const plain = value => JSON.parse(JSON.stringify(value));
-const definition = result => JSON.parse(result.structuredContent.block.split('\n').slice(1, -1).filter(line => !/^\s*#/.test(line)).join('\n'));
+const definition = result => JSON.parse(chartBlock(result).split('\n').slice(1, -1).filter(line => !/^\s*#/.test(line)).join('\n'));
 
 test('CH7 ranks distinct normalized name fragments in both scopes', async () => {
     const files = Object.fromEntries([...Array.from({ length: 10 }, (_, i) => `dir/a${i}.csv`), 'dir/SALES-report.csv', 'else/sales-re.csv', 'else/sales.csv', 'else/unrelated.csv', 'else/école.csv', 'else/aaaa.csv', 'else/aaab.csv'].map(path => [path, 'x\n1']));

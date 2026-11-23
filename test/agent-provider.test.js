@@ -8,6 +8,7 @@ const assert = require('node:assert/strict');
 const Module = require('node:module');
 const path = require('node:path');
 const test = require('node:test');
+const { chartBlock } = require('./helpers/chart-block');
 
 const load = Module._load;
 Module._load = function (request, ...rest) {
@@ -87,6 +88,7 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows', '1–8 numeric columns over matching rows', "e.g. a year's monthly average with a filter", 'label and original give change from the previous group', '1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.']) assert.ok(description.includes(phrase));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'read']]);
+    assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/maxResultChars']]), [['eda_profile', 16000], ['eda_analyze', 16000], ['check_chart', 8000], ['read_charts', 8000], ['get_chart_guide', 8000], ['build_chart', 16000]]);
     for (const tool of descriptor.tools) {
         assert.match(tool.name, /^[a-z][a-z0-9_]{1,40}$/);
         assert.ok(`plg__chart-hands__${tool.name}`.length <= 64);
@@ -289,18 +291,18 @@ test('build_chart makes checked blocks for every chart type', async () => {
         assert.notEqual(result.isError, true, JSON.stringify(args));
         assertPlainJson(result);
         assert.equal(result.structuredContent.valid, true, text(result));
-        assert.match(result.structuredContent.block, /^```plotly\n[\s\S]+\n```$/);
-        const body = JSON.parse(result.structuredContent.block.split('\n').slice(1, -1).join('\n'));
+        assert.match(chartBlock(result), /^```plotly\n[\s\S]+\n```$/);
+        const body = JSON.parse(chartBlock(result).split('\n').slice(1, -1).join('\n'));
         assert.deepEqual(Object.keys(body).filter(key => !['data', 'layout', 'config'].includes(key)), []);
     }
-    const stacked = JSON.parse((await provider.callTool('build_chart', cases[2])).structuredContent.block.split('\n').slice(1, -1).join('\n'));
+    const built = async args => JSON.parse(chartBlock(await provider.callTool('build_chart', args)).split('\n').slice(1, -1).join('\n'));
+    const stacked = await built(cases[2]);
     assert.equal(stacked.layout.barmode, 'stack');
-    const horizontal = JSON.parse((await provider.callTool('build_chart', cases[3])).structuredContent.block.split('\n').slice(1, -1).join('\n'));
+    const horizontal = await built(cases[3]);
     assert.equal(horizontal.data[0].orientation, 'h');
     assert.equal(horizontal.layout.yaxis.title.text, 'Category');
-    const plain = JSON.parse((await provider.callTool('build_chart', cases[6])).structuredContent.block.split('\n').slice(1, -1).join('\n'));
+    const plain = await built(cases[6]);
     assert.equal(plain.data[0].marker, undefined);
-    const built = async (args) => JSON.parse((await provider.callTool('build_chart', args)).structuredContent.block.split('\n').slice(1, -1).join('\n'));
     const area = await built(cases[7]);
     assert.equal(area.data[1].stackgroup, 'one');
     assert.deepEqual(area.layout.xaxis.rangeslider, { visible: true });
@@ -329,12 +331,12 @@ test('bar and waterfall labels retain fractional values', async () => {
     const getTrace = async (type, extra = {}) => {
         const result = await provider.callTool('build_chart', { type, labels: ['A', 'B'], series: [{ values: [0.125, 0.42] }], ...extra });
         assert.notEqual(result.isError, true, text(result));
-        return JSON.parse(result.structuredContent.block.split('\n').slice(1, -1).join('\n')).data[0];
+        return JSON.parse(chartBlock(result).split('\n').slice(1, -1).join('\n')).data[0];
     };
     for (const type of ['bar', 'barh']) {
         const trace = await getTrace(type);
-        const specifier = trace.texttemplate.match(/:\s*([^}]+)}/)[1];
-        assert.deepEqual([0.125, 0.42, 1234].map(format(specifier)), ['0.125', '0.42', '1,234']);
+        assert.equal(trace.texttemplate, '%{text}');
+        assert.deepEqual(trace.text, ['0.125', '0.420']);
     }
     const waterfall = await getTrace('waterfall', { measure: ['relative', 'total'] });
     assert.equal(format(waterfall.texttemplate[0].match(/:([^}]+)}/)[1])(0.125), '+0.125');

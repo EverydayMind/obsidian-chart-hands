@@ -1,5 +1,6 @@
 // Builds a Plotly chart definition for the build_chart agent tool. Pure: no DOM, no Obsidian API.
 import { PALETTE } from './chart-guide.js';
+import { chartDisplay, highlightIndices } from './chart-facts.js';
 
 export const CHART_TYPES = [
     'line', 'area', 'bar', 'barh', 'combo', 'scatter', 'bubble',
@@ -229,8 +230,8 @@ const buildTrace = (args, labels, entry, index, count, clean) => {
     }
     else if (kind === 'bar' || kind === 'barh') {
         trace.marker = { color };
-        if (count === 1) {
-            trace.texttemplate = kind === 'bar' ? '%{y:,.12~g}' : '%{x:,.12~g}';
+        if (count === 1 && (type === 'combo' || entry.values.length <= 40)) {
+            trace.texttemplate = type === 'combo' ? '%{y:,.12~g}' : '%{text}';
             trace.textposition = 'outside';
             trace.cliponaxis = false;
         }
@@ -335,7 +336,7 @@ const buildHeatmap = (labels, series, clean) => {
     trace.xgap = 2;
     trace.ygap = 2;
     if (flat.length <= HEATMAP_TEXT_CELLS) {
-        trace.texttemplate = '%{z:,}';
+        trace.texttemplate = '%{text}';
     }
     return trace;
 };
@@ -478,6 +479,10 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
     else {
         data = series.map((entry, index) => buildTrace(args, labels, entry, index, series.length, clean));
     }
+    if (data[0].texttemplate === '%{text}') {
+        const displays = chartDisplay(args);
+        data[0].text = type === 'heatmap' ? displays.map(entry => entry.strings) : displays[0].strings;
+    }
     const layout = buildLayout(args, data, clean);
     if (['report', 'print', 'slides'].includes(args.style)) {
         layout.font = { ...layout.font, family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif', size: args.style === 'slides' ? 16 : 13 };
@@ -493,7 +498,7 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         const prefix = /^[₩$€£¥]$/.test(args.unit);
         const format = value => prefix ? `${args.unit}${value}` : `${value}${args.unit}`;
         data.forEach(trace => {
-            if (trace.type === 'bar' && trace.texttemplate) trace.texttemplate = format(trace.texttemplate);
+            if (type === 'combo' && trace.type === 'bar' && trace.texttemplate) trace.texttemplate = format(trace.texttemplate);
             if (trace.type === 'funnel') trace.texttemplate = `${format('%{value:,.12~g}')}<br>%{percentInitial}`;
             if (trace.type === 'indicator') trace.number = { ...trace.number, [prefix ? 'prefix' : 'suffix']: args.unit };
         });
@@ -506,12 +511,9 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         layout.annotations = [{ ...(horizontal ? { xref: 'x', x: t.value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: t.value }), yanchor: 'bottom', showarrow: false, text: t.label ?? `${locale === 'ko' ? '목표' : 'Target'} ${targetValue}` }];
     }
     if (args.highlight) {
-        const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0, h = args.highlight, key = Object.keys(h)[0], values = series[i].values;
-        let chosen = [];
-        if (key === 'labels') chosen = labels.map((v, n) => h.labels.includes(v) ? n : -1).filter(n => n >= 0);
-        else if (key === 'top' || key === 'bottom') chosen = values.map((v, n) => ({ v, n })).filter(x => x.v !== null).sort((a, b) => (key === 'top' ? b.v - a.v : a.v - b.v) || a.n - b.n).slice(0, h[key]).map(x => x.n);
-        else chosen = values.map((v, n) => v !== null && (key === 'above_target' ? v >= args.target.value : v < args.target.value) ? n : -1).filter(n => n >= 0);
-        data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.includes(n) ? (args.style === 'print' ? '#111827' : PALETTE.highlight) : (args.style === 'print' ? '#D1D5DB' : '#CBD5E1')) };
+        const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0;
+        const chosen = new Set(highlightIndices(args.highlight, labels, series[i].values, args.target));
+        data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.has(n) ? (args.style === 'print' ? '#111827' : PALETTE.highlight) : (args.style === 'print' ? '#D1D5DB' : '#CBD5E1')) };
     }
     if (args.caption) {
         layout.annotations = [...(layout.annotations || []), { xref: 'paper', yref: 'paper', x: 0, y: -0.2, xanchor: 'left', yanchor: 'top', showarrow: false, text: args.caption, font: { size: 11, color: '#6B7280' } }];

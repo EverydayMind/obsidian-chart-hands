@@ -8,6 +8,7 @@ import { createRequire } from 'node:module';
 import Module from 'node:module';
 
 const require = createRequire(import.meta.url);
+const { chartBlock } = require('./helpers/chart-block');
 const load = Module._load;
 Module._load = function (request, ...rest) {
     if (request === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'ko' }, parseYaml, stringifyYaml };
@@ -21,7 +22,7 @@ const { createAgentProvider } = bundle.exports;
 Module._load = load;
 const provider = (contents, locale = 'en') => createAgentProvider({ app: { vault: { getAbstractFileByPath: path => ({ path, extension: path.endsWith('.md') ? 'md' : 'csv' }), cachedRead: async () => contents } }, manifest: { id: 'chart-hands', name: 'Chart Hands', version: '0.9.3' } }, locale, { now: () => new Date(2026, 10, 23) });
 const resultText = result => result.content.map(part => part.text).join('\n');
-const blockData = result => parseYaml(result.structuredContent.block.replace(/^```plotly\n|\n```$/g, ''));
+const blockData = result => parseYaml(chartBlock(result).replace(/^```plotly\n|\n```$/g, ''));
 
 const base = { type: 'bar', labels: ['A', 'B', 'C'], series: [{ values: [2, 2, null] }] };
 test('strict arguments, stacking and legacy static compatibility', () => {
@@ -45,7 +46,7 @@ test('target, highlighting, styles and units', () => {
     assert.equal(buildChartDefinition({ ...base, type: 'barh', target: { value: 2 } }).layout.shapes[0].xref, 'x');
     assert.equal(buildChartDefinition({ ...base, style: 'slides', title: 'Title' }).layout.title.font.size, 26);
     assert.equal(buildChartDefinition({ ...base, style: 'print' }).layout.paper_bgcolor, '#FFFFFF');
-    assert.match(buildChartDefinition({ ...base, unit: '%' }).data[0].texttemplate, /%$/);
+    assert.deepEqual(buildChartDefinition({ ...base, unit: '%' }).data[0].text, ['2%', '2%', null]);
     assert.equal(buildChartDefinition({ type: 'indicator', series: [{ values: [3] }], unit: '₩' }).data[0].number.prefix, '₩');
     const literal = parseStaticChart(JSON.stringify({ ...base, labels: ['R&D', 'B', 'C'], highlight: { labels: ['R&D'] } }));
     assert.equal(literal.data[0].x[0], 'R&amp;D');
@@ -102,7 +103,7 @@ test('source unit and automatic text limits', () => {
     assert.throws(() => resolveChartSource(dataset, { type: 'bar', source, series: [{ column: 'value' }, { column: 'other' }] }));
     assert.throws(() => resolveChartSource(dataset, { type: 'bar', source, series: [{ column: 'value' }], unit: '%' }));
     const args = resolveChartSource(dataset, { type: 'bar', source, series: [{ column: 'value' }] });
-    assert.match(buildChartDefinition(args).data[0].texttemplate, /억원$/);
+    assert.match(buildChartDefinition(args).data[0].text[0], /억원$/);
     assert.match(buildChartDefinition({ ...base, type: 'funnel', unit: '억원' }).data[0].texttemplate, /%\{percentInitial\}/);
     for (const style of ['report', 'print', 'slides', 'clean']) {
         const resolved = resolveChartSource(dataset, { type: 'bar', style, source, series: [{ column: 'value' }] });
@@ -119,29 +120,30 @@ test('handler resolves source highlights and emits provenance and real YAML', as
     const args = { type: 'bar', source: { path: 'data.csv', labels: 'name', filter: [{ column: 'value', op: 'gte', value: '2' }], sort: { column: 'value', order: 'asc' }, limit: 2 }, series: [{ column: 'value' }], highlight: { labels: ['B'] } };
     const result = await p.callTool('build_chart', args);
     assert.equal(result.structuredContent.valid, true, resultText(result));
-    assert.equal(result.structuredContent.block.split('\n')[1], '# chart-hands source: data.csv · rows 2 of 3 · filter value gte 2 · sort value asc · limit 2 · built 2026-11-23');
+    assert.equal(chartBlock(result).split('\n')[1], '# chart-hands source: data.csv · rows 2 of 3 · filter value gte 2 · sort value asc · limit 2 · built 2026-11-23');
     const parsed = blockData(result), expected = buildChartDefinition(resolveChartSource(parseDataset('name,value\nA,1\nB,2\nC,3', 'data.csv'), args, 'en'), { locale: 'en' });
     assert.deepEqual(parsed.data, expected.data); assert.deepEqual(parsed.layout, expected.layout);
     const bad = await p.callTool('build_chart', { ...args, highlight: { labels: ['missing'] } });
     assert.match(resultText(bad), /B, C/);
     const md = provider('| name | value |\n|---|---|\n| A | 1 |\n\n| name | value |\n|---|---|\n| B | 2 |');
     const table = await md.callTool('build_chart', { type: 'bar', source: { path: 'note.md', table: 2, labels: 'name' }, series: [{ column: 'value' }] });
-    assert.match(table.structuredContent.block.split('\n')[1], /note\.md table 2 · rows 1 of 1 · built 2026-11-23/);
+    assert.match(chartBlock(table).split('\n')[1], /note\.md table 2 · rows 1 of 1 · built 2026-11-23/);
     const longPath = `${'x'.repeat(310)}.csv`;
     const long = await p.callTool('build_chart', { type: 'bar', source: { path: longPath, labels: 'name' }, series: [{ column: 'value' }] });
-    const provenance = long.structuredContent.block.split('\n')[1];
+    const provenance = chartBlock(long).split('\n')[1];
     assert.equal(provenance, `${(`# chart-hands source: ${longPath} · rows 3 of 3 · built 2026-11-23`).slice(0, 299)}…`);
     const control = await p.callTool('build_chart', { type: 'bar', source: { path: 'a\u0085.csv', labels: 'name' }, series: [{ column: 'value' }] });
-    assert.match(control.structuredContent.block.split('\n')[1], /a \.csv/);
+    assert.match(chartBlock(control).split('\n')[1], /a \.csv/);
 });
 
 test('handler reports omitted static blocks and ignored arguments', async () => {
-    const p = provider(`name,value\n${Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n')}`);
+    const csv = `name,value\n${Array.from({ length: 75 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n')}`;
+    const p = provider(csv);
     for (const locale of ['en', 'ko']) {
-        const handler = locale === 'en' ? p : provider(`name,value\n${Array.from({ length: 100 }, (_, i) => `${'a'.repeat(25)}${i},${i}`).join('\n')}`, locale);
+        const handler = locale === 'en' ? p : provider(csv, locale);
         const source = await handler.callTool('build_chart', { type: 'bar', source: { path: 'data.csv', labels: 'name' }, series: [{ column: 'value' }] });
         assert.equal(source.structuredContent.staticBlockMissing, 'too_long'); assert.match(resultText(source), /source\.limit/);
-        const direct = await handler.callTool('build_chart', { type: 'bar', labels: Array.from({ length: 100 }, (_, i) => `${'a'.repeat(23)}${String(i).padStart(2, '0')}`), series: [{ values: Array(100).fill(1) }] });
+        const direct = await handler.callTool('build_chart', { type: 'bar', labels: Array.from({ length: 75 }, (_, i) => `${'a'.repeat(23)}${String(i).padStart(2, '0')}`), series: [{ values: Array(75).fill(1) }] });
         assert.equal(direct.structuredContent.staticBlockMissing, 'too_long'); assert.match(resultText(direct), locale === 'ko' ? /labels·series 값 개수/ : /number of labels and series values/);
         const unsupported = await handler.callTool('build_chart', { ...base, title: 'x'.repeat(201) });
         assert.equal(unsupported.structuredContent.staticBlockMissing, 'unsupported');

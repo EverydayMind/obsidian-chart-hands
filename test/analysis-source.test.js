@@ -19,6 +19,9 @@ test('aggregate fields, units, shares and invalid fields', () => {
     assert.equal(share.series[0].values[0], 195 / 305 * 100);
     assert.throws(() => resolve({ ...aggregate, function: 'mean' }, 'bar', [{ column: 'share' }]), /value/);
     assert.equal(resolve({ ...aggregate, function: 'count' }).unit, undefined);
+    const count = resolve({ type: 'aggregate', columns: ['부서'], function: 'count' });
+    assert.equal(count.series[0].name, 'Count');
+    assert.equal(count.y_title, 'Count');
     assert.throws(() => resolve(aggregate, 'scatter'), /chart type/);
     assert.throws(() => resolve(aggregate, 'bar', [{ column: 'other' }]), /value, share/);
 });
@@ -54,6 +57,7 @@ test('source conflicts, empty groups, percent differences and static quantities'
 
 test('handler reports analysis provenance and renders a Markdown table static block', async () => {
     const require = createRequire(import.meta.url), load = Module._load;
+    const { chartBlock } = require('./helpers/chart-block');
     const yaml = require('yaml');
     Module._load = function (request, ...rest) {
         if (request === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'en' }, parseYaml: yaml.parse, stringifyYaml: yaml.stringify };
@@ -69,7 +73,7 @@ test('handler reports analysis provenance and renders a Markdown table static bl
     assert.equal(result.isError, undefined);
     assert.deepEqual(result.structuredContent.source.analysis, { type: 'aggregate', columns: ['group', 'value'], function: 'sum' });
     assert.equal(result.structuredContent.source.groupCount, 2);
-    assert.match(result.structuredContent.block, /analysis aggregate group value sum/);
+    assert.match(chartBlock(result), /analysis aggregate group value sum/);
     const frozen = JSON.parse(result.structuredContent.staticBlock.replace(/^```chart-hands-static\n|\n```$/g, ''));
     assert.equal(frozen.series[0].quantity, 'share');
     assert.deepEqual(parseStaticChart(JSON.stringify(frozen)).data[0].values, [95, 5]);
