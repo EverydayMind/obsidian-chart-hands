@@ -89,6 +89,8 @@ const files = {
     'data.csv': 'month,value,other\n2025-01,2,3\n2025-02,4,6',
     'empty.csv': 'month,value,other\n',
     'bad.csv': 'duplicate,duplicate\n1,2',
+    'units.csv': 'label,value\na,$1\nb,€2',
+    'unit-mismatch.csv': 'label,value\na,1\nb,$2',
     'note.md': '```plotly\n{"data":[{"y":[1,2]}]}\n```',
     'empty.md': '', 'file.pdf': 'synthetic'
 };
@@ -150,6 +152,14 @@ async function captureExtended(code, locale) {
         { type: 'summary', columns: ['value'], function: 'sum' },
         { type: 'rows', columns: ['value'], filter: [{ column: 'month', op: 'eq', value: 'none' }] }
     ]) await call('eda_analyze', { path: 'data.csv', analysis });
+    for (const analysis of [
+        { type: 'summary', columns: ['value'] },
+        { type: 'summary', columns: ['label', 'value'] },
+        { type: 'rows', columns: ['label'], sort_by: 'value' },
+        { type: 'rows', columns: ['label'], filter: [{ column: 'value', op: 'eq', value: '$1' }] }
+    ]) await call('eda_analyze', { path: 'units.csv', analysis });
+    await call('eda_analyze', { path: 'unit-mismatch.csv', analysis: { type: 'rows', columns: ['label'], filter: [{ column: 'value', op: 'eq', value: '$1' }] } });
+    await call('eda_analyze', { path: 'unit-mismatch.csv', analysis: { type: 'summary', columns: ['label', 'value'], filter: [{ column: 'label', op: 'eq', value: 'b' }] } });
     for (const source of ['{"data":[{"y":[1,2]}]}', '{"data":[]}', '{}', '{', '{"data":[{"type":"sankey"}]}']) await call('check_chart', { source });
     for (const args of [{ path: 'note.md' }, { path: 'empty.md' }, { path: 'missing.md' }, { path: 'file.pdf' }, { path: 'note.md', from: 20 }]) await call('read_charts', args);
     const topics = descriptor.tools.find(t => t.name === 'get_chart_guide').inputSchema.properties.topic.enum;

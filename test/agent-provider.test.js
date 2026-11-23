@@ -70,7 +70,7 @@ test('descriptor follows the agentinterop v1 subset', async () => {
     assert.ok(descriptor.instructions.includes('summary for one overall total or average of a column (with filter for a period), aggregate for one value per group'));
     assert.ok(descriptor.instructions.includes('For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks.'));
     const description = descriptor.tools.find(tool => tool.name === 'eda_analyze').description;
-    for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows']) assert.ok(description.includes(phrase));
+    for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows', '1–8 numeric columns over matching rows', "e.g. a year's monthly average with a filter", 'label and original give change from the previous group', '1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.']) assert.ok(description.includes(phrase));
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'read']]);
     for (const tool of descriptor.tools) {

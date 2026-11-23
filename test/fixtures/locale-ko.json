@@ -11,7 +11,7 @@
       {
         "name": "eda_profile",
         "title": "Profile a CSV dataset",
-        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; all nonblank values must be numeric for a numeric column. Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
+        "description": "Read a vault CSV and infer columns, missing rates, distinct counts, frequent values and numeric descriptive statistics. Blank or whitespace-only cells are missing; a numeric column needs every nonblank value to be a number in one unit (1,234, 12%, ₩5, △5 negative; a unitless 0 takes the column unit). Returns ten columns per page. CSV must have unique headers and at most 100000 rows, 100 columns and 5 MiB. Does not modify files or load Plotly.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -81,7 +81,7 @@
       {
         "name": "eda_analyze",
         "title": "Analyze a CSV dataset",
-        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus an lte condition. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have sum/count shares and chart data (default 60, max 100). rows: cells and row numbers; sort_by names a column, sort is asc or desc; limit and offset paginate. 1,234 is numeric.",
+        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus lte. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have shares and chart data. rows: cells and row numbers, paged by limit and offset. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -742,7 +742,7 @@
       }
     ]
   },
-  "digest": "e7959e46ebd220764f026289ee36f4768922299c0906f9cc9e6c8a0a6c304804",
+  "digest": "c79574cedba89b31aae75d00e4243140a2f1719dc72e95d60d129bdcf907c8f1",
   "results": [
     {
       "name": "eda_profile",

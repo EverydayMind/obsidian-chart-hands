@@ -50,7 +50,8 @@ test('CH8 sorts filtered rows stably with gaps last and applies limit', async ()
     assert.equal((await many.callTool('build_chart', { ...args, source: { ...args.source, limit: 200 } })).structuredContent.source.rows, 200);
     assert.ok((await p.callTool('build_chart', { ...base, source: { ...base.source, sort: { column: 'group' } } })).isError);
     const bad = provider({ 'data.csv': 'label,value\na,1\nb,bad' });
-    assert.ok((await bad.callTool('build_chart', { ...args, source: { ...args.source, filter: [{ column: 'label', op: 'eq', value: 'a' }], sort: { column: 'value' } } })).isError);
+    assert.ok(!(await bad.callTool('build_chart', { ...args, source: { ...args.source, filter: [{ column: 'label', op: 'eq', value: 'a' }], sort: { column: 'value' } } })).isError);
+    assert.ok((await bad.callTool('build_chart', { ...args, source: { ...args.source, limit: 1 } })).isError);
     for (const limit of [0, 201, 1.5]) assert.ok((await p.callTool('build_chart', { ...base, source: { ...base.source, limit } })).isError);
 });
 
@@ -122,7 +123,8 @@ test('CH1 rejects ambiguous, incomplete, nonnumeric, empty and oversized CSV cal
     assert.equal(definition(result).data[0].y[199], 199); // No EDA rows 100-row truncation.
     const long = 'L'.repeat(201);
     assert.equal(resolveChartSource(parseDataset(`label,value\n${long},1`), { ...args, source: { path: 'data.csv', labels: 'label' } }).labels[0], long);
-    assert.throws(() => resolveChartSource(parseDataset('label,value\na,1\nb,bad'), { ...args, source: { ...args.source, filter: [{ column: 'label', op: 'eq', value: 'a' }] } }), /value/);
+    assert.deepEqual(resolveChartSource(parseDataset('label,value\na,1\nb,bad'), { ...args, source: { ...args.source, filter: [{ column: 'label', op: 'eq', value: 'a' }] } }).series[0].values, [1]);
+    assert.throws(() => resolveChartSource(parseDataset('label,value\na,1\nb,bad'), { ...args, source: { ...args.source, limit: 1 } }), /value/);
     const gaps = await provider({ 'data.csv': 'x,y,size\n,2,3\n1,4,' }).callTool('build_chart', { type: 'bubble', source: { path: 'data.csv', x: 'x' }, series: [{ column: 'y', sizeColumn: 'size' }] });
     assert.deepEqual(definition(gaps).data[0].x, [null, 1]);
     assert.deepEqual(definition(gaps).data[0].marker.size, [3, null]);
@@ -136,7 +138,7 @@ test('CH1 descriptor uses host-compatible schemas and declares CSV reads', async
         assert.deepEqual(plain(t._meta['dev.agentinterop/resourceTypes']), ['.csv']);
         assert.ok(!t.inputSchema.properties.series.items.required?.includes('values'));
         assert.match(t.description, locale === 'ko' ? /^CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series\[\].column을 준다\./ : /^To plot values from a CSV, pass source and series\[\].column instead of copying the numbers\./);
-        for (const tool of d.tools) assert.ok(tool.description.length <= 1024);
+        for (const tool of d.tools) assert.ok(tool.description.length <= 1000, tool.name);
         const check = value => {
             if (!value || typeof value !== 'object') return;
             for (const [key, child] of Object.entries(value)) {
