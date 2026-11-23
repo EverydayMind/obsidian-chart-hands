@@ -141,12 +141,20 @@ test('facts titles prioritize the target series, comparisons, actual highlights 
     assert.doesNotMatch(ref.structuredContent.titleDraft, /달성/);
     const highlighted = chartFacts(bar(['A', 'B', 'C', 'D'], [4, 1, 2, 3], { highlight: { bottom: 3 } }), { labelColumn: '지역' });
     assert.deepEqual(highlighted.highlighted, ['B', 'C', 'D']);
-    assert.match(titleDraft(highlighted), /B, C, D 하위 3곳.*실제 강조 3곳/);
-    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [4, 4]))), /A 4로 가장 큼.*2항목/);
-    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [120, 80], { unit: '억원' }))), /서울 120억원으로 가장 큼/);
-    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [84, 70], { unit: '%' }))), /서울 84%로 가장 큼/);
-    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [3, 1]))), /A 3으로 가장 큼/);
-    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [7, 2]))), /A 7로 가장 큼/);
+    assert.match(titleDraft(highlighted), /B, C, D 하위 3곳.*실제 강조 3곳\) · 표시 4곳 중 유효 4곳/);
+    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [4, 4]))), /A 4로 가장 큼 · 표시 2항목 중 유효 2항목/);
+    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [120, 80], { unit: '억원' }))), /서울 120억원으로 가장 큼 · 표시 2항목 중 유효 2항목/);
+    assert.match(titleDraft(chartFacts(bar(['서울', '부산'], [84, 70], { unit: '%' }))), /서울 84%로 가장 큼 · 표시 2항목 중 유효 2항목/);
+    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [3, 1]))), /A 3으로 가장 큼 · 표시 2항목 중 유효 2항목/);
+    assert.match(titleDraft(chartFacts(bar(['A', 'B'], [7, 2]))), /A 7로 가장 큼 · 표시 2항목 중 유효 2항목/);
+    // F7: scope with middot, trend without inner parens, highlight.labels template before value rank
+    const targetDraft = titleDraft(chartFacts(bar(['A', 'B', 'C', 'D'], [80, 85, 88, 92], { unit: '%', target: { value: 90 } })));
+    assert.equal(targetDraft, '목표 90% 미달 3/4항목 · 표시 4항목 중 유효 4항목');
+    const trendDraft = titleDraft(chartFacts(bar(['2026-01', '2026-02', '2026-03'], [10, 20, 30]), { labelColumn: '연월' }));
+    assert.equal(trendDraft, '2026-01~2026-03 10→30, 2026-02→2026-03 +10 · 표시 3항목 중 유효 3항목');
+    const labelHi = chartFacts(bar(['A', 'B', 'C', 'D'], [1, 2, 3, 4], { highlight: { labels: ['A', 'B', 'C', 'D'] } }));
+    assert.equal(titleDraft(labelHi, 'ko'), '강조: A, B, C · 표시 4항목 중 유효 4항목');
+    assert.equal(titleDraft(labelHi, 'en'), 'Highlighted: A, B, C · 4 items shown, 4 items valid');
 });
 
 test('title_from applies only an available draft and freezes the normalized title', async () => {
@@ -159,7 +167,11 @@ test('title_from applies only an available draft and freezes the normalized titl
     assert.equal(Object.hasOwn(frozen, 'title_from'), false);
     assert.deepEqual(frozen.series, args.series);
     assert.equal(parseStaticChart(JSON.stringify(frozen)).layout.title.text, draft);
-    assert.equal((await p.callTool('build_chart', { ...args, title: 'Manual', title_from: 'facts' })).structuredContent.code, 'INVALID_ARGUMENT');
+    // F3: title + title_from uses title and records title_from in ignoredArgs
+    const both = await p.callTool('build_chart', { ...args, title: 'Manual', title_from: 'facts' });
+    assert.notEqual(both.isError, true);
+    assert.ok(both.structuredContent.ignoredArgs.includes('title_from'));
+    assert.equal(JSON.parse(both.structuredContent.staticBlock.split('\n')[1]).title, 'Manual');
     const empty = await p.callTool('build_chart', bar(['A'], [null], { title_from: 'facts' }));
     assert.equal(empty.structuredContent.code, 'INVALID_ARGUMENT');
     assert.match(empty.content[0].text, /유효한 값이 없습니다/);
@@ -224,7 +236,7 @@ test('K10 puts the provenance block only in the report snippet when it fits', as
 });
 
 test('K10 uses block fallback when the snippet exceeds the host merge budget', async () => {
-    const base = 'x'.repeat(1200), target = 'y'.repeat(1200);
+    const base = 'x'.repeat(1180), target = 'y'.repeat(1180);
     const analysis = { ...period, period: { ...period.period, base, target } };
     const p = provider(`group,value,year\nA,1,${base}\nA,2,${target}`);
     const result = await p.callTool('build_chart', { ...analysisChart(analysis, 'difference'), style: 'plain' });
@@ -312,6 +324,7 @@ test('EDA size policy omits display and chart from a 100-group sum', async () =>
     assert.equal(fields.chartOmitted, 'too_long');
     assert.equal(fields.display, undefined);
     assert.equal(fields.chart, undefined);
+    assert.ok(fields.chartArgs);
     assert.ok(fields.factLines.length);
     assert.ok(mergedLength(result) <= DATA_RESULT_CHARS);
 });

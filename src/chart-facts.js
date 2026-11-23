@@ -310,7 +310,7 @@ function wording(facts, locale) {
     const commonScope = facts.compare?.mode === 'period'
         ? (ko ? `양 기간 공통 ${number(facts.common)}` : `${number(facts.common)} common to both periods`)
         : (ko ? `공통 ${number(facts.common ?? 0)}` : `${number(facts.common ?? 0)} with both values`);
-    return { ko, series, number, scope, commonScope, scoped: (line, common = false) => `${line} (${common ? commonScope : scope})` };
+    return { ko, series, number, scope, commonScope, scoped: (line, common = false) => `${line} · ${common ? commonScope : scope}` };
 }
 
 function compareLine(facts, ko) {
@@ -366,10 +366,14 @@ export function titleDraft(facts, locale = 'ko') {
     if (series?.count && facts.highlighted?.length) {
         const rank = rankLine(facts, ko, number);
         if (rank) return scoped(`${rank} (${ko ? `실제 강조 ${number(facts.highlighted.length)}` : `${number(facts.highlighted.length)} highlighted`})`);
+        if (facts.highlight === 'labels') {
+            const picked = facts.highlighted.slice(0, 3).join(', ');
+            return scoped(ko ? `강조: ${picked}` : `Highlighted: ${picked}`);
+        }
     }
     if (series?.change?.display) {
         const { first, last, change } = series;
-        return scoped(`${first.label}~${last.label} ${first.display}→${last.display} (${change.from}→${change.to} ${change.display})`);
+        return scoped(`${first.label}~${last.label} ${first.display}→${last.display}, ${change.from}→${change.to} ${change.display}`);
     }
     const max = series?.max ?? facts.max;
     if (max && typeof max === 'object') return scoped(ko ? `${max.row ? `${max.row} · ` : ''}${max.label} ${max.display}${ro(max.display)} 가장 큼` : `${max.row ? `${max.row} · ` : ''}${max.label} highest at ${max.display}`);

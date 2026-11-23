@@ -89,7 +89,8 @@ test('descriptor follows the agentinterop v1 subset', async () => {
         assert.ok(localized.instructions.length <= 1950, `${locale}: instructions length`);
         assert.ok(localized.instructions.includes('compare for two periods or a value against its plan'), locale);
         assert.ok(localized.instructions.includes('suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report.'), locale);
-        assert.ok(localized.instructions.includes('advice items are optional notes.'), locale);
+        assert.ok(localized.instructions.includes('build_chart checks the blocks it builds; run check_chart on any block you write or edit yourself, and fix every problem it reports; advice items are optional notes.'), locale);
+        assert.ok(localized.tools.find(tool => tool.name === 'build_chart').description.includes("Build a plotly block and check it against Plotly's schema."), locale);
         for (const tool of localized.tools) {
             assert.ok(tool.description.length <= 1000, `${locale} ${tool.name}: description length`);
         }
@@ -164,6 +165,34 @@ test('check_chart applies the code block rules', async () => {
     assert.match(text(await provider.callTool('check_chart', { source: '{"layout": {}}' })), /data is missing/);
     // YAML reads `fit: off` as false; the block processor accepts booleans.
     assert.equal((await provider.callTool('check_chart', { source: '{"data": [{"y": [1]}], "fit": false}' })).structuredContent.valid, true);
+    // F1: fenced plotly blocks (```plotly and ~~~plotly) are stripped before checking.
+    assert.equal((await provider.callTool('check_chart', { source: '```plotly\n{"data": [{"y": [1]}]}\n```' })).structuredContent.valid, true);
+    assert.equal((await provider.callTool('check_chart', { source: '~~~plotly\n{"data": [{"y": [1]}]}\n~~~' })).structuredContent.valid, true);
+});
+
+test('F1/F2: build_chart runs Plotly.validate when available and CSV allows table: 1', async () => {
+    let validated = 0;
+    const files = { 'data.csv': 'name,value\nA,1\nB,2' };
+    const make = (validate) => createAgentProvider({
+        app: { vault: { getAbstractFileByPath: p => Object.hasOwn(files, p) ? { path: p, extension: 'csv' } : null, cachedRead: async f => files[f.path] } },
+        manifest: MANIFEST,
+        ...(validate ? { ensureLibraries: async () => ({ validate }) } : {})
+    }, 'en');
+    const ok = await make(() => { validated++; return []; }).callTool('build_chart', { type: 'bar', labels: ['A'], series: [{ values: [1] }] });
+    assert.equal(validated, 1);
+    assert.equal(ok.structuredContent.valid, true);
+    assert.equal(text(ok).split('\n')[0], "Built and checked a plotly block against Plotly's schema: no problems.");
+    const bad = await make(() => [{ msg: 'Bad schema attribute' }]).callTool('build_chart', { type: 'bar', labels: ['A'], series: [{ values: [1] }] });
+    assert.equal(bad.structuredContent.valid, false);
+    assert.match(text(bad), /Bad schema attribute/);
+    const noPlotly = await make(null).callTool('build_chart', { type: 'bar', labels: ['A'], series: [{ values: [1] }] });
+    assert.equal(text(noPlotly).split('\n')[0], 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.');
+    // F2: CSV table: 1 is accepted (ignored), table >= 2 is rejected.
+    const csvProvider = make(null);
+    const prof1 = await csvProvider.callTool('eda_profile', { path: 'data.csv', table: 1 });
+    assert.notEqual(prof1.isError, true);
+    assert.equal(prof1.structuredContent.rowCount, 2);
+    assert.equal(errorCode(await csvProvider.callTool('eda_profile', { path: 'data.csv', table: 2 })), 'INVALID_ARGUMENT');
 });
 
 test('read_charts finds plotly blocks, reports line ranges and pages without gaps', async () => {
@@ -356,10 +385,15 @@ test('bar and waterfall labels retain fractional values', async () => {
 });
 
 test('build_chart offers a data-only static block for compatible report inputs', async () => {
-    const provider = provide('');
+    const provider = provide('', 'en');
     const args = { type: 'bar', title: 'Rates', labels: ['Q1', 'Q2'], series: [{ values: [0.125, 0.42] }] };
     const result = await provider.callTool('build_chart', args);
     assert.match(result.structuredContent.staticBlock, /^```chart-hands-static\n/);
+    assert.equal(result.structuredContent.staticBlockUse, 'HWPX or PPTX export only; put reportSnippet (or block) in the note');
+    assert.match(text(result), /staticBlock is for HWPX\/PPTX export only; put reportSnippet \(or block\) in the note\./);
+    const koResult = await provide('', 'ko').callTool('build_chart', args);
+    assert.equal(koResult.structuredContent.staticBlockUse, 'HWPX or PPTX export only; put reportSnippet (or block) in the note');
+    assert.match(text(koResult), /staticBlock은 HWPX·PPTX 내보내기 전용입니다\. 노트에는 reportSnippet\(또는 block\)을 넣으세요\./);
     const source = result.structuredContent.staticBlock.split('\n')[1];
     assert.deepEqual(JSON.parse(source), args);
     const markup = await provider.callTool('build_chart', { ...args, title: '<b>Rates</b>' });

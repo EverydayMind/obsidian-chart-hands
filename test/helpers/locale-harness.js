@@ -179,7 +179,7 @@ async function captureExtended(code, locale) {
         calls.push({ name, args, result });
     };
     for (const args of [{ path: 'data.csv' }, { path: 'empty.csv' }, { path: 'bad.csv' }, { path: 'missing.csv' }, { path: 'file.pdf' }, { path: 'data.csv', from: 20 }]) await call('eda_profile', args);
-    for (const args of [{ path: 'table.md' }, { path: 'table.md', table: 2 }, { path: 'empty.md' }, { path: 'invalid.md' }, { path: 'many.md' }, { path: 'long.md' }, { path: 'data.csv', table: 1 }]) await call('eda_profile', args);
+    for (const args of [{ path: 'table.md' }, { path: 'table.md', table: 2 }, { path: 'empty.md' }, { path: 'invalid.md' }, { path: 'many.md' }, { path: 'long.md' }, { path: 'data.csv', table: 2 }]) await call('eda_profile', args);
     await call('eda_analyze', { path: 'table.md', analysis: { type: 'rows', columns: ['label'] } });
     for (const analysis of [
         { type: 'compare', columns: ['month', 'value'] },
@@ -294,9 +294,12 @@ async function captureExtended(code, locale) {
         await call('eda_analyze', { path: 'facts.csv', analysis: compare });
         for (const args of [
             { ...bar, title_from: 'facts', title: 'Manual' },
+            { ...bar, title_from: 'invalid' },
             { ...bar, title_from: 'facts', series: [{ values: [null, null, null] }] },
             { ...bar, highlight: { bottom: 2 }, title_from: 'facts' },
             { ...bar, highlight: { top: 2 } },
+            { ...bar, highlight: { labels: ['A', 'B'] } },
+            { ...bar, series: [{ values: [1, 2, 3] }, { values: [3, 2, 1] }], highlight: { top: 1 } },
             { type: 'bar', source, series: [{ column: 'value' }] },
             { type: 'bar', source: { ...source, analysis: { type: 'aggregate', columns: ['group'], function: 'count' } }, series: [{ column: 'value' }] },
             { type: 'bar', source: { ...source, path: 'large.csv', analysis: { ...source.analysis, columns: ['name', 'value'], limit: 100 } }, series: [{ column: 'value' }] },

@@ -5,7 +5,7 @@ const Module = require('node:module');
 const path = require('node:path');
 const load = Module._load;
 Module._load = function (name, ...args) {
-    if (name === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'ko' } };
+    if (name === 'obsidian') return { Plugin: class {}, PluginSettingTab: class {}, Setting: class {}, MarkdownRenderChild: class {}, moment: { locale: () => 'ko' }, parseYaml: text => JSON.parse(text.replace(/^\s*#.*$/gm, '')), stringifyYaml: value => JSON.stringify(value, null, 2) + '\n' };
     return load.call(this, name, ...args);
 };
 const bundle = new Module(path.join(__dirname, 'eda-plugin.js'), module);
@@ -106,7 +106,8 @@ test('aggregate groups rows, reports shares, exclusions and changes, and reads g
         excludedRows: 2, missingGroupRows: 1, groupCount: 2, truncated: false, total: 3000,
         groups: [{ group: '서울', rows: 2, value: 2700, share: 0.9 }, { group: '부산', rows: 1, value: 300, share: 0.1 }],
         chart: { labels: ['서울', '부산'], values: [2700, 300] }, display: { value: ['2,700', '300'], share: ['90%', '10%'] },
-        factLines: ['유효한 값이 없어 제외한 행: 2행 (표시 2항목 중 유효 2항목)', '최댓값: 서울 2,700 (표시 2항목 중 유효 2항목)', '최솟값: 부산 300 (표시 2항목 중 유효 2항목)'] });
+        factLines: ['유효한 값이 없어 제외한 행: 2행 · 표시 2항목 중 유효 2항목', '최댓값: 서울 2,700 · 표시 2항목 중 유효 2항목', '최솟값: 부산 300 · 표시 2항목 중 유효 2항목'],
+        chartArgs: { type: 'bar', style: 'report', source: { path: 'data.csv', analysis: { type: 'aggregate', columns: ['region', 'amount'] } }, series: [{ column: 'value' }] } });
     const trend = await provider(csv).callTool('eda_analyze', { path: 'data.csv', analysis: { type: 'aggregate', columns: ['quarter', 'amount'], function: 'sum', sort: 'label', limit: 1 } });
     assert.deepEqual(trend.structuredContent.groups, [{ group: 'Q1', rows: 2, value: 1500, share: 1500 / 3010, change: null, changeRate: null }]);
     assert.equal(trend.structuredContent.truncated, true);
@@ -245,4 +246,42 @@ test('filter operators handle numbers, text and blank cells and reject invalid a
         { type: 'summary', columns: ['x'], limit: 1 }, { type: 'aggregate', columns: ['x'], offset: 1 },
         { type: 'rows', columns: Array(9).fill('x') }, { type: 'rows', columns: ['x'], filter: Array(5).fill({ column: 'x', op: 'eq', value: '1' }) }
     ]) assert.equal((await call(analysis)).isError, true, JSON.stringify(analysis));
+});
+
+test('F4: eda_analyze aggregate and compare return runnable chartArgs for build_chart', async () => {
+    const files = {
+        'data.csv': [
+            'dept,year,actual,plan',
+            ...Array.from({ length: 8 }, (_, i) => `D${i + 1},2025,${(i + 1) * 10},100\nD${i + 1},2026,${(i + 1) * 12},100`)
+        ].join('\n'),
+        'note.md': '| dept | actual | plan |\n|---|---|---|\n| A | 80 | 100 |\n| B | 110 | 100 |'
+    };
+    const make = (locale) => createAgentProvider({
+        manifest: { id: 'chart-hands', name: 'Chart Hands', version: 'test' },
+        app: { vault: { getAbstractFileByPath: p => Object.hasOwn(files, p) ? { path: p, extension: p.split('.').pop() } : null, cachedRead: async f => files[f.path] } }
+    }, locale);
+    const pKo = make('ko'), pEn = make('en');
+    const cases = [
+        ['aggregate (8 groups -> barh)', 'data.csv', undefined, { type: 'aggregate', columns: ['dept', 'actual'] }, 'barh', 'value', undefined],
+        ['compare period (8 groups -> barh)', 'data.csv', undefined, { type: 'compare', columns: ['dept', 'actual'], period: { column: 'year', base: '2025', target: '2026' } }, 'barh', 'difference', undefined],
+        ['compare reference (md table -> bar + target 100)', 'note.md', 1, { type: 'compare', columns: ['dept', 'actual', 'plan'] }, 'bar', 'ratio', { value: 100 }]
+    ];
+    for (const [label, file, table, analysis, expectedType, expectedCol, expectedTarget] of cases) {
+        const res = await pKo.callTool('eda_analyze', { path: file, ...(table ? { table } : {}), analysis });
+        assert.notEqual(res.isError, true, label);
+        assert.match(res.content[0].text, /이 결과를 차트로 그리려면 chartArgs를 그대로 build_chart에 주세요\./, label);
+        const chartArgs = res.structuredContent.chartArgs;
+        assert.equal(chartArgs.type, expectedType, label);
+        assert.equal(chartArgs.style, 'report', label);
+        assert.deepEqual(chartArgs.series, [{ column: expectedCol }], label);
+        assert.deepEqual(chartArgs.source.analysis, analysis, label);
+        if (table) assert.equal(chartArgs.source.table, table, label);
+        if (expectedTarget) assert.deepEqual(chartArgs.target, expectedTarget, label);
+        const built = await pKo.callTool('build_chart', chartArgs);
+        assert.notEqual(built.isError, true, `${label}: ${built.content[0].text}`);
+        assert.equal(built.structuredContent.valid, true, label);
+    }
+    const enRes = await pEn.callTool('eda_analyze', { path: 'note.md', analysis: { type: 'aggregate', columns: ['dept', 'actual'] } });
+    assert.match(enRes.content[0].text, /To chart this result, pass chartArgs to build_chart as it is\./);
+    assert.equal(enRes.structuredContent.chartArgs.type, 'bar');
 });

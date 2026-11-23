@@ -491,7 +491,7 @@ const tools = [
             additionalProperties: false,
             required: ['source'],
             properties: {
-                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, without the fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {"data":[…],"layout":{…}}. Do not join keys with commas on one line.' }
+                source: { type: 'string', minLength: 1, maxLength: 20000, description: 'The content that goes inside a plotly code block, with or without the plotly fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {"data":[…],"layout":{…}}. Do not join keys with commas on one line.' }
             }
         },
         annotations: { readOnlyHint: true },
@@ -530,7 +530,7 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.',
+        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block and check it against Plotly\'s schema. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -637,7 +637,7 @@ if (locale === 'en') {
 }
 return tools;
 };
-const AGENT_INSTRUCTIONS = 'For CSV or Markdown-table data use eda_profile for schema, units and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups), compare for two periods or a value against its plan, histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. These tools never edit data. A chart is a plotly fenced block of YAML or JSON with only data (list of traces), layout, config and fit as top-level keys. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report. Use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots) when the data has that shape; call get_chart_guide when unsure. For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports; advice items are optional notes. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not its appearance on screen.';
+const AGENT_INSTRUCTIONS = 'For CSV or Markdown-table data use eda_profile for schema, units and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups), compare for two periods or a value against its plan, histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. These tools never edit data. A chart is a plotly fenced block of YAML or JSON with only data (list of traces), layout, config and fit as top-level keys. Quote colours ("#2563EB") and date-like strings; use no functions or variables. Write titles as objects: title: {text: "..."}. suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report. Use Plotly\'s advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots) when the data has that shape; call get_chart_guide when unsure. For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks. build_chart checks the blocks it builds; run check_chart on any block you write or edit yourself, and fix every problem it reports; advice items are optional notes. Insert the block with the host\'s note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly\'s rules, not its appearance on screen.';
 const DATA_RESULT_CHARS = 15000;
 const resultLength = (content, structuredContent) => [...content.map(item => item.text), JSON.stringify(structuredContent)].join('\n').length;
 
@@ -780,7 +780,7 @@ const lintChart = (source, json, problems) => {
 const isMenuArgsIssue = (issue) => Boolean(issue && issue.code === 'dynamic' && Array.isArray(issue.path)
     && (issue.path[0] === 'updatemenus' || issue.path[0] === 'sliders') && issue.path[4] === 'args');
 // The same rules the code block processor applies, plus Plotly's own schema check.
-const analyzeChart = (source, locale = getLocale()) => {
+const analyzeChart = (source, locale = getLocale(), plotly = Plotly) => {
     const result = { problems: [], advice: [], traces: [], title: '' };
     let json;
     try {
@@ -821,11 +821,12 @@ const analyzeChart = (source, locale = getLocale()) => {
         result.title = agentClip(typeof json.layout.title === 'string' ? json.layout.title : json.layout.title.text, 80);
     }
     lintChart(source, json, result.problems);
-    if (Plotly && typeof Plotly.validate === 'function' && Array.isArray(json.data)
+    const validator = plotly && typeof plotly.validate === 'function' ? plotly : null;
+    if (validator && Array.isArray(json.data)
         && (!json.layout || (typeof json.layout === 'object' && !Array.isArray(json.layout)))) {
         try {
             // Plotly.validate returns undefined when there is nothing to report.
-            const issues = (Plotly.validate(json.data, json.layout || {}) || []).filter(issue => !isMenuArgsIssue(issue));
+            const issues = (validator.validate(json.data, json.layout || {}) || []).filter(issue => !isMenuArgsIssue(issue));
             issues.forEach(issue => result.problems.push(agentClip(issue && issue.msg ? issue.msg : issue, 300)));
         }
         catch (error) {
@@ -834,6 +835,18 @@ const analyzeChart = (source, locale = getLocale()) => {
     }
     result.advice = adviseChart(json, locale);
     return result;
+};
+const stripPlotlyFence = (source) => {
+    const raw = String(source);
+    const lines = splitLines(raw).map(line => line.text);
+    let start = 0, end = lines.length - 1;
+    while (start <= end && !lines[start].trim()) start++;
+    while (end >= start && !lines[end].trim()) end--;
+    if (start >= end) return raw;
+    const open = fenceOpen(lines[start]);
+    if (!open || (open.info.split(/\s/)[0] || '').toLowerCase() !== 'plotly') return raw;
+    if (!fenceClose(lines[end], open.fence)) return raw;
+    return lines.slice(start + 1, end).join('\n');
 };
 const problemLines = (problems) => {
     const lines = problems.slice(0, AGENT_MAX_PROBLEMS).map(problem => `  - ${problem}`);
@@ -930,7 +943,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
         if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}` + candidateText(csvCandidates(path)), true);
         const ext = file.extension.toLowerCase();
         if (!['csv', 'md'].includes(ext)) throw new AgentToolError('UNSUPPORTED_FORMAT', (locale === 'ko' ? 'CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다.' : 'Only CSV files (.csv) or Markdown notes (.md) containing tables can be analyzed.') + candidateText(csvCandidates(path, true)), true);
-        if (ext === 'csv' && table !== undefined) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'table은 Markdown 노트(.md)에만 씁니다.' : 'table is only for Markdown notes (.md).', true);
+        if (ext === 'csv' && table !== undefined && table !== 1) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'table은 Markdown 노트(.md)에만 씁니다.' : 'table is only for Markdown notes (.md).', true);
         if (file.stat && file.stat.size > 5 * 1024 * 1024) throw new AgentToolError('INVALID_ARGUMENT', ext === 'csv' ? 'CSV must be at most 5 MiB.' : 'Markdown must be at most 5 MiB.', true);
         try {
             const text = await plugin.app.vault.cachedRead(file);
@@ -965,6 +978,20 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const content = [{ type: 'text', text }];
             if (['aggregate', 'compare'].includes(result.type)) {
                 Object.assign(result, analysisPresentation(result, locale));
+                if (result.groups.length) {
+                    const isCompare = result.type === 'compare';
+                    const isRef = isCompare && result.mode === 'reference';
+                    const field = !isCompare ? 'value' : isRef ? 'ratio' : 'difference';
+                    const chartType = isRef ? 'bar' : result.groups.length <= 7 ? 'bar' : 'barh';
+                    result.chartArgs = {
+                        type: chartType,
+                        style: 'report',
+                        source: { path, ...(dataset.table ? { table: dataset.table.index } : {}), analysis: args.analysis },
+                        series: [{ column: field }],
+                        ...(isRef ? { target: { value: 100 } } : {})
+                    };
+                    content[0].text += `\n${locale === 'ko' ? '이 결과를 차트로 그리려면 chartArgs를 그대로 build_chart에 주세요.' : 'To chart this result, pass chartArgs to build_chart as it is.'}`;
+                }
                 if (resultLength(content, result) > DATA_RESULT_CHARS) {
                     delete result.display;
                     result.displayOmitted = 'too_long';
@@ -991,9 +1018,10 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             });
         },
         build_chart: async ({ title_from: titleFrom, ...args }) => {
-            if (titleFrom !== undefined && (titleFrom !== 'facts' || Object.hasOwn(args, 'title'))) {
-                throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'title_from은 facts만 받으며 title과 함께 쓸 수 없습니다.' : 'title_from accepts facts and cannot be combined with title.', true);
+            if (titleFrom !== undefined && titleFrom !== 'facts') {
+                throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'title_from은 facts만 받습니다.' : 'title_from only accepts facts.', true);
             }
+            const ignoreTitleFrom = titleFrom === 'facts' && args.title !== undefined;
             let definition;
             let source;
             let provenance;
@@ -1003,6 +1031,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const validationArgs = args.source ? { ...args, source: { ...args.source, x: undefined }, series: args.series?.map(s => ({ ...s, sizeColumn: undefined })) } : args;
             try { ignoredArgs = validateBuildArgs(validationArgs, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+            if (ignoreTitleFrom) ignoredArgs.push('title_from');
             if (Object.hasOwn(args, 'source')) {
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
@@ -1027,7 +1056,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 const date = now();
                 const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 const details = [`# chart-hands source: ${path}${dataset.table ? ` table ${dataset.table.index}` : ''}`, `rows ${source.rows} of ${dataset.rows.length}`];
-                if (requestedSource.filter) details.push(`filter ${requestedSource.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
+                if (requestedSource.filter?.length) details.push(`filter ${requestedSource.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
                 if (requestedSource.sort) details.push(`sort ${requestedSource.sort.column} ${requestedSource.sort.order || 'desc'}`);
                 if (requestedSource.limit !== undefined) details.push(`limit ${requestedSource.limit}`);
                 if (source.analysis) { const a = source.analysis; details.push(`analysis ${a.type} ${a.columns.join(' ')} ${a.function}${a.period ? ` ${a.period.base}→${a.period.target}` : ''}`); }
@@ -1048,7 +1077,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const facts = chartFacts(args, factsMeta);
             const draft = titleDraft(facts, locale);
             const lines = factLines(facts, locale);
-            if (titleFrom === 'facts') {
+            if (titleFrom === 'facts' && !ignoreTitleFrom) {
                 if (!draft) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'facts로 만들 제목이 없습니다: 유효한 값이 없습니다. title을 주세요.' : 'No title template is available from facts. Supply a title.', true);
                 const title = draft.replace(/\p{Cc}/gu, ' ');
                 args.title = title.length > 200 ? `${title.slice(0, 199)}…` : title;
@@ -1058,7 +1087,9 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const compact = source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40;
             const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
             const yaml = `${provenance ? `${provenance}\n` : ''}${body}`;
-            const chart = analyzeChart(yaml, locale);
+            const loadedPlotly = plugin.ensureLibraries ? await plugin.ensureLibraries() : undefined;
+            const validator = (Plotly && typeof Plotly.validate === 'function') ? Plotly : (loadedPlotly && typeof loadedPlotly.validate === 'function') ? loadedPlotly : null;
+            const chart = analyzeChart(yaml, locale, validator);
             const staticSource = JSON.stringify(args);
             let staticBlock;
             try {
@@ -1076,12 +1107,22 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const reduce = source ? `${limitArg}을` : 'labels·series 값 개수를';
             const reduceEn = source ? limitArg : 'the number of labels and series values';
             const text = [
-                chart.problems.length ? `${chart.problems.length} problem(s) found in the built chart:` : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
+                chart.problems.length
+                    ? `${chart.problems.length} problem(s) found in the built chart:`
+                    : validator
+                        ? "Built and checked a plotly block against Plotly's schema: no problems."
+                        : 'Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.',
                 ...problemLines(chart.problems),
                 ...adviceLines(chart.advice, locale),
                 ...notes,
                 ...(ignoredArgs.length ? [`${locale === 'ko' ? '쓰이지 않아 무시한 인자' : 'Ignored unused arguments'}: ${ignoredArgs.join(', ')}`] : []),
-                ...(staticBlockMissing ? [locale === 'ko' ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${reduce} 줄이세요.` : '지원하지 않는 입력입니다.'}` : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${reduceEn}.` : 'unsupported input.'}`] : []),
+                ...(staticBlock
+                    ? [locale === 'ko'
+                        ? 'staticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.'
+                        : 'staticBlock is for HWPX/PPTX export only; put reportSnippet (or block) in the note.']
+                    : [locale === 'ko'
+                        ? `HWPX·PPTX로 내보낼 때만 정적 블록이 필요합니다: ${staticBlockMissing === 'too_long' ? `JSON이 2,000자를 넘습니다. ${reduce} 줄이세요.` : '지원하지 않는 입력입니다.'}`
+                        : `A static block is needed only for HWPX/PPTX export: ${staticBlockMissing === 'too_long' ? `JSON exceeds 2,000 characters; reduce ${reduceEn}.` : 'unsupported input.'}`]),
                 ...lines
             ].join('\n');
             const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
@@ -1090,7 +1131,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
             const result = {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock, staticBlockUse: 'HWPX or PPTX export only; put reportSnippet (or block) in the note' } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
             if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
@@ -1103,8 +1144,9 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             return result;
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
-            if (plugin.ensureLibraries) yield plugin.ensureLibraries();
-            const chart = analyzeChart(String(args.source), locale);
+            const loadedPlotly = plugin.ensureLibraries ? yield plugin.ensureLibraries() : undefined;
+            const validator = (Plotly && typeof Plotly.validate === 'function') ? Plotly : (loadedPlotly && typeof loadedPlotly.validate === 'function') ? loadedPlotly : null;
+            const chart = analyzeChart(stripPlotlyFence(args.source), locale, validator);
             const summary = `traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 400)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}`;
             const lines = chart.problems.length
                 ? [`${chart.problems.length} problem(s) · ${summary}`, ...problemLines(chart.problems)]

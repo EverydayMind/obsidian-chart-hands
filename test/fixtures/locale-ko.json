@@ -6,7 +6,7 @@
       "version": "test",
       "description": "Analyze CSV data and build, check and read Plotly charts"
     },
-    "instructions": "For CSV or Markdown-table data use eda_profile for schema, units and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups), compare for two periods or a value against its plan, histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. These tools never edit data. A chart is a plotly fenced block of YAML or JSON with only data (list of traces), layout, config and fit as top-level keys. Quote colours (\"#2563EB\") and date-like strings; use no functions or variables. Write titles as objects: title: {text: \"...\"}. suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report. Use Plotly's advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots) when the data has that shape; call get_chart_guide when unsure. For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks. Run check_chart on the block content (without the fence lines) before writing it into a note, and fix every problem it reports; advice items are optional notes. Insert the block with the host's note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly's rules, not its appearance on screen.",
+    "instructions": "For CSV or Markdown-table data use eda_profile for schema, units and missingness, then eda_analyze: summary for one overall total or average of a column (with filter for a period), aggregate for one value per group (shares, top groups), compare for two periods or a value against its plan, histogram, Pearson correlation, rows; quote its computed numbers instead of doing arithmetic yourself. Use filter to select rows and rows to inspect paginated cells. Column meanings and units are not in the CSV: before reading values as amounts or ratios, check the notes the host lists as mentioning the file. Interpret excluded rows and undefined correlations. These tools never edit data. A chart is a plotly fenced block of YAML or JSON with only data (list of traces), layout, config and fit as top-level keys. Quote colours (\"#2563EB\") and date-like strings; use no functions or variables. Write titles as objects: title: {text: \"...\"}. suggest_chart picks chart types for the question from the data; for a report chart call get_chart_guide report. Use Plotly's advanced types (heatmap, box, violin, treemap, sunburst, sankey, waterfall, funnel, candlestick, polar, contour, 3D, maps, subplots) when the data has that shape; call get_chart_guide when unsure. For values from a vault CSV, use build_chart with source; never copy the numbers by hand. Write a block yourself only for types build_chart lacks. build_chart checks the blocks it builds; run check_chart on any block you write or edit yourself, and fix every problem it reports; advice items are optional notes. Insert the block with the host's note-editing tools: none of these tools edits a note or draws a chart. read_charts lists and checks the plotly blocks already in a note. The check verifies the definition against Plotly's rules, not its appearance on screen.",
     "tools": [
       {
         "name": "eda_profile",
@@ -318,7 +318,7 @@
               "type": "string",
               "minLength": 1,
               "maxLength": 20000,
-              "description": "The content that goes inside a plotly code block, without the fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {\"data\":[…],\"layout\":{…}}. Do not join keys with commas on one line."
+              "description": "The content that goes inside a plotly code block, with or without the plotly fence lines: YAML with data: and layout: each starting its own line (use \\n in this string), or one JSON object such as {\"data\":[…],\"layout\":{…}}. Do not join keys with commas on one line."
             }
           }
         },
@@ -483,7 +483,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block with basic checks; use check_chart for full validation. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -1181,7 +1181,7 @@
       }
     ]
   },
-  "digest": "331a6937b1e7ffe30c7bb54e6e705a8a00001bd56508013a36589df169ad640c",
+  "digest": "daa478eb2d9f9a8863474911a1fd471ffb8135f6740b4bd6bc8c51d71d69c59c",
   "results": [
     {
       "name": "eda_profile",
@@ -1577,7 +1577,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\n최댓값: A 1 (표시 1항목 중 유효 1항목)\n최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다. 노트에는 reportSnippet(또는 block)을 넣으세요.\n최댓값: A 1 · 표시 1항목 중 유효 1항목\n최솟값: A 1 · 표시 1항목 중 유효 1항목"
           }
         ],
         "structuredContent": {
@@ -1588,6 +1588,7 @@
             "제목이 없습니다."
           ],
           "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\"],\"series\":[{\"values\":[1]}]}\n```",
+          "staticBlockUse": "HWPX or PPTX export only; put reportSnippet (or block) in the note",
           "facts": {
             "type": "bar",
             "place": false,
@@ -1623,12 +1624,12 @@
               "valid": 1
             }
           },
-          "titleDraft": "A 1로 가장 큼 (표시 1항목 중 유효 1항목)",
+          "titleDraft": "A 1로 가장 큼 · 표시 1항목 중 유효 1항목",
           "factLines": [
-            "최댓값: A 1 (표시 1항목 중 유효 1항목)",
-            "최솟값: A 1 (표시 1항목 중 유효 1항목)"
+            "최댓값: A 1 · 표시 1항목 중 유효 1항목",
+            "최솟값: A 1 · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 1 (표시 1항목 중 유효 1항목)\n- 최솟값: A 1 (표시 1항목 중 유효 1항목)"
+          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 1 · 표시 1항목 중 유효 1항목\n- 최솟값: A 1 · 표시 1항목 중 유효 1항목"
         }
       }
     },

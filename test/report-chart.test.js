@@ -79,7 +79,24 @@ test('target and highlight boundaries, stacking and legacy blocks', () => {
     assert.throws(() => buildChartDefinition({ ...secondary, target: { value: 2, series: 2 } }));
     assert.equal(buildChartDefinition({ ...secondary, target: { value: 2, series: 1 } }).layout.shapes[0].yref, 'y2');
     for (const highlight of [{ top: 1, bottom: 1 }, { below_target: false }, { top: 51 }, { below_target: true }]) assert.throws(() => buildChartDefinition({ ...base, highlight }));
-    assert.throws(() => buildChartDefinition({ ...base, series: [base.series[0], base.series[0]], highlight: { top: 1 } }));
+    assert.throws(() => buildChartDefinition({ ...base, series: [base.series[0], base.series[0]], highlight: { top: 1 } }), /여러 계열이면 highlight\.labels로 범주를 지정하세요\./);
+    assert.throws(() => buildChartDefinition({ ...base, series: [base.series[0], base.series[0]], highlight: { top: 1 } }, { locale: 'en' }), /With several series, use highlight\.labels to pick categories\./);
+    // F10: highlight.labels allowed on multi-series bar, barh, combo and static-chart
+    for (const type of ['bar', 'barh']) {
+        const multi = buildChartDefinition({ ...base, type, series: [base.series[0], { values: [5, 6, 7] }], highlight: { labels: ['B'] } });
+        assert.equal(multi.data.length, 2);
+        for (const trace of multi.data) {
+            assert.notEqual(trace.marker.color[1], trace.marker.color[0]);
+            assert.equal(trace.marker.color[0], trace.marker.color[2]);
+        }
+    }
+    const comboMulti = buildChartDefinition({ ...base, type: 'combo', series: [{ values: [1, 2, 3], kind: 'bar' }, { values: [4, 5, 6], kind: 'bar' }, { values: [7, 8, 9], kind: 'line' }], highlight: { labels: ['A'] } });
+    assert.notEqual(comboMulti.data[0].marker.color[0], comboMulti.data[0].marker.color[1]);
+    assert.notEqual(comboMulti.data[1].marker.color[0], comboMulti.data[1].marker.color[1]);
+    assert.equal(typeof comboMulti.data[2].marker.color, 'string');
+    const staticMulti = parseStaticChart(JSON.stringify({ ...base, series: [base.series[0], { values: [5, 6, 7] }], highlight: { labels: ['B'] } }));
+    assert.notEqual(staticMulti.data[0].marker.color[1], staticMulti.data[0].marker.color[0]);
+    assert.notEqual(staticMulti.data[1].marker.color[1], staticMulti.data[1].marker.color[0]);
     for (const key of ['top', 'bottom']) {
         const colors = buildChartDefinition({ ...base, highlight: { [key]: 1 } }).data[0].marker.color;
         assert.notEqual(colors[0], colors[1]); assert.equal(colors[1], colors[2]);
@@ -134,6 +151,13 @@ test('handler resolves source highlights and emits provenance and real YAML', as
     assert.equal(provenance, `${(`# chart-hands source: ${longPath} · rows 3 of 3 · built 2026-11-23`).slice(0, 299)}…`);
     const control = await p.callTool('build_chart', { type: 'bar', source: { path: 'a\u0085.csv', labels: 'name' }, series: [{ column: 'value' }] });
     assert.match(chartBlock(control).split('\n')[1], /a \.csv/);
+    // F6: empty filter array omitted from provenance and automatic caption
+    const emptyFilter = await p.callTool('build_chart', { type: 'bar', style: 'report', source: { path: 'data.csv', labels: 'name', filter: [] }, series: [{ column: 'value' }] });
+    assert.doesNotMatch(chartBlock(emptyFilter).split('\n')[1], /filter/);
+    assert.doesNotMatch(blockData(emptyFilter).layout.annotations[0].text, /filter|조건/);
+    const emptyAnalysisFilter = await p.callTool('build_chart', { type: 'bar', style: 'report', source: { path: 'data.csv', analysis: { type: 'aggregate', columns: ['name', 'value'], filter: [] } }, series: [{ column: 'value' }] });
+    assert.doesNotMatch(chartBlock(emptyAnalysisFilter).split('\n')[1], /filter/);
+    assert.doesNotMatch(blockData(emptyAnalysisFilter).layout.annotations[0].text, /filter|조건/);
 });
 
 test('handler reports omitted static blocks and ignored arguments', async () => {

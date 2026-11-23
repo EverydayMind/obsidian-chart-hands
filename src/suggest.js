@@ -9,6 +9,7 @@ const KOREAN_NUMERALS = { 한: 1, 두: 2, 세: 3, 네: 4, 다섯: 5, 여섯: 6, 
 const NEGATION_RE = /(?:말|빼고|제외|않|없이)/;
 const METRIC_MASK_RE = /(?:집행률|달성률|비율|증가율|감소율)/g;
 const DIRECTION_WORD_RE = /(?:기준|대비|비해|보다|앞|뒤|이전|이후|전년|작년|올해|금년)/;
+const PRIOR_PERIOD_COMPARE_RE = /(?:전년\s*동기\s*대비|전년\s*대비|작년\s*대비|전월\s*대비|전기\s*대비)/g;
 const RELATIVE_PERIOD_RE = /(?:전년|작년|올해|금년)/;
 const LIST_OR_TABLE_RE = /(?:표로|목록|따로)/;
 const HIGHLIGHT_WORD_RE = /(?:강조|색|칠|눈에\s*띄게)/;
@@ -53,7 +54,7 @@ const TARGET_VALUE_RE = new RegExp(`${TARGET_PREFIX_PAT}(${TARGET_NUM_PAT}(?:\\s
 
 const NUM_TOKEN = /(?:\d+(?:\.\d+)?%?|다섯|여섯|일곱|여덟|아홉|[한두세네열])/.source;
 const QTY_TAIL = /(?=$|[\s.,;:!?()[\]{}·/]|곳|개소|개|명|건|부서|기관|항목|은|는|이|가|을|를|의|에|만|로|으로|과|와|및)/.source;
-const DELTA_HIGHLIGHT_RE = new RegExp(`${/(감소|증가)\s*(?:폭이\s*)?(?:가장\s*)?큰\s*/.source}(${NUM_TOKEN})${QTY_TAIL}`);
+const DELTA_HIGHLIGHT_RE = new RegExp(`${/(감소|증가)(?:가|이)?\s*(?:폭이\s*)?(?:가장\s*)?큰\s*/.source}(${NUM_TOKEN})${QTY_TAIL}`);
 const RANK_QTY_RE = new RegExp(`${/(상위|하위|많은|적은|큰|작은|top|bottom)\s?/.source}(${NUM_TOKEN})${QTY_TAIL}`, 'i');
 const DIR_COMPARE_PAT = /(?:\s+대비\s+|에\s*비해\s+|보다\s+)/.source;
 const DIR_BASE_PAT = /(?:를|을|는|은)?\s*기준으로\s+.*/.source;
@@ -189,7 +190,7 @@ export function parseRequest(request, cols, args, locale = 'ko') {
                     confirm.push({ field: 'period', candidates: col.distinctValues.slice(0, 20) });
                 } else if (periodTokens.length === 2) {
                     const [t1, t2] = periodTokens;
-                    const hasDir = DIRECTION_WORD_RE.test(request);
+                    const hasDir = DIRECTION_WORD_RE.test(request.replace(PRIOR_PERIOD_COMPARE_RE, ' '));
                     if (!hasDir) {
                         const [early, late] = t1.key < t2.key ? [t1, t2] : [t2, t1];
                         const base = col.period.keyToRaws.get(early.key)[0];
@@ -510,6 +511,7 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
     const hasAmbiguous = parsed.confirm.length > 0;
     const candidates = [];
     const topNeeds = [];
+    let referenceCandidates = [];
 
     // Resolve label & value columns according to goal.
     let labelCol = null;
@@ -573,12 +575,12 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
         candidates.push(cand);
     };
 
-    const canHighlightType = (type, seriesCount) => (type === 'bar' || type === 'barh') && seriesCount === 1 || type === 'combo';
+    const canHighlightType = (type, seriesCount, highlight) => (type === 'bar' || type === 'barh') && (seriesCount === 1 || Boolean(highlight && Object.hasOwn(highlight, 'labels'))) || type === 'combo';
     const attachExtras = (build, type, seriesCount, { includeTarget = true, highlight = simpleHighlight } = {}) => {
         if (includeTarget && targetValue !== undefined && ['line', 'area', 'bar', 'barh', 'combo'].includes(type)) {
             build.target = { value: targetValue, ...(build.series.some(s => s.secondary) ? { series: 0 } : {}) };
         }
-        if (highlight && canHighlightType(type, seriesCount)) {
+        if (highlight && canHighlightType(type, seriesCount, highlight)) {
             if (['below_target', 'above_target'].some(k => Object.hasOwn(highlight, k)) && !build.target) return build;
             build.highlight = highlight;
         }
@@ -964,6 +966,15 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                     }
                 }
             } else {
+                if (targetValue === undefined) {
+                    referenceCandidates = numericCols
+                        .filter(c => c.name !== vc.name && c.name !== labelCol.name && c.unit === vc.unit)
+                        .map(c => c.name)
+                        .slice(0, 5);
+                }
+                const targetNeeds = targetValue === undefined
+                    ? (referenceCandidates.length ? ['target.value', 'reference'] : ['target.value'])
+                    : [];
                 const hasDuplicates = rowCount > labelCol.distinct;
                 if (hasDuplicates) {
                     if (labelCol.distinct > 100) {
@@ -984,7 +995,7 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                                 series: [{ column: 'value' }],
                                 style: 'report'
                             }, 'bar', 1);
-                            addCandidate('bar', t(locale, targetValue !== undefined ? `목표선 ${targetValue} 대비 값을 막대로 비교합니다.` : '목표값과 비교할 막대 차트입니다(target.value 필요).', targetValue !== undefined ? `Compares values against target ${targetValue}.` : 'Bar chart ready for a target line (needs target.value).'), build, targetValue === undefined ? { needs: ['target.value'] } : {});
+                            addCandidate('bar', t(locale, targetValue !== undefined ? `목표선 ${targetValue} 대비 값을 막대로 비교합니다.` : '목표값과 비교할 막대 차트입니다(target.value 필요).', targetValue !== undefined ? `Compares values against target ${targetValue}.` : 'Bar chart ready for a target line (needs target.value).'), build, targetNeeds.length ? { needs: targetNeeds } : {});
                         }
                     }
                 } else if (rowCount > 200) {
@@ -999,7 +1010,7 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
                         series: [{ column: vc.name }],
                         style: 'report'
                     }, 'bar', 1);
-                    addCandidate('bar', t(locale, targetValue !== undefined ? `목표선 ${targetValue} 대비 값을 막대로 비교합니다.` : '목표선과 비교할 막대 차트입니다(target.value 필요).', targetValue !== undefined ? `Compares values against target ${targetValue}.` : 'Bar chart ready for a target line (needs target.value).'), build, targetValue === undefined ? { needs: ['target.value'] } : {});
+                    addCandidate('bar', t(locale, targetValue !== undefined ? `목표선 ${targetValue} 대비 값을 막대로 비교합니다.` : '목표선과 비교할 막대 차트입니다(target.value 필요).', targetValue !== undefined ? `Compares values against target ${targetValue}.` : 'Bar chart ready for a target line (needs target.value).'), build, targetNeeds.length ? { needs: targetNeeds } : {});
                 }
             }
         }
@@ -1166,6 +1177,7 @@ export function suggestChart(dataset, args = {}, locale = 'ko') {
         readFromRequest: parsed.readFromRequest,
         ...(parsed.confirm.length ? { confirm: parsed.confirm } : {}),
         ...(topNeeds.length ? { needs: topNeeds } : {}),
+        ...(referenceCandidates.length ? { referenceCandidates } : {}),
         ...(baseCautions.length && !limited.length ? { cautions: baseCautions } : {}),
         ...(notes.length ? { notes } : {})
     };

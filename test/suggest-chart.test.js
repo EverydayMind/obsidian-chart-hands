@@ -248,10 +248,15 @@ test('goal table: every goal cell, failure cases, >200 rows, matrix 13 cols, bub
     assert.equal(tgRef.candidates[1].build.target.value, 100);
     assert.equal(errorCode(await p.callTool('suggest_chart', { path: 'target.csv', goal: 'target', values: ['실적'], reference: '다른단위' })), 'INVALID_ARGUMENT');
     const tgNoRef = await run({ path: 'target.csv', goal: 'target', values: ['실적'] });
-    assert.deepEqual(tgNoRef.candidates[0].needs, ['target.value']);
+    assert.deepEqual(tgNoRef.candidates[0].needs, ['target.value', 'reference']);
+    assert.deepEqual(tgNoRef.referenceCandidates, ['목표']);
+    const tgNoCand = await run({ path: 'compare-short.csv', goal: 'target' });
+    assert.deepEqual(tgNoCand.candidates[0].needs, ['target.value']);
+    assert.equal(tgNoCand.referenceCandidates, undefined);
     const tgVal = await run({ path: 'target.csv', goal: 'target', values: ['실적'], target_value: 95 });
     assert.equal(tgVal.candidates[0].build.target.value, 95);
     assert.equal(tgVal.candidates[0].needs, undefined);
+    assert.equal(tgVal.referenceCandidates, undefined);
 
     // change
     const chNeeds = await run({ path: 'change.csv', goal: 'change', values: ['실적'] });
@@ -391,6 +396,30 @@ test('R6: 30 request examples evaluated with R1–R3 rules', async () => {
     const gEntry = over.structuredContent.readFromRequest.find(r => r.field === 'goal');
     assert.equal(gEntry.status, 'overridden');
     assert.equal(over.structuredContent.goal, 'compare');
+
+    // F11: two explicit periods + prior-period comparison phrase -> chronological applied
+    const f11 = await p.callTool('suggest_chart', {
+        path: 'base.csv',
+        request: '2025년과 2026년 부서별 실적을 비교해 줘. 전년 대비 감소가 가장 큰 세 곳을 강조해 줘'
+    });
+    assert.notEqual(f11.isError, true);
+    const f11ByField = Object.fromEntries(f11.structuredContent.readFromRequest.map(r => [r.field, r]));
+    assert.equal(f11ByField.goal.status, 'applied');
+    assert.equal(f11ByField.goal.value, 'change');
+    assert.equal(f11ByField.period.status, 'applied');
+    assert.equal(f11ByField.period.value.base, '2025');
+    assert.equal(f11ByField.period.value.target, '2026');
+    assert.equal(f11ByField.highlight.status, 'applied');
+    assert.deepEqual(f11ByField.highlight.value, { labels: ['A', 'B'] });
+    assert.equal(f11.structuredContent.confirm, undefined);
+    assert.ok(f11.structuredContent.candidates[0].build);
+    for (const phrase of ['전년 동기 대비', '작년 대비', '전월 대비', '전기 대비']) {
+        const res = await p.callTool('suggest_chart', { path: 'base.csv', request: `2025년과 2026년 부서별 실적을 ${phrase} 비교해 줘.` });
+        const periodEntry = res.structuredContent.readFromRequest.find(r => r.field === 'period');
+        assert.equal(periodEntry.status, 'applied', phrase);
+        assert.equal(periodEntry.value.base, '2025', phrase);
+        assert.equal(periodEntry.value.target, '2026', phrase);
+    }
 });
 
 test('S3/S3′: failure path, buildOmitted too_long, and RESULT_TOO_LARGE', async () => {

@@ -1,5 +1,14 @@
 # Changelog
 
+## 0.11.1
+
+- Run full `Plotly.validate` schema checks directly inside `build_chart` when Plotly is available, update `build_chart` and provider instructions accordingly, and let `check_chart` strip surrounding ` ```plotly ` / ` ~~~plotly ` fences.
+- Allow `table: 1` on CSV paths (ignoring it) while still rejecting `table` ≥ 2, and treat `title` + `title_from` as using `title` with `title_from` reported in `ignoredArgs`.
+- Return ready-to-run `chartArgs` from `eda_analyze` aggregate and compare results (preserved through result-size trimming), and mark `build_chart` `staticBlock` outputs as HWPX/PPTX export only (`staticBlockUse`).
+- Omit empty `filter` arrays from provenance comments and automatic captions, format fact scopes with ` · ` instead of nested parentheses, remove inner parentheses in trend title drafts, and add a `Highlighted:` / `강조:` title draft template for `highlight.labels`.
+- Report `referenceCandidates` and `needs: ["reference"]` for `suggest_chart` target goals when same-unit numeric columns exist, name actual conflicting keys with a concrete example on `source.analysis` errors, allow `highlight.labels` on multi-series `bar`, `barh` and `combo` charts (including static blocks), and accept prior-period comparison phrases (`전년 대비`, `전년 동기 대비`, `작년 대비`, `전월 대비`, `전기 대비`) with two explicit periods as chronological in `suggest_chart`.
+- The tool descriptor changes (build_chart and check_chart wording, provider instructions), so hosts must reapprove the provider.
+
 ## 0.11.0
 
 - Parse formatted numbers with units, currency symbols and negative notations (`12%`, `3억원`, `△5`, `(1,234)`), and refuse columns or comparisons that mix units.

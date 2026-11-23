@@ -45,7 +45,16 @@ test('compare coordinates, axes, waterfall constraints and duplicate labels', ()
 });
 
 test('source conflicts, empty groups, percent differences and static quantities', () => {
-    for (const key of ['labels', 'sort', 'limit', 'filter']) assert.throws(() => resolveChartSource(data, { type: 'bar', source: { path: 'x', analysis: aggregate, [key]: 'x' }, series: [{ column: 'value' }] }, 'en'), /inside analysis/);
+    for (const key of ['labels', 'sort', 'limit', 'filter']) assert.throws(() => resolveChartSource(data, { type: 'bar', source: { path: 'x', analysis: aggregate, [key]: 'x' }, series: [{ column: 'value' }] }, 'en'), new RegExp(`${key}.*inside analysis`));
+    // F9: error lists actual offending keys and builds example from the call's path and analysis
+    assert.throws(
+        () => resolveChartSource(data, { type: 'bar', source: { path: 'sales.csv', labels: '부서', sort: { column: '실적' }, analysis: aggregate }, series: [{ column: 'value' }] }, 'ko'),
+        /source\.analysis와 함께 쓸 수 없는 source 키: labels, sort\. 범주는 분석 결과의 그룹에서 오고, filter·sort·limit은 analysis 안에 씁니다\. 예: source:\{"path":"sales\.csv","analysis":\{"type":"aggregate","columns":\["부서","실적"\]\}\}/
+    );
+    assert.throws(
+        () => resolveChartSource(data, { type: 'bar', source: { path: 'sales.csv', labels: '부서', sort: { column: '실적' }, analysis: aggregate }, series: [{ column: 'value' }] }, 'en'),
+        /labels, sort.*inside analysis.*source:\{"path":"sales\.csv","analysis":\{"type":"aggregate","columns":\["부서","실적"\]\}\}/
+    );
     assert.throws(() => resolve({ ...aggregate, filter: [{ column: '부서', op: 'eq', value: 'missing' }] }), /no groups/);
     const pct = parseDataset('g,v,p\nA,10%,2025\nA,20%,2026');
     const args = { type: 'barh', source: { path: 'x', analysis: { type: 'compare', columns: ['g', 'v'], period: { column: 'p', base: '2025', target: '2026' } } }, series: [{ column: 'difference' }] };

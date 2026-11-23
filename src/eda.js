@@ -378,7 +378,16 @@ export function validateChartSource(args, locale = 'ko') {
     if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'table', 'labels', 'x', 'filter', 'sort', 'limit', 'analysis'].includes(k))) {
         fail('source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, table, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
-    if (Object.hasOwn(source, 'analysis') && ['labels', 'x', 'sort', 'limit', 'filter'].some(k => Object.hasOwn(source, k))) fail('filter·정렬·limit은 analysis 안에 쓰세요. 예: source:{path:"data.csv",analysis:{type:"aggregate",columns:["부서","실적"],sort:"desc"}}', 'Put filter, sort and limit inside analysis. Example: source:{path:"data.csv",analysis:{type:"aggregate",columns:["group","value"],sort:"desc"}}');
+    if (Object.hasOwn(source, 'analysis')) {
+        const forbidden = ['labels', 'x', 'sort', 'limit', 'filter'].filter(k => Object.hasOwn(source, k));
+        if (forbidden.length) {
+            const example = JSON.stringify({ path: source.path, ...(source.table !== undefined ? { table: source.table } : {}), analysis: source.analysis });
+            fail(
+                `source.analysis와 함께 쓸 수 없는 source 키: ${forbidden.join(', ')}. 범주는 분석 결과의 그룹에서 오고, filter·sort·limit은 analysis 안에 씁니다. 예: source:${example}`,
+                `source keys cannot be combined with source.analysis: ${forbidden.join(', ')}. Categories come from the analysis groups; put filter, sort and limit inside analysis. Example: source:${example}`
+            );
+        }
+    }
     if (source.sort !== undefined && (!source.sort || typeof source.sort !== 'object' || Array.isArray(source.sort) || typeof source.sort.column !== 'string' || !source.sort.column || Object.keys(source.sort).some(k => !['column', 'order'].includes(k)) || (source.sort.order !== undefined && !['desc', 'asc'].includes(source.sort.order)))) fail('source.sort는 column과 선택적 order(desc 또는 asc)가 필요합니다.', 'source.sort requires column and an optional order (desc or asc).');
     if (source.limit !== undefined && (!Number.isInteger(source.limit) || source.limit < 1 || source.limit > 200)) fail('source.limit은 1~200의 정수여야 합니다.', 'source.limit must be an integer from 1 to 200.');
     if (Object.hasOwn(args, 'labels') || !Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || typeof s !== 'object' || ['values', 'x', 'size'].some(k => Object.hasOwn(s, k)))) {
@@ -457,7 +466,7 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
         if (secondary && !resolved.y2_title) resolved.y2_title = axisTitle(secondary);
         if (['scatter', 'bubble'].includes(args.type) && !resolved.x_title) resolved.x_title = normalize(`${source.x}${units[source.x] ? `(${units[source.x]})` : ''}`, 100);
     }
-    const filter = source.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+    const filter = source.filter?.length ? source.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ') : '';
     const sourceCaption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${selected.length}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''}`, 200);
     if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) resolved.caption = sourceCaption;
     Object.defineProperties(resolved, {
@@ -502,7 +511,7 @@ function resolveAnalysisSource(dataset, args, locale) {
         if (secondary && !resolved.y2_title) resolved.y2_title = axis(secondary);
     }
     const summary = `${result.type} ${result.columns.join(' ')} ${result.function}${result.period ? ` ${result.period.base}→${result.period.target}` : ''}`;
-    const filter = spec.filter?.map(f => `${f.column} ${f.op} ${f.value}`).join('; ');
+    const filter = spec.filter?.length ? spec.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ') : '';
     const sourceCaption = normalize(`${locale === 'ko' ? '자료' : 'Source'}: ${args.source.path}${dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : ''} · ${result.filteredRows ?? result.totalRows}${locale === 'ko' ? '행' : ' rows'}${filter ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${filter}` : ''} · ${summary}`, 200);
     if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) resolved.caption = sourceCaption;
     Object.defineProperties(resolved, {

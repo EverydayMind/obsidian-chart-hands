@@ -67,7 +67,13 @@ export function validateBuildArgs(args, locale = 'ko') {
         if (keys.length !== 1 || !['labels', 'top', 'bottom', 'below_target', 'above_target'].includes(k) || (k === 'labels' ? !Array.isArray(h[k]) || !h[k].length || h[k].length > 50 || h[k].some(v => typeof v !== 'string') : ['top', 'bottom'].includes(k) ? !Number.isInteger(h[k]) || h[k] < 1 || h[k] > 50 : h[k] !== true || !args.target)) error('highlight 선택자가 잘못되었습니다. labels, top, bottom, below_target, above_target 중 하나를 지정하세요.', 'Invalid highlight selector; specify exactly one of labels, top, bottom, below_target or above_target.');
         if (k === 'labels' && Array.isArray(args.labels) && h.labels.some(v => !args.labels.includes(v))) error(`highlight.labels는 실제 labels에서 선택하세요: ${args.labels.join(', ')}`, `Choose highlight.labels from the actual labels: ${args.labels.join(', ')}`);
         const bar = type === 'combo' ? series.findIndex((s, i) => (s.kind || (i ? 'line' : 'bar')) === 'bar') : 0;
-        if (!(type === 'combo' && bar >= 0 || ['bar', 'barh'].includes(type) && series.length === 1)) reject('highlight', 'single-series bar, barh, or combo with a bar');
+        const ok = k === 'labels'
+            ? (['bar', 'barh'].includes(type) || type === 'combo' && bar >= 0)
+            : (type === 'combo' && bar >= 0 || ['bar', 'barh'].includes(type) && series.length === 1);
+        if (!ok) {
+            if (k !== 'labels') error('highlight은 단일 계열 bar, barh, 또는 막대가 있는 combo에만 쓸 수 있습니다. 여러 계열이면 highlight.labels로 범주를 지정하세요.', 'highlight is only supported for single-series bar, barh, or combo with a bar. With several series, use highlight.labels to pick categories.');
+            reject('highlight', 'bar, barh, or combo with a bar');
+        }
         if (['below_target', 'above_target'].includes(k) && (args.target.series ?? 0) !== bar) error('목표를 단 계열과 강조할 막대 계열이 다릅니다.', 'The target series differs from the highlighted bar series.');
     }
     return ignored;
@@ -511,9 +517,19 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         layout.annotations = [{ ...(horizontal ? { xref: 'x', x: t.value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: t.value }), yanchor: 'bottom', showarrow: false, text: t.label ?? `${locale === 'ko' ? '목표' : 'Target'} ${targetValue}` }];
     }
     if (args.highlight) {
-        const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0;
-        const chosen = new Set(highlightIndices(args.highlight, labels, series[i].values, args.target));
-        data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.has(n) ? (args.style === 'print' ? '#111827' : PALETTE.highlight) : (args.style === 'print' ? '#D1D5DB' : '#CBD5E1')) };
+        const highlightColor = args.style === 'print' ? '#111827' : PALETTE.highlight;
+        const mutedColor = args.style === 'print' ? '#D1D5DB' : '#CBD5E1';
+        if (Object.hasOwn(args.highlight, 'labels')) {
+            const chosen = new Set(highlightIndices(args.highlight, labels, series[0].values, args.target));
+            const colors = labels.map((_, n) => chosen.has(n) ? highlightColor : mutedColor);
+            data.forEach(trace => {
+                if (trace.type === 'bar') trace.marker = { ...trace.marker, color: [...colors] };
+            });
+        } else {
+            const i = type === 'combo' ? data.findIndex(t => t.type === 'bar') : 0;
+            const chosen = new Set(highlightIndices(args.highlight, labels, series[i].values, args.target));
+            data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.has(n) ? highlightColor : mutedColor) };
+        }
     }
     if (args.caption) {
         layout.annotations = [...(layout.annotations || []), { xref: 'paper', yref: 'paper', x: 0, y: -0.2, xanchor: 'left', yanchor: 'top', showarrow: false, text: args.caption, font: { size: 11, color: '#6B7280' } }];
