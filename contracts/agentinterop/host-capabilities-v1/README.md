@@ -39,7 +39,7 @@ describeAssets(): AssetsDescriptor | Promise<AssetsDescriptor>
 - `id`: `^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$`. host 정본 ID는 `<pluginId>:<id>`다.
 - `locale`: `ko` 또는 `en`. Verbex는 모델 언어(`getModelLocale()`)와 같은 판만 쓰고, 없는 언어판은 대신하지 않는다.
 - `frontmatter` 키는 닫혀 있다(`assets.schema.json`). 알 수 없는 키는 `schema`로 거부한다.
-  - 번역 필드(언어판마다 달라도 됨): `name`(1~80자, 줄바꿈 없음), `description`(1~300자, 줄바꿈 허용), `trigger_keywords`(32개 이하, 각 1~40자)
+  - 번역 필드(언어판마다 달라도 됨): `name`(1~80자, 줄바꿈 없음), `description`(1~300자, 줄바꿈 허용), `trigger_keywords`(32개 이하, 각 1~120자 — 볼트 Skill과 같은 조건식 키워드 `a|b & c & !d`를 쓸 수 있어 길이를 넉넉히 둔다)
   - 스위치 필드(같은 `id`의 언어판끼리 같아야 함): `applies_to`, `tools`, `allowed-tools`, `preferred-tools`, `required-plugins`, `requires-host-tools`, `workflow`, `standalone`, `cross_document`, `disable-model-invocation`
   - 같음의 정의: 목록 필드는 없음과 `[]`를 같게 보고, 순서까지 같은 문자열 배열이어야 한다. 불리언은 없음과 `false`를 같게 본다. 문자열은 그대로 비교한다.
   - 도구 이름 `^[A-Za-z0-9_-]{1,128}$`, 목록당 32개 이하. `required-plugins`는 provider id 규칙(`^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$`) 8개 이하이며, host가 제공 플러그인 자신을 더한다.

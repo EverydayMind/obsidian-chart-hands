@@ -62,7 +62,7 @@
             "trigger_keywords": {
               "type": "array",
               "maxItems": 32,
-              "items": { "type": "string", "minLength": 1, "maxLength": 40 }
+              "items": { "type": "string", "minLength": 1, "maxLength": 120 }
             },
             "applies_to": {
               "type": "array",

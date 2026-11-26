@@ -7,11 +7,11 @@
   "files": [
     {
       "path": "README.md",
-      "sha256": "d826a1868bcc39a15b051d3b98b8d306670ff27272430a2e971e7064dec94628"
+      "sha256": "750249464367dee5b0940aa26581ba861b0b82579f5c6acbba2a6517925e4e0b"
     },
     {
       "path": "assets.schema.json",
-      "sha256": "1318714bcb1fa3358a3483a32259c0306d3f054f40febbb0326497710e7d5f4e"
+      "sha256": "9b66678f43efd99a75a9796b223eb36efac3a626cd04aac0ebd243f002e327cd"
     },
     {
       "path": "fixtures.json",
