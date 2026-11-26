@@ -1,13 +1,13 @@
 {
   "protocol": "agentinterop",
   "extension": "dev.agentinterop/hostCapabilities",
-  "contractVersion": "host-capabilities-v1-2026-11-25",
+  "contractVersion": "host-capabilities-v1-2026-11-27",
   "source": "obsidian-verbex/contracts/agentinterop/host-capabilities-v1 (copies elsewhere must match these hashes)",
   "digestAlgorithm": "SHA-256 of UTF-8 text with CRLF normalized to LF (manifest excluded)",
   "files": [
     {
       "path": "README.md",
-      "sha256": "750249464367dee5b0940aa26581ba861b0b82579f5c6acbba2a6517925e4e0b"
+      "sha256": "8a6eaf6e193f0616853f183a0db413f80633cdb25ebb4865129dfb537c50abea"
     },
     {
       "path": "assets.schema.json",
@@ -15,11 +15,11 @@
     },
     {
       "path": "fixtures.json",
-      "sha256": "a2b2f5c88b386184da56cd35e2a55921eee9e69202fa863d69d0dddf681b2c4a"
+      "sha256": "4bfb6ba9ce7b5a775fdce601f4418045afa0676599591ae534d77e0f6c262a8f"
     },
     {
       "path": "protocol.ts",
-      "sha256": "15d421a44837a6a2cd2de7d45edec70d43bfd7751780279d2daf1d235f034cd1"
+      "sha256": "1f509ea408ee84977653b0f357384566471a22ada7f70bfb64f751f539cf7252"
     }
   ]
 }

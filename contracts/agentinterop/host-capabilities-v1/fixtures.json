@@ -1676,6 +1676,89 @@
     "expected": "valid"
   },
   {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "valid-single-dataview",
+    "value": ["dataview"],
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "valid-absent",
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "valid-eight-with-hyphen-underscore-digit",
+    "value": ["dataview", "mermaid", "sql", "a", "b", "c-d", "e_f", "g9"],
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "valid-max-length-32",
+    "value": ["abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-duplicate",
+    "value": ["dataview", "dataview"],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-uppercase",
+    "value": ["Dataview"],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-nine-entries",
+    "value": ["a", "b", "c", "d", "e", "f", "g", "h", "i"],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-not-an-array",
+    "value": "dataview",
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-non-string-entry",
+    "value": ["dataview", 1],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-leading-digit",
+    "value": ["1sql"],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-empty-string",
+    "value": [""],
+    "expected": "invalid"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolCodeBlockLanguages",
+    "name": "invalid-length-33",
+    "value": ["abbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"],
+    "expected": "invalid"
+  },
+  {
     "scope": "host",
     "kind": "describeAssets",
     "name": "getter-member-rejects-provider",
@@ -2837,5 +2920,329 @@
       "absent": true
     },
     "expected": "no-companion"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "valid-empty",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": [] },
+    "expected": "valid",
+    "hidden": []
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "valid-with-entries",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        { "name": "query", "reason": "Dataview가 꺼져 있습니다" },
+        { "name": "render_note_blocks", "reason": "Dataview is off" }
+      ]
+    },
+    "expected": "valid",
+    "hidden": [
+      { "name": "query", "reason": "Dataview가 꺼져 있습니다" },
+      { "name": "render_note_blocks", "reason": "Dataview is off" }
+    ]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "unknown-version",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 2,
+      "unavailable": [{ "name": "query", "reason": "x" }]
+    },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "version-missing",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "unavailable": [{ "name": "query", "reason": "x" }] },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "result-is-null",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": null,
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "result-is-array",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": [],
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "extra-top-level-key",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": [], "note": "x" },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "unavailable-not-an-array",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": { "query": "x" } },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "entry-missing-reason",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": [{ "name": "query" }] },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "entry-missing-name",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": [{ "reason": "x" }] },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "entry-extra-field",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [{ "name": "query", "reason": "x", "code": 1 }]
+    },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "entry-name-not-a-string",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": { "version": 1, "unavailable": [{ "name": 7, "reason": "x" }] },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "entry-reason-not-a-string",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [{ "name": "query", "reason": 7 }]
+    },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "one-bad-entry-ignores-the-list",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        { "name": "query", "reason": "x" },
+        { "name": "render_note_blocks" }
+      ]
+    },
+    "expected": "ignored"
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "reason-longer-than-200-is-trimmed",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        {
+          "name": "query",
+          "reason": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"
+        }
+      ]
+    },
+    "expected": "valid",
+    "hidden": [
+      {
+        "name": "query",
+        "reason": "가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가가"
+      }
+    ]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "reason-control-characters-removed",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        { "name": "query", "reason": "  a\u0000b\nc\u0007d\u202ee  " }
+      ]
+    },
+    "expected": "valid",
+    "hidden": [{ "name": "query", "reason": "abcde" }]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "reason-empty-after-cleanup-still-hides",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [{ "name": "query", "reason": "\n\t" }]
+    },
+    "expected": "valid",
+    "hidden": [{ "name": "query", "reason": "" }]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "unknown-tool-name-is-ignored",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        { "name": "nope", "reason": "x" },
+        { "name": "query", "reason": "y" }
+      ]
+    },
+    "expected": "valid",
+    "hidden": [{ "name": "query", "reason": "y" }]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "duplicate-name-first-wins",
+    "knownTools": ["query", "render_note_blocks"],
+    "value": {
+      "version": 1,
+      "unavailable": [
+        { "name": "query", "reason": "first" },
+        { "name": "query", "reason": "second" }
+      ]
+    },
+    "expected": "valid",
+    "hidden": [{ "name": "query", "reason": "first" }]
+  },
+  {
+    "scope": "contract",
+    "kind": "toolAvailability",
+    "name": "more-than-64-entries-are-cut",
+    "knownTools": [
+      "t0",
+      "t1",
+      "t2",
+      "t3",
+      "t4",
+      "t5",
+      "t6",
+      "t7",
+      "t8",
+      "t9",
+      "t10",
+      "t11",
+      "t12",
+      "t13",
+      "t14",
+      "t15",
+      "t16",
+      "t17",
+      "t18",
+      "t19",
+      "t20",
+      "t21",
+      "t22",
+      "t23",
+      "t24",
+      "t25",
+      "t26",
+      "t27",
+      "t28",
+      "t29",
+      "t30",
+      "t31",
+      "t32",
+      "t33",
+      "t34",
+      "t35",
+      "t36",
+      "t37",
+      "t38",
+      "t39",
+      "t40",
+      "t41",
+      "t42",
+      "t43",
+      "t44",
+      "t45",
+      "t46",
+      "t47",
+      "t48",
+      "t49",
+      "t50",
+      "t51",
+      "t52",
+      "t53",
+      "t54",
+      "t55",
+      "t56",
+      "t57",
+      "t58",
+      "t59",
+      "t60",
+      "t61",
+      "t62",
+      "t63",
+      "t64",
+      "t65",
+      "t66",
+      "t67",
+      "t68",
+      "t69"
+    ],
+    "valueGenerated": { "count": 70, "prefix": "t", "reason": "r" },
+    "expected": "valid",
+    "hiddenCount": 64
+  },
+  {
+    "scope": "host",
+    "kind": "toolAvailability",
+    "name": "getter-member-is-ignored",
+    "behavior": { "memberIsGetter": true },
+    "expected": "ignored"
+  },
+  {
+    "scope": "host",
+    "kind": "toolAvailability",
+    "name": "throwing-member-is-ignored",
+    "behavior": { "memberThrows": true },
+    "expected": "ignored"
+  },
+  {
+    "scope": "host",
+    "kind": "toolAvailability",
+    "name": "promise-result-is-ignored",
+    "behavior": { "memberReturnsPromise": true },
+    "expected": "ignored"
+  },
+  {
+    "scope": "host",
+    "kind": "toolAvailability",
+    "name": "missing-member-means-all-available",
+    "behavior": { "memberMissing": true },
+    "expected": "ignored"
   }
 ]

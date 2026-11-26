@@ -1,4 +1,4 @@
-# Host capabilities v1 — 플러그인 Skill·텍스트 추출·비공개 판정·문서 소유권
+# Host capabilities v1 — 플러그인 Skill·텍스트 추출·비공개 판정·문서 소유권·도구 가용성
 
 정형 원본: Verbex. 이 멤버를 구현하는 자매 플러그인(HWP Hands, KorDoc Transform, HWPX Exporter, PPTX Hands, Chart Hands, Web Hands, Bridge 플러그인)은 같은 경로에 바이트 동일 사본을 두고 `manifest.json` 해시로 대조한다.
 
@@ -6,7 +6,7 @@
 
 ## 범위
 
-agentinterop v1·v2 provider 객체(`Symbol.for('dev.agentinterop.capability-provider')`)의 **새 선택 멤버** 다섯 개다. `describe()`가 돌려주는 descriptor는 바꾸지 않는다. 구버전 Verbex는 provider 객체의 정해진 멤버만 읽으므로(`discovery.ts`의 `readProviderHandle`) 이 멤버들을 무시하고, 기존 도구는 그대로 동작한다. descriptor에 새 키를 넣으면 구버전 Verbex가 닫힌 키 목록(`descriptorSchema.ts`)으로 그 provider 전체를 거부하므로 넣지 않는다.
+agentinterop v1·v2 provider 객체(`Symbol.for('dev.agentinterop.capability-provider')`)의 **새 선택 멤버** 여섯 개다. `describe()`가 돌려주는 descriptor는 바꾸지 않는다. 구버전 Verbex는 provider 객체의 정해진 멤버만 읽으므로(`discovery.ts`의 `readProviderHandle`) 이 멤버들을 무시하고, 기존 도구는 그대로 동작한다. descriptor에 새 키를 넣으면 구버전 Verbex가 닫힌 키 목록(`descriptorSchema.ts`)으로 그 provider 전체를 거부하므로 넣지 않는다. 예외가 하나 있다: 도구 `_meta`의 선택 키 `dev.agentinterop/codeBlockLanguages`(§7)다. 이 키는 호스트 광고(§6)에 `host-capabilities-v1`이 있을 때만 낸다.
 
 | 멤버 | 용도 | 호출 조건 |
 | --- | --- | --- |
@@ -15,6 +15,7 @@ agentinterop v1·v2 provider 객체(`Symbol.for('dev.agentinterop.capability-pro
 | `extractText` | 문서 파일의 색인용 텍스트 추출 | 승인·활성 provider만 |
 | `privacy` | AI 비공개 판정 | **승인과 무관하게** 켜진 모든 플러그인(§4) |
 | `ownership.openDocumentPaths()` | 동반 창에 열린 문서 경로 | 승인·활성 provider만. 선언했는데 쓸 수 없으면 쓰기 거절(§5) |
+| `toolAvailability()` | 지금 쓸 수 없는 자기 도구 목록(숨기기 전용) | 승인·활성·현재 provider만, 턴 준비·호출 직전·설정 화면을 그릴 때마다 읽음(§8) |
 
 모든 멤버는 host 전용이다. 모델 도구가 아니고, 모델에 정의를 보이지 않으며, 모델이 부를 수 없다.
 
@@ -147,6 +148,43 @@ ownership: { openDocumentPaths(): Promise<string[]> }
 - provider는 이 광고로 새 host를 알아본다(host 플러그인 ID나 버전 문자열에 기대지 않는다). 광고가 없으면 옛 host로 보고 옛 경로를 유지한다: 예를 들어 KorDoc Transform은 protocol-1 등록과 `api.indexText` v1을, HWP Hands는 `api.privacy`를 유지한다.
 - Bridge 플러그인은 광고가 없으면 도구를 내지 않는다(옛 host의 내장 기능과 겹치지 않게). 자기 설정 화면에 host 업데이트가 필요하다고 보인다.
 - 버전이 섞일 때의 전체 규칙은 설계 §10이 정본이다.
+
+## 7. 도구 `_meta` 키 `dev.agentinterop/codeBlockLanguages`
+
+```ts
+// 도구 descriptor의 _meta (선택)
+'dev.agentinterop/codeBlockLanguages': string[]
+```
+
+- 값: 문자열 배열, **최대 8개**, 중복 없음, 각 항목 `^[a-z][a-z0-9_-]{0,31}$`(소문자). 이 규칙을 하나라도 어기면(배열이 아님, 9개 이상, 중복, 대문자, 문자열이 아닌 항목 등) 다른 `_meta` 결함과 같이 **descriptor 전체를 거부**한다. 키가 없으면 빈 목록이다.
+- 뜻: 이 도구는 Markdown 노트의 펜스 코드 블록(`` ```언어 ``, `~~~언어`) 중 이 언어의 블록을 다룬다. host는 현재 노트에 그 언어의 블록이 있는 턴에서 이 도구의 provider를 노출 후보에 올릴 수 있다. 확장자로 후보를 올리는 `dev.agentinterop/resourceTypes`와 같은 층위의 **노출 힌트**일 뿐이다. 승인·허가·grant·AI 비공개 판정이 아니며, 키가 있다고 도구가 승인되거나 호출 가능해지지 않는다.
+- provider 규칙: host 광고(§6)의 `contracts`에 `host-capabilities-v1`이 있을 때만 이 키를 낸다. 구버전 host는 닫힌 키 목록으로 descriptor 전체를 거부한다. 광고가 없으면 키를 빼고 낸다.
+- 승인: descriptor의 일부이므로 다른 `_meta` 키와 같이 승인 digest에 들어간다. 키를 더하거나 바꾸면 재승인이다.
+- v1·v2 provider 객체 모두 같은 규칙으로 읽는다.
+
+## 8. `toolAvailability()`
+
+```ts
+toolAvailability(): {
+  version: 1
+  /** 지금 쓸 수 없는 도구. 목록에 없는 도구는 쓸 수 있다. */
+  unavailable: Array<{ name: string; reason: string }>
+}
+```
+
+- 까닭: 제공 플러그인이 의존하는 다른 플러그인(예: Dataview, Tasks)이 꺼지거나 판이 바뀌어 API가 사라지면, 그 API에 기대는 도구는 숨겨야 한다. 그렇다고 `describe()`의 도구 목록을 바꾸면 descriptor가 승인 digest에 들어 있어 켜고 끌 때·플러그인 업데이트 때·시작 시 로드 순서 경쟁마다 재승인이 생긴다. 그래서 descriptor의 도구 목록은 고정으로 두고(DECISIONS §22), 가용성은 승인과 무관한 **숨기기 전용** 별도 경로로 알린다.
+- 형식: provider 객체의 데이터 속성(getter 아님)인 **동기** 함수. 인자 없음, I/O 없음, 던지지 않음, 값싸야 한다(host는 턴 준비마다·호출 직전·설정 화면을 그릴 때 부른다). Promise를 돌려주면 결함이다. host 광고(§6)에 `host-capabilities-v1`이 있을 때만 낸다.
+- `name`은 provider 자기 descriptor의 도구 이름(`plg__` 접두 없는 원래 이름). `reason`은 **사람이 읽는** 평문이며 사용자의 Obsidian 언어로 쓴다. 예: "Dataview가 꺼져 있습니다", "이 Tasks 판(9.0.0)에는 완료 표시 API가 없습니다". 목록은 64개 이하.
+- host 읽기: 멤버를 getter 없이(`readDataMember`) 읽고, 함수이면 인자 없이 한 번 부른 뒤 결과를 손실 없는 JSON 사본(`copyJson`, 깊이 4·노드 1,000·128 KiB)으로 만들어 엄격히 검사한다. **승인·활성이고 현재 인스턴스인 provider만** 읽는다. 읽은 값은 저장하지 않고 승인 digest·승인 스냅샷·승인 기록에 넣지 않는다. 가용성이 바뀌어도 재승인은 생기지 않는다.
+- 결함 처리: 결과가 객체가 아니거나, 키가 `version`·`unavailable` 둘이 아니거나, `version`이 1이 아니거나, `unavailable`이 배열이 아니거나, 항목이 `name`·`reason` 두 문자열만 가진 객체가 아니거나, 멤버가 getter이거나 함수가 아니거나, 던지거나, Promise를 돌려주거나, 사본 한도를 넘으면 **그 읽기에서는 멤버가 없는 것으로 본다**: 모든 도구를 쓸 수 있는 것으로 둔다(provider 자신의 호출 시점 오류는 그대로 적용). 진단에 남기고 Notice는 띄우지 않는다. 항목 하나의 결함은 목록 전체를 무시한다.
+- 항목별 무시: descriptor에 없는 도구 이름, 같은 `name`의 두 번째 이후 항목(첫 항목이 이김), 64번째를 넘는 항목은 그 항목만 무시한다. 판단 순서는 목록 순서다.
+- `reason` 정리: host가 제어 문자(Cc)·서식 문자(Cf)·짝 없는 surrogate를 지우고 앞뒤 공백을 자른 뒤 **200 UTF-16 코드 단위로 자른다**(surrogate 쌍은 가르지 않는다). 너무 길다고 항목을 버리지 않는다. 정리 뒤 빈 문자열도 유효하다(사유 없이 숨김).
+- host 규칙:
+  - 이 멤버는 **숨기기만** 한다. 나열된 도구는 그 턴의 모델 노출과 정의 예산에서 빠진다. 도구를 더하거나, grant·승인·허가를 주거나, AI 비공개 판정에 영향을 주지 않는다.
+  - `reason`은 **사람에게만** 보인다(provider 상태·설정 화면, 평문으로 렌더링). 모델 요청에 들어가지 않는다. 모델이 보는 안내와 거절 문구는 host가 쓴 고정 문장이다(예: "[호스트 기능 상태] plg__x__y 도구는 제공 플러그인이 지금 쓸 수 없다고 알려 이번 요청에 노출하지 않았다. 대체 도구로 흉내 내지 않는다.").
+  - 숨겨진 도구를 요구하는 Skill·workflow는 요청을 보내기 전에 멈추지 않는다(플러그인이 꺼진 내장 도구와 같은 예외, DECISIONS §22). host가 위의 고정 안내를 덧붙인다.
+  - 숨겨진 도구를 모델이 부르면(이전 턴에 노출됐던 도구 등) provider에 닿기 전에 host가 쓴 고정 사실로 거절한다. 자동으로 다시 시도하지 않는다.
+  - 새 Notice·모달·띠·재승인 요청은 이 멤버에서 나오지 않는다. 유일한 UI는 provider 상태의 도구별 조용한 한 줄("지금 쓸 수 없음: <reason>")이다.
 
 ## 파일
 

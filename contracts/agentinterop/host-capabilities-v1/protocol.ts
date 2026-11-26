@@ -4,6 +4,36 @@
  * describe() is unchanged. See README.md for limits and host behavior.
  */
 
+/**
+ * Optional tool `_meta` key (section 7 of README.md). Up to 8 unique strings,
+ * each ^[a-z][a-z0-9_-]{0,31}$: fenced code block languages the tool works on
+ * in Markdown notes. An exposure hint only, not approval, permit or privacy.
+ * Emit it only when the host advertisement lists 'host-capabilities-v1'; an
+ * older host rejects the whole descriptor. Covered by the approval digest.
+ */
+export const META_CODE_BLOCK_LANGUAGES = 'dev.agentinterop/codeBlockLanguages'
+
+/**
+ * Optional provider member (section 8 of README.md): a synchronous, hide-only
+ * list of the provider's own tools that cannot work right now. Emit it only
+ * when the host advertisement lists 'host-capabilities-v1'. Never part of the
+ * approval digest.
+ */
+export const MEMBER_TOOL_AVAILABILITY = 'toolAvailability'
+
+/** `name` is a tool name from the provider's own descriptor. */
+export type ToolAvailabilityEntry = {
+  name: string
+  /** Plain text for people in the user's locale; the host trims it to 200 units. */
+  reason: string
+}
+
+export type ToolAvailability = {
+  version: 1
+  /** At most 64 entries. A tool not listed is available. */
+  unavailable: ToolAvailabilityEntry[]
+}
+
 export type SkillLocale = 'ko' | 'en'
 
 /** SKILL.md frontmatter as data. Limits: assets.schema.json. */
@@ -168,4 +198,9 @@ export type HostCapabilityMembers = {
   ownership?: {
     openDocumentPaths(): Promise<string[]>
   }
+  /**
+   * Own data property function, never a getter. Synchronous, no I/O, must not
+   * throw. A malformed result means "all tools available". Hide-only.
+   */
+  toolAvailability?(): ToolAvailability
 }
