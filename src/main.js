@@ -8,6 +8,7 @@ import { adviseChart } from './chart-advice.js';
 import { SUGGEST_GOALS, suggestChart } from './suggest.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
 import { getLocale, initLocale } from './locale.js';
+import { describeAgentAssets, hostSkillStatusLine, readAgentAsset } from './agent-skills.js';
 
 // Plotly.js and D3 are bundled into main.js by esbuild, but each import() below becomes a lazy
 // module: its code only runs on the first call, so the vault opens without evaluating either.
@@ -1289,6 +1290,15 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
         protocol: 'agentinterop',
         protocolVersion: 1,
         describe: () => Promise.resolve(descriptor),
+        // Host-only members (host-capabilities-v1): own data properties, so a host reads them without running code.
+        describeAssets: () => {
+            if (disposed) throw new Error('The plugin has been unloaded.');
+            return describeAgentAssets();
+        },
+        readAsset: request => {
+            if (disposed) throw new Error('The plugin has been unloaded.');
+            return readAgentAsset(request);
+        },
         callTool: (name, args, ctx) => __awaiter(void 0, void 0, void 0, function* () {
             try {
                 if (disposed) {
@@ -1335,6 +1345,7 @@ class ChartHandsSettingTab extends obsidian.PluginSettingTab {
         introEl.createEl('p', { text: ko
             ? 'plotly 코드 블록 안의 data·layout을 고치면 바로 다시 그려집니다.'
             : 'Edit data and layout inside the plotly code block and the chart redraws.' });
+        introEl.createEl('p', { text: hostSkillStatusLine(this.app, getLocale()) });
         new obsidian.Setting(containerEl)
             .setName(ko ? '차트 너비 맞추기' : 'Fit chart width')
             .setDesc(ko ? '차트를 노트 너비에 맞춥니다. 코드 블록에 "fit: off", "fit: shrink" 또는 "fit: fill"을 추가하여 해당 차트의 설정을 바꿀 수 있습니다.' : 'Fit charts to the note width. Add "fit: off", "fit: shrink" or "fit: fill" to a code block to override this for that chart.')
@@ -1512,7 +1523,7 @@ ${error.message}`, 8000);
 
 export default ChartHandsPlugin;
 // For tests outside Obsidian; Obsidian itself only uses the default export.
-export { blockInsertion, createAgentProvider, DATA_RESULT_CHARS, isDataviewEnabled };
+export { blockInsertion, createAgentProvider, hostSkillStatusLine, DATA_RESULT_CHARS, isDataviewEnabled };
 export { getLocale, resolveLocale, setLocaleForTests } from './locale.js';
 
 

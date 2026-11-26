@@ -396,6 +396,11 @@ async function captureExtended(code, locale) {
     p.dispose();
     await call('get_chart_guide', {});
     plugin.onunload();
+    // The settings line depends on the host: render every state, with and without Skill names.
+    const advertised = Object.defineProperty({}, Symbol.for('dev.agentinterop.host'), { value: { protocol: 'agentinterop', contracts: ['host-capabilities-v1'] } });
+    for (const app of [{ plugins: { plugins: { host: advertised } } }, { plugins: { plugins: {} } }, {}]) {
+        for (const names of [undefined, []]) h.ui.push({ kind: 'text', values: [h.exports.hostSkillStatusLine(app, locale, names)] });
+    }
     return { descriptor, calls, ui: h.ui };
 }
 module.exports = { headSource, buildHead, loadHarness, captureExtended };

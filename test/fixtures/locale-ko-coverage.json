@@ -15209,6 +15209,12 @@
       ]
     },
     {
+      "kind": "text",
+      "values": [
+        "AI 호스트의 플러그인 Skill 지원 여부를 확인할 수 없습니다."
+      ]
+    },
+    {
       "kind": "name",
       "values": [
         "차트 너비 맞추기"
@@ -15321,6 +15327,42 @@
       "kind": "render-error",
       "values": [
         "차트를 표시할 수 없습니다: 사용할 수 있는 키는 data, layout, config, fit뿐입니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "AI 호스트가 이 플러그인의 Skill(데이터 인사이트와 차트)을 읽을 수 있습니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "AI 호스트가 이 플러그인의 Skill을 읽을 수 있습니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "켜진 AI 호스트 중 플러그인 Skill을 읽는 것이 없습니다. Verbex를 쓰고 있다면 최신 판으로 업데이트하면 이 플러그인의 Skill(데이터 인사이트와 차트)을 쓸 수 있습니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "켜진 AI 호스트 중 플러그인 Skill을 읽는 것이 없습니다. Verbex를 쓰고 있다면 최신 판으로 업데이트하면 이 플러그인의 Skill을 쓸 수 있습니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "AI 호스트의 플러그인 Skill 지원 여부를 확인할 수 없습니다."
+      ]
+    },
+    {
+      "kind": "text",
+      "values": [
+        "AI 호스트의 플러그인 Skill 지원 여부를 확인할 수 없습니다."
       ]
     }
   ]

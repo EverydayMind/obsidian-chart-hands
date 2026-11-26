@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Ship the `data-insight-chart` Skill (Korean and English) with the plugin. An AI host that supports `host-capabilities-v1` (Verbex, latest version) reads it through the new `describeAssets()` and `readAsset()` provider members. The tool descriptor is unchanged, so older hosts keep working.
+- Show on the settings tab whether an enabled AI host can read the plugin's Skills.
+
 ## 0.11.4
 
 - Sort ties and labels with one fixed collation instead of the machine locale, so `eda_profile` top values and aggregate group order are the same on every computer (an en-US machine used to order Latin before Hangul).

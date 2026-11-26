@@ -1,0 +1,90 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://agentinterop.dev/host-capabilities-v1/assets.schema.json",
+  "title": "describeAssets() result",
+  "description": "Cross-entry rules not expressible here (see README): unique (id, locale); at most 8 skills and at most 20000 bodyTokens per locale; switch fields identical across locale variants of one id (absent list == [], absent boolean == false, order matters); tools entries starting with plg__ must start with plg__<own pluginId>__; no CR, NUL or lone surrogate in any string; string lengths are JavaScript String.length; passing this schema does not guarantee the 256 KiB copy limit.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["version", "skills"],
+  "properties": {
+    "version": {
+      "type": "integer",
+      "description": "1 for this contract; an unknown integer means the host ignores the member."
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 16,
+      "items": { "$ref": "#/$defs/skill" }
+    }
+  },
+  "$defs": {
+    "toolName": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9_-]{1,128}$"
+    },
+    "toolList": {
+      "type": "array",
+      "maxItems": 32,
+      "items": { "$ref": "#/$defs/toolName" }
+    },
+    "pluginId": {
+      "type": "string",
+      "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,48}$"
+    },
+    "skill": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "locale", "frontmatter", "bodySha256", "bodyTokens"],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z0-9](?:[a-z0-9-]{0,62}[a-z0-9])?$"
+        },
+        "locale": { "enum": ["ko", "en"] },
+        "bodySha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "bodyTokens": { "type": "integer", "minimum": 1, "maximum": 5000 },
+        "frontmatter": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["name", "description"],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80,
+              "pattern": "^[^\\n\\r]+$"
+            },
+            "description": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 300
+            },
+            "trigger_keywords": {
+              "type": "array",
+              "maxItems": 32,
+              "items": { "type": "string", "minLength": 1, "maxLength": 40 }
+            },
+            "applies_to": {
+              "type": "array",
+              "maxItems": 16,
+              "items": { "type": "string", "minLength": 1, "maxLength": 32 }
+            },
+            "tools": { "$ref": "#/$defs/toolList" },
+            "allowed-tools": { "$ref": "#/$defs/toolList" },
+            "preferred-tools": { "$ref": "#/$defs/toolList" },
+            "requires-host-tools": { "$ref": "#/$defs/toolList" },
+            "required-plugins": {
+              "type": "array",
+              "maxItems": 8,
+              "items": { "$ref": "#/$defs/pluginId" }
+            },
+            "workflow": { "type": "string", "minLength": 1, "maxLength": 128 },
+            "standalone": { "type": "boolean" },
+            "cross_document": { "type": "boolean" },
+            "disable-model-invocation": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

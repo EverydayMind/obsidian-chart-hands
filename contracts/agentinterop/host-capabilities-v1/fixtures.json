@@ -1,0 +1,2841 @@
+[
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "valid-two-locales",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "duplicate-id-locale",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "duplicate_skill"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-mismatch-allowed-tools",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": ["plg__hwp-hands__read_document"],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_switch_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-mismatch-required-plugins",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "required-plugins": ["kordoc-transform"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_switch_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-mismatch-order-matters",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__save_document",
+              "plg__hwp-hands__read_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_switch_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-absent-list-equals-empty",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": []
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-absent-boolean-equals-false",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "standalone": false
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "switch-mismatch-boolean",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "standalone": true
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_switch_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "reserved-workflows-key",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ],
+      "workflows": []
+    },
+    "expected": "invalid",
+    "reason": "reserved_key"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "missing-version",
+    "pluginId": "hwp-hands",
+    "value": {
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "version-not-integer",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": "1",
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "unknown-future-version-is-ignored",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 2,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "ignored",
+    "reason": "unsupported_version"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "future-version-shape-is-not-validated",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 2,
+      "skills": "a future shape",
+      "prompts": []
+    },
+    "expected": "ignored",
+    "reason": "unsupported_version"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "unknown-top-level-key",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ],
+      "foo": 1
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "unknown-frontmatter-key",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "summary": "x"
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "id-single-char",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "a",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "a",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "id-leading-hyphen",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "-a",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "id-trailing-hyphen",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "a-",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "id-uppercase",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "HWP_Edit",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "name-with-newline",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "a\nb",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "description-newline-allowed",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "line one\nline two",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "carriage-return-in-string",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "line one\r\nline two",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "invalid_text"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "nul-in-string",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "a\u0000b",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "invalid_text"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "body-tokens-zero",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 0
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "body-tokens-over-limit",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 5001
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "schema"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "required-tools-own-plugin",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "required-tools-builtin",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["read_file"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["read_file"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "required-tools-foreign-plugin",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["plg__chart-hands__build_chart"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "tools": ["plg__chart-hands__build_chart"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "foreign_required_tool"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "foreign-tool-in-preferred-is-allowed",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__chart-hands__build_chart"
+            ]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__chart-hands__build_chart"
+            ]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "required-plugins-provider-id-pattern",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "hwp-collab-editing",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "required-plugins": ["Obsidian_Plugin-1"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "hwp-collab-editing",
+          "locale": "en",
+          "frontmatter": {
+            "name": "Collaborative HWP editing",
+            "description": "Read, edit and save HWP and HWPX documents.",
+            "trigger_keywords": ["edit hwp"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"],
+            "required-plugins": ["Obsidian_Plugin-1"]
+          },
+          "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+          "bodyTokens": 53
+        }
+      ]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "locale-skill-count-over-limit",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "skill-0",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-1",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-2",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-3",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-4",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-5",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-6",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-7",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        },
+        {
+          "id": "skill-8",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 76
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_limit"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "locale-token-sum-over-limit",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": [
+        {
+          "id": "big-0",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 4500
+        },
+        {
+          "id": "big-1",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 4500
+        },
+        {
+          "id": "big-2",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 4500
+        },
+        {
+          "id": "big-3",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 4500
+        },
+        {
+          "id": "big-4",
+          "locale": "ko",
+          "frontmatter": {
+            "name": "한글 문서 공동 편집",
+            "description": "HWP·HWPX 문서를 읽고 작업본에서 고친 뒤 저장한다.",
+            "trigger_keywords": ["한글 문서 편집"],
+            "applies_to": ["hwp", "hwpx"],
+            "allowed-tools": [
+              "plg__hwp-hands__read_document",
+              "plg__hwp-hands__save_document"
+            ],
+            "preferred-tools": ["plg__hwp-hands__read_document"]
+          },
+          "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+          "bodyTokens": 4500
+        }
+      ]
+    },
+    "expected": "invalid",
+    "reason": "locale_limit"
+  },
+  {
+    "scope": "contract",
+    "kind": "describeAssets",
+    "name": "empty-skill-list",
+    "pluginId": "hwp-hands",
+    "value": {
+      "version": 1,
+      "skills": []
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "host",
+    "kind": "describeAssets",
+    "name": "getter-member-rejects-provider",
+    "behavior": {
+      "memberIsGetter": true
+    },
+    "expected": "invalid",
+    "reason": "getter_member"
+  },
+  {
+    "scope": "host",
+    "kind": "describeAssets",
+    "name": "timeout-rejects-provider",
+    "behavior": {
+      "timeout": true
+    },
+    "expected": "invalid",
+    "reason": "timeout"
+  },
+  {
+    "scope": "host",
+    "kind": "describeAssets",
+    "name": "no-member-keeps-descriptor-digest",
+    "behavior": {
+      "absent": true
+    },
+    "expected": "digest-unchanged"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "body-matches",
+    "declared": {
+      "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+      "bodyTokens": 76
+    },
+    "body": "`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\n\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\n2. 고칠 문단을 정하고 사용자에게 확인한다.\n",
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "en-body-matches",
+    "declared": {
+      "bodySha256": "a9e35acc3b093f65d83d405ca5101c49848b63e6da37f1638ec6a0b3dc58cf9f",
+      "bodyTokens": 53
+    },
+    "body": "Read a `.hwp` or `.hwpx` document, edit the working copy, then save it.\n\n1. Read it first with `plg__hwp-hands__read_document`.\n2. Choose the paragraphs to change and confirm with the user.\n",
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "hash-mismatch",
+    "declared": {
+      "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+      "bodyTokens": 77
+    },
+    "body": "`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\n\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\n2. 고칠 문단을 정하고 사용자에게 확인한다.\nx",
+    "expected": "invalid",
+    "reason": "hash_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "token-mismatch",
+    "declared": {
+      "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+      "bodyTokens": 77
+    },
+    "body": "`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\n\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\n2. 고칠 문단을 정하고 사용자에게 확인한다.\n",
+    "expected": "invalid",
+    "reason": "token_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "hash-checked-before-tokens",
+    "declared": {
+      "bodySha256": "6b4243fb9561d2e6a4c82c4bdbb815bcc9b947af9a2f9df2b4a779003063dfc1",
+      "bodyTokens": 76
+    },
+    "body": "`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\n\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\n2. 고칠 문단을 정하고 사용자에게 확인한다.\nx",
+    "expected": "invalid",
+    "reason": "hash_mismatch"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "special-token-string-counts-as-text",
+    "declared": {
+      "bodySha256": "b59470e925335b0d72d95aa67937cdf4e3735231408fb32011038bc585ec5738",
+      "bodyTokens": 12
+    },
+    "body": "Plain text that mentions <|endoftext|> literally.\n",
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "carriage-return-in-body",
+    "declared": {
+      "bodySha256": "7fc166df514ff910e06b3b7b6ecc8c1475825732e0543d7fd0017f2cc52ae568",
+      "bodyTokens": 76
+    },
+    "body": "`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\r\n\r\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\r\n2. 고칠 문단을 정하고 사용자에게 확인한다.\r\n",
+    "expected": "invalid",
+    "reason": "invalid_body"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "bom-at-start",
+    "declared": {
+      "bodySha256": "79ebd2e5e9f73ad0d1017df3303e64a1a240d05cec02810f99332a9581266c60",
+      "bodyTokens": 1
+    },
+    "body": "\ufeff`.hwp`·`.hwpx` 문서를 읽고 작업본에서 고친 뒤 저장한다.\n\n1. `plg__hwp-hands__read_document`로 먼저 읽는다.\n2. 고칠 문단을 정하고 사용자에게 확인한다.\n",
+    "expected": "invalid",
+    "reason": "invalid_body"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "lone-surrogate",
+    "declared": {
+      "bodySha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bodyTokens": 1
+    },
+    "body": "a\ud800b\n",
+    "expected": "invalid",
+    "reason": "invalid_body"
+  },
+  {
+    "scope": "contract",
+    "kind": "readAsset",
+    "name": "body-over-60000-chars",
+    "declared": {
+      "bodySha256": "0000000000000000000000000000000000000000000000000000000000000000",
+      "bodyTokens": 5000
+    },
+    "bodyRepeat": {
+      "text": "a",
+      "count": 60001
+    },
+    "expected": "invalid",
+    "reason": "invalid_body"
+  },
+  {
+    "scope": "host",
+    "kind": "readAsset",
+    "name": "pending-provider-display-only",
+    "approval": "pending",
+    "purpose": "display",
+    "expected": "allowed"
+  },
+  {
+    "scope": "host",
+    "kind": "readAsset",
+    "name": "pending-provider-injection",
+    "approval": "pending",
+    "purpose": "inject",
+    "expected": "refused"
+  },
+  {
+    "scope": "host",
+    "kind": "readAsset",
+    "name": "failure-affects-only-that-skill",
+    "behavior": {
+      "hashMismatchFor": "hwp-collab-editing"
+    },
+    "expected": "skill-unavailable-tools-unchanged"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "returns-true",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returns": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "returns-false",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returns": false
+    },
+    "expected": "allowed"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "returns-string",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returns": "no"
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "returns-promise",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returnsPromiseOf": false
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "throws",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "throws": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "index-note-asks-original",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx.index.md",
+    "behavior": {
+      "blockedPaths": ["docs/a.hwpx"]
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "extension-compare-ignores-case",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/A.HWPX",
+    "behavior": {
+      "returns": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "other-extension-not-asked",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "notes/a.md",
+    "behavior": {
+      "throws": true
+    },
+    "expected": "allowed"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "missing-file-not-asked",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": false,
+    "path": "new/a.hwpx",
+    "behavior": {
+      "throws": true
+    },
+    "expected": "allowed"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "missing-extensions-not-counted",
+    "extensions": null,
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returns": true
+    },
+    "expected": "allowed-with-warning"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "isBlocked-not-function-not-counted",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "isBlockedNotFunction": true
+    },
+    "expected": "allowed-with-warning"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "getter-member-not-counted",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "memberIsGetter": true,
+      "returns": true
+    },
+    "expected": "allowed-with-warning"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "unapproved-provider-consulted",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "approval": "pending",
+    "behavior": {
+      "returns": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "faulted-provider-consulted",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "runtimeFault": true,
+    "behavior": {
+      "returns": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "any-provider-blocks",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "providers": [
+      {
+        "returns": false
+      },
+      {
+        "returns": true
+      }
+    ],
+    "expected": "blocked"
+  },
+  {
+    "scope": "host",
+    "kind": "privacy",
+    "name": "legacy-hwp-hands-or",
+    "extensions": [".hwp", ".hwpx"],
+    "exists": true,
+    "path": "docs/a.hwpx",
+    "behavior": {
+      "returns": false
+    },
+    "legacyHwpHands": {
+      "returns": true
+    },
+    "expected": "blocked"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "ok-result",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "unknown-extra-key-ignored",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": [],
+      "extra": true
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "extractor-differs-from-declared",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.25.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "bad-extractor-id",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "KorDoc!",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "reversed-block-range",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [3, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "page-zero",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 0,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "chunk-id-over-200",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "bad-source-sha",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "ABC",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "text-sum-over-maxChars",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 5,
+    "value": {
+      "status": "ok",
+      "format": "hwpx",
+      "sourceSha256": "39631bb5e5dc9326b23f8c00bf43440a84ce711315c6b799de554c56aa04d133",
+      "sourceStamp": {
+        "mtime": 1764000000000,
+        "size": 2048
+      },
+      "extractor": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3",
+        "ocrApplied": false
+      },
+      "pageMode": "section",
+      "pageCount": 1,
+      "outline": [
+        {
+          "level": 1,
+          "text": "개요"
+        }
+      ],
+      "chunks": [
+        {
+          "id": "c1",
+          "type": "heading",
+          "text": "개요",
+          "breadcrumb": [],
+          "blockRange": [0, 0]
+        },
+        {
+          "id": "c2",
+          "type": "text",
+          "text": "본문 문단",
+          "breadcrumb": ["개요"],
+          "page": 1,
+          "blockRange": [1, 1]
+        }
+      ],
+      "truncated": false,
+      "warnings": []
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextResult",
+    "name": "failure-needs-ocr",
+    "extractorVersion": {
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "maxChars": 2000000,
+    "value": {
+      "status": "needs_ocr",
+      "message": "scanned",
+      "pageCount": 3
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "host",
+    "kind": "extractTextResult",
+    "name": "undefined-valued-key-rejected",
+    "behavior": {
+      "setUndefined": "chunks[1].page"
+    },
+    "expected": "invalid",
+    "reason": "corrupted"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "valid-member",
+    "value": {
+      "version": 1,
+      "extensions": [".hwp", ".hwpx", ".pdf"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "usable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "uppercase-extension",
+    "value": {
+      "version": 1,
+      "extensions": [".HWP"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "unsupported-extension",
+    "value": {
+      "version": 1,
+      "extensions": [".docx"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "empty-extensions",
+    "value": {
+      "version": 1,
+      "extensions": [],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "duplicate-extension",
+    "value": {
+      "version": 1,
+      "extensions": [".pdf", ".pdf"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "no-dot",
+    "value": {
+      "version": 1,
+      "extensions": ["pdf"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "version-2",
+    "value": {
+      "version": 2,
+      "extensions": [".pdf"],
+      "extractorVersion": {
+        "id": "kordoc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "missing-extractor-version",
+    "value": {
+      "version": 1,
+      "extensions": [".pdf"]
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "contract",
+    "kind": "extractTextMember",
+    "name": "bad-extractor-version-id",
+    "value": {
+      "version": 1,
+      "extensions": [".pdf"],
+      "extractorVersion": {
+        "id": "Kor Doc",
+        "engineVersion": "4.24.0",
+        "chunkerVersion": "3"
+      }
+    },
+    "expected": "unusable"
+  },
+  {
+    "scope": "host",
+    "kind": "extractText",
+    "name": "unapproved-provider-not-called",
+    "approval": "pending",
+    "expected": "not-called-keep-previous-projection"
+  },
+  {
+    "scope": "host",
+    "kind": "extractText",
+    "name": "same-extension-from-two-providers",
+    "providers": [
+      {
+        "pluginId": "kordoc-transform",
+        "extensions": [".hwp", ".pdf"]
+      },
+      {
+        "pluginId": "other-extractor",
+        "extensions": [".pdf"]
+      }
+    ],
+    "expected": {
+      ".hwp": "kordoc-transform",
+      ".pdf": "conflict"
+    }
+  },
+  {
+    "scope": "host",
+    "kind": "extractText",
+    "name": "same-extractor-id-other-plugin-no-reuse",
+    "providers": [
+      {
+        "pluginId": "other-extractor",
+        "extractor": {
+          "id": "kordoc",
+          "engineVersion": "4.24.0",
+          "chunkerVersion": "3"
+        }
+      }
+    ],
+    "storedProjection": {
+      "pluginId": "kordoc-transform",
+      "id": "kordoc",
+      "engineVersion": "4.24.0",
+      "chunkerVersion": "3"
+    },
+    "expected": "re-extract"
+  },
+  {
+    "scope": "host",
+    "kind": "extractText",
+    "name": "adding-extension-needs-reapproval",
+    "approved": [".hwp"],
+    "declared": [".hwp", ".pdf"],
+    "expected": "reapproval"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "paths",
+    "behavior": {
+      "returns": ["docs/a.hwpx", "docs/b.pdf"]
+    },
+    "expected": "valid"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "dotdot-path",
+    "behavior": {
+      "returns": ["../outside.hwpx"]
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "over-100-paths",
+    "behavior": {
+      "returnsCount": 101
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "path-over-4096-chars",
+    "behavior": {
+      "returnsPathLength": 4097
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "non-string-item",
+    "behavior": {
+      "returns": ["docs/a.hwpx", 1]
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "timeout",
+    "behavior": {
+      "timeout": true
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "throws",
+    "behavior": {
+      "throws": true
+    },
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "declared-but-pending",
+    "approval": "pending",
+    "expected": "unverifiable"
+  },
+  {
+    "scope": "host",
+    "kind": "ownership",
+    "name": "member-absent",
+    "behavior": {
+      "absent": true
+    },
+    "expected": "no-companion"
+  }
+]

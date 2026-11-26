@@ -285,13 +285,14 @@ test('editor-menu adds localized Plotly insertion item with icon fallback', asyn
     ko.plugin.onunload();
 });
 
-test('settings tab shows localized two-line guidance at the top', async () => {
+test('settings tab shows localized two-line guidance and the host Skill status at the top', async () => {
     const en = await setup({ locale: 'en' });
     en.settingTabs[0].display();
     const enTexts = en.settingTabs[0].containerEl.created.map(entry => entry.text).filter(Boolean);
     assert.deepEqual(enTexts, [
         'To add a chart, run "New Plotly chart" from the command palette in a note, or right-click in the editor and choose "Insert Plotly chart".',
-        'Edit data and layout inside the plotly code block and the chart redraws.'
+        'Edit data and layout inside the plotly code block and the chart redraws.',
+        'Could not check whether an AI host supports plugin Skills.'
     ]);
     en.plugin.onunload();
 
@@ -300,7 +301,8 @@ test('settings tab shows localized two-line guidance at the top', async () => {
     const koTexts = ko.settingTabs[0].containerEl.created.map(entry => entry.text).filter(Boolean);
     assert.deepEqual(koTexts, [
         '차트를 넣으려면 노트에서 명령 팔레트의 "새 Plotly 차트"를 실행하거나, 편집기에서 오른쪽 클릭 › "Plotly 차트 삽입"을 고르세요.',
-        'plotly 코드 블록 안의 data·layout을 고치면 바로 다시 그려집니다.'
+        'plotly 코드 블록 안의 data·layout을 고치면 바로 다시 그려집니다.',
+        'AI 호스트의 플러그인 Skill 지원 여부를 확인할 수 없습니다.'
     ]);
     ko.plugin.onunload();
 });
