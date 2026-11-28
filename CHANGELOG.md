@@ -1,5 +1,18 @@
 # Changelog
 
+## 0.12.0
+
+- Add `summary` (one value or share per column) and `pivot` (long table to a heatmap grid or one series per category) to `eda_analyze` and to `build_chart` `source.analysis`. A `count` pivot fills combinations without rows with 0; other functions keep `null`. Pivot blocks are written as YAML and fall back to one-line JSON only when the result would exceed the result size limit.
+- Draw `indicator` as a gauge (`gauge: true`) with `target` as the threshold and delta reference; percentage gaps are shown in %p.
+- `read_charts`: `chart` plus `compare` lists the values that differ from the source data; charts built by `build_chart` carry a `# chart-hands build v1:` recipe line, so `read_charts` returns `rebuild` arguments and the `snippet` line range (block plus fact lines).
+- `build_chart` `from_chart` restyles an existing block (style, target line, title, caption) without changing its data, including hand-written blocks.
+- `check_chart` adds line hints for blocks that do not parse (unquoted colours, unknown top-level keys, tabs); an empty `fit: {}` no longer stops rendering.
+- `suggest_chart` reads chart forms, column names, order words and a single filter value from the request, and returns up to three overview candidates when no goal is given. ISO weeks (`2026-W45`, `주차`, `week`) are period columns by default.
+- Name scatter and bubble points from `source.labels`. With a source, `series[].text` must have one label per point; a mismatched length is an error that points to `source.labels`.
+- Chronological sort for period columns, ranked `barh` with the first item on top, raw decimals from the data, `normalizedArgs` for repaired arguments, errors with the file's own column names, `source.x` read as the category column on category charts, and folderless file names resolved when unique.
+- `get_chart_guide` `dataviewjs` starts with the Dataview state line and adds a note-count example. The `data-insight-chart` Skill (ko, en) covers existing charts, vault note counts, live charts and HWPX export.
+- README and README.ko: request examples for wide and long tables, gauges, existing charts, vault counts and live charts.
+
 ## 0.11.5
 
 - Ship the `data-insight-chart` Skill (Korean and English) with the plugin. An AI host that supports `host-capabilities-v1` (Verbex, latest version) reads it through the new `describeAssets()` and `readAsset()` provider members. The tool descriptor is unchanged, so older hosts keep working.
