@@ -890,7 +890,7 @@
                       "type": "string",
                       "maxLength": 100
                     },
-                    "description": "Point labels; override source.labels."
+                    "description": "Point labels, one per point; override source.labels."
                   },
                   "kind": {
                     "type": "string",
@@ -1257,7 +1257,7 @@
       }
     ]
   },
-  "digest": "02bfbe31a920e7d9a0118b28a842ec9f0e32e11327758aa4560e531750e02b51",
+  "digest": "5d712ee16f53665c5322660aad58593bd9caee5ebf82285d09255e6a7d48517c",
   "results": [
     {
       "name": "eda_profile",

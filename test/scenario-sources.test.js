@@ -213,6 +213,22 @@ test('H3 point labels follow filtered and sorted points, explicit text and the 3
     assert.match(message(await p.callTool('build_chart', { type: 'scatter', source: { ...source, labels: 'absent' }, series: [{ column: 'y' }] })), /source\.labels.*label/);
 });
 
+test('source text must match selected point count and can override labels', async () => {
+    const path = 'points.csv';
+    const p = provider({ [path]: 'label,x,y\nA,1,10\nB,2,20\nC,3,30' });
+    const source = { path, x: 'x', labels: 'label' };
+    const invalid = await p.callTool('build_chart', { type: 'scatter', source, series: [{ column: 'y', text: ['품목'] }] });
+    assert.equal(invalid.isError, true);
+    assert.match(message(invalid), /source\.labels/);
+    const text = ['one', 'two', 'three'];
+    const valid = await p.callTool('build_chart', { type: 'scatter', source, series: [{ column: 'y', text }] });
+    checks(valid);
+    assert.deepEqual(definition(valid).data[0].text, text);
+    const bar = await p.callTool('build_chart', { type: 'bar', source: { path, labels: 'label' }, series: [{ column: 'y', text: ['one'] }] });
+    assert.equal(bar.isError, true);
+    assert.match(message(bar), /source\.labels/);
+});
+
 test('H4 source aliases, dataset-specific repairs, period ordering and early series conflicts', async () => {
     const path = 'series.csv';
     const p = provider({ [path]: 'month,team,amount\n2026-10,Z,172.4\n2026-2,A,107.2\n2026-1,B,101.3' });

@@ -612,7 +612,7 @@ const tools = [
                             values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'Per label or x; raw for histogram, box, violin. Indicator: [value, reference?].' },
                             x: { type: 'array', maxItems: 2000, items: { type: 'number' }, description: 'scatter and bubble: the x value of each point.' },
                             size: { type: 'array', maxItems: 2000, items: { type: 'number', minimum: 0 }, description: 'bubble: the size measure of each point (drawn as area).' },
-                            text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'Point labels; override source.labels.' },
+                            text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'Point labels, one per point; override source.labels.' },
                             kind: { type: 'string', enum: ['bar', 'line', 'area'], description: 'combo: how to draw this series. Defaults to bar for the first series and line for the others.' },
                             secondary: { type: 'boolean', description: 'line, area, bar, combo: draw this series against a right-hand y axis (a different unit).' }
                         }

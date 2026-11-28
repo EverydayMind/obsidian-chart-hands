@@ -890,7 +890,7 @@
                       "type": "string",
                       "maxLength": 100
                     },
-                    "description": "Point labels; override source.labels."
+                    "description": "Point labels, one per point; override source.labels."
                   },
                   "kind": {
                     "type": "string",

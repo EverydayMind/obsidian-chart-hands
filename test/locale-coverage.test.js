@@ -71,6 +71,16 @@ test('every authored Korean source literal is exercised by the Korean output fix
         else if (value && typeof value === 'object') Object.values(value).forEach(collect);
     }
     collect(ko);
+    const { parseDataset, resolveChartSource } = await import('../src/eda.js');
+    try {
+        resolveChartSource(parseDataset('name,x,y\nA,1,2\nB,2,3'), {
+            type: 'scatter', source: { path: 'data.csv', x: 'x', labels: 'name' }, series: [{ column: 'y', text: ['name'] }]
+        }, 'ko');
+        assert.fail('Expected a label count error');
+    } catch (error) {
+        assert.match(error.message, /source\.labels/);
+        strings.push(error.message);
+    }
     const dir = path.join(__dirname, '..', 'src');
     const missing = [];
     for (const file of fs.readdirSync(dir).filter(name => name.endsWith('.js'))) {

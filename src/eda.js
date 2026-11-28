@@ -587,6 +587,13 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
     }
     if (source.limit !== undefined) selected = selected.slice(0, source.limit);
     if (!selected.length || selected.length > 200) fail('source의 결과는 1~200행이어야 합니다. source.filter 또는 source.limit을 고치세요.', 'source must match 1–200 rows. Change source.filter or source.limit.');
+    args.series.forEach((entry, i) => {
+        if (entry.text !== undefined && entry.text.length !== selected.length) {
+            const example = `source:${JSON.stringify({ path: 'data.csv', ...(points ? { x: source.x ?? 'x' } : {}), labels: source.labels ?? 'name' })}`;
+            fail(`series[${i}].text의 이름 ${entry.text.length}개가 점 ${selected.length}개와 맞지 않습니다. 열에서 점 이름을 가져오려면 series[].text를 빼고 source.labels에 그 열을 주세요. 예: ${example}.`,
+                `series[${i}].text has ${entry.text.length} label(s) for ${selected.length} points. To name points from a column, omit series[].text and set source.labels to that column, e.g. ${example}.`);
+        }
+    });
     const column = (i, numeric = false) => selected.map(({ row }) => numeric ? number(row[i]) : row[i]);
     const resolved = { ...args };
     delete resolved.source;
