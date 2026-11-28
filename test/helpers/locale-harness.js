@@ -125,7 +125,9 @@ const fixtureFiles = {
     'matrix-units.csv': 'cat,a,b,c\nA,$1,$2,3kg\nB,$4,$5,6kg',
     'matrix-dup.csv': 'cat,a,b,c\nA,1,2,3\nA,4,5,6',
     'wide13.csv': 'cat,' + Array.from({ length: 13 }, (_, i) => `v${i + 1}`).join(',') + '\nA,' + Array.from({ length: 13 }, (_, i) => i + 1).join(',') + '\nB,' + Array.from({ length: 13 }, (_, i) => i + 2).join(','),
-    'wide99-too-large.csv': 'cat,' + Array.from({ length: 99 }, (_, i) => `m${String(i).padStart(2, '0')}_${'x'.repeat(90)}`).join(',') + '\nA,' + Array(99).fill('1').join(',') + '\nA,' + Array(99).fill('').join(',')
+    'wide99-too-large.csv': 'cat,' + Array.from({ length: 99 }, (_, i) => `m${String(i).padStart(2, '0')}_${'x'.repeat(90)}`).join(',') + '\nA,' + Array(99).fill('1').join(',') + '\nA,' + Array(99).fill('').join(','),
+    'h10-total.csv': 'month,a,b,Total\n2025-01,10,20,30\n2025-02,15,25,40',
+    'h10-wide6.csv': 'month,c1,c2,c3,c4,c5,c6\n2025-01,10,20,30,40,50,60\n2025-02,12,18,28,38,48,58'
 };
 async function captureExtended(code, locale) {
     const files = { ...fixtureFiles, ...(locale === 'en' ? { 'table.md': '| amount | label |\n|---|---|\n| 1 | total |' } : {}) };
@@ -387,7 +389,18 @@ async function captureExtended(code, locale) {
             { path: 'matrix-units.csv', goal: 'matrix', values: ['a', 'b', 'c'] },
             { path: 'matrix-dup.csv', goal: 'matrix' },
             { path: 'wide13.csv', goal: 'matrix' },
-            { path: 'wide99-too-large.csv', goal: 'matrix' }
+            { path: 'wide99-too-large.csv', goal: 'matrix' },
+            { path: 'h10-total.csv', request: locale === 'ko' ? '월별 누적 막대 차트' : 'monthly stacked bar chart' },
+            { path: 'data.csv', request: locale === 'ko' ? 'value는 막대로, other는 선으로 겹친 차트' : 'value as bars and other as a line' },
+            { path: 'data.csv', request: locale === 'ko' ? 'value를 게이지로' : 'show value as a gauge' },
+            { path: 'period.csv', request: locale === 'ko' ? 'group별 개수를 막대 차트로' : 'bar chart of count by group' },
+            { path: 'data.csv', request: locale === 'ko' ? '월별 value와 other를 누적 영역 차트로' : 'monthly stacked area chart of value and other' },
+            { path: 'neg.csv', request: locale === 'ko' ? 'cat별 value를 깔때기 차트로' : 'funnel chart of value by cat' },
+            { path: 'h10-wide6.csv', request: locale === 'ko' ? '비중을 도넛 차트로' : 'donut chart of share' },
+            { path: 'data.csv', request: locale === 'ko' ? 'value 분포를 히스토그램으로' : 'histogram of value distribution' },
+            { path: 'period.csv', request: locale === 'ko' ? 'group별 year별 value를 히트맵으로' : 'heatmap of value by group and year' },
+            { path: 'data.csv', request: locale === 'ko' ? '산키 차트로 그려 줘' : 'draw a sankey chart' },
+            { path: 'data.csv', request: locale === 'ko' ? '차트를 추천해 줘' : 'recommend charts' }
         ]) await call('suggest_chart', args);
     }
     {

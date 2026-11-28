@@ -1,7 +1,7 @@
 import { columnFacts } from './eda.js';
 import { periodKey } from './period.js';
 
-const PERIOD_HEADER_RE = /(?:연도|년도|연월|년월|월|분기|반기|기간|일자|날짜|year|month|quarter|period|date)$/;
+const PERIOD_HEADER_RE = /(?:연도|년도|연월|년월|월|주차|분기|반기|기간|일자|날짜|year|month|week|quarter|period|date)$/;
 const ID_HEADER_RE = /(?:회차|차수|기수|순번|번호|no|id|코드|code)$/;
 
 const normalizeHeader = (name = '') => String(name).toLowerCase().replace(/\s/g, '');
@@ -14,7 +14,7 @@ export function isIdentifierHeader(name = '') {
     return ID_HEADER_RE.test(normalizeHeader(name));
 }
 
-export function inspectColumn(dataset, index, { weeks = false } = {}) {
+export function inspectColumn(dataset, index, { weeks = true } = {}) {
     const name = dataset.headers[index] ?? '';
     const rows = dataset.rows;
     const rawValues = [];
