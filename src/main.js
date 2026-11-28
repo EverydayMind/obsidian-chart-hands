@@ -1548,9 +1548,11 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             if (result.confirm?.length) extra.push(`confirm: ${result.confirm.map(c => c.field).join(', ')}`);
             const needsFields = [...new Set([...(result.needs ?? []), ...result.candidates.flatMap(c => c.needs ?? [])])];
             if (needsFields.length) extra.push(`needs: ${needsFields.join(', ')}`);
-            const summaryLine = locale === 'ko'
-                ? `목적 ${result.goal ?? '미정'} · 후보: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`
-                : `Goal ${result.goal ?? 'unset'} · candidates: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`;
+            const summaryLine = result.overview
+                ? `${result.notes?.[0] ?? ''} · ${locale === 'ko' ? `후보: ${types}` : `candidates: ${types}`}${extra.length ? ` · ${extra.join(' · ')}` : ''}`
+                : locale === 'ko'
+                    ? `목적 ${result.goal ?? '미정'} · 후보: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`
+                    : `Goal ${result.goal ?? 'unset'} · candidates: ${types}${extra.length ? ` · ${extra.join(' · ')}` : ''}`;
             const text = [summaryLine, ...result.candidates.map(c => `${c.type}: ${c.why}`)].join('\n');
             const content = [{ type: 'text', text }];
             while (resultLength(content, result) > DATA_RESULT_CHARS) {

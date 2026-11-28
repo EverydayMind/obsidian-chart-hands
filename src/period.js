@@ -17,7 +17,7 @@ const EN_MONTH_YEAR_RE = new RegExp(`^(${EN_MONTH_PAT})\\.?(?:\\s+|-)(\\d{4})$`,
 const EN_YEAR_MONTH_RE = new RegExp(`^(\\d{4})(?:\\s+|-)(${EN_MONTH_PAT})\\.?$`, 'i');
 const EN_MONTH_ONLY_RE = new RegExp(`^(${EN_MONTH_PAT})\\.?$`, 'i');
 
-export function periodKey(text, { compact = false, weeks = false } = {}) {
+export function periodKey(text, { compact = false, weeks = true } = {}) {
     const s = text.trim();
     let m;
     const month = (year, value) => Number(value) >= 1 && Number(value) <= 12 ? `M${year}-${value.padStart(2, '0')}` : null;
