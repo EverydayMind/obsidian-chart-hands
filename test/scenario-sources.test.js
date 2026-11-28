@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { parse } from 'yaml';
+import { parse, stringify } from 'yaml';
 import { analyze, parseDataset, resolveChartSource } from '../src/eda.js';
 import { buildChartDefinition } from '../src/chart-builder.js';
 import { chartFacts, chartDisplay, displayGroup } from '../src/chart-facts.js';
@@ -10,8 +10,8 @@ import buildPlugin from './helpers/build-plugin.js';
 import { loadHarness } from './helpers/locale-harness.js';
 
 const pluginCode = buildPlugin();
-function provider(files, locale = 'en') {
-    const { exports } = loadHarness(pluginCode, locale);
+function provider(files, locale = 'en', yaml) {
+    const { exports } = loadHarness(pluginCode, locale, yaml);
     const entries = Object.keys(files).map(path => ({ path, extension: path.split('.').at(-1) }));
     return exports.createAgentProvider({ manifest: { id: 'chart-hands', name: 'Chart Hands', version: 'test' }, app: { vault: {
         getAbstractFileByPath: path => entries.find(file => file.path === path),
@@ -104,6 +104,21 @@ test('H1 pivot fills missing count combinations with zero but leaves missing mea
     const mean = analyze(dataset, { ...spec, function: 'mean' }, 'en');
     assert.deepEqual(count.chart.series.map(s => s.values), [[1, 0], [0, 1]]);
     assert.deepEqual(mean.chart.series.map(s => s.values), [[2, null], [null, 4]]);
+});
+
+test('H1 pivot uses YAML within the result budget and compact JSON above it', async () => {
+    const path = 'pivot.csv';
+    const grid = (width, height) => 'x,series,v\n' + Array.from({ length: width * height }, (_, i) => ['x' + i % width, 'S' + Math.floor(i / width), i % 10].join(',')).join('\n');
+    const spec = { type: 'pivot', columns: ['x', 'series', 'v'], function: 'sum' };
+    const build = csv => provider({ [path]: csv }, 'en', { parse, stringify }).callTool('build_chart', matrixArgs(path, spec, 'heatmap'));
+    const small = await build(grid(19, 8));
+    checks(small);
+    assert.match(chartBlock(small), /(?:^|\n)data:/);
+    assert.equal(definition(small).data[0].z.flat().length, 152);
+    const large = await build(grid(50, 30));
+    checks(large);
+    assert.match(chartBlock(large), /(?:^|\n)\{"data":/);
+    assert.equal(definition(large).data[0].z.flat().length, 1500);
 });
 
 test('H1 pivot enforces series, cell, result character and static format boundaries', async () => {

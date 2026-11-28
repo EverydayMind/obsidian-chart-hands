@@ -523,7 +523,7 @@ const tools = [
     {
         name: 'read_charts',
         title: 'Read the Plotly charts in a note',
-        description: 'List and check plotly blocks in a note, with line ranges and rebuild arguments. Dataviewjs charts are counted. Up to 20 per page.',
+        description: 'List and check plotly blocks in a note, with line ranges and rebuild arguments. To verify numbers against source data, pass chart and compare; do not compare by eye. Dataviewjs charts are counted. Up to 20 per page.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -587,7 +587,7 @@ const tools = [
                         period: { type: 'object', additionalProperties: false, required: ['column', 'base', 'target'], properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } }, rank_by: { type: 'string', enum: ['difference', 'rate', 'ratio'] }
                     } },
                     labels: { type: 'string', description: 'Category column, or point names for scatter and bubble.' },
-                    x: { type: 'string', description: 'Numeric x for scatter and bubble, or alias for category labels.' },
+                    x: { type: 'string', description: 'Scatter/bubble x column: source.x; y: series[].column; point names: source.labels. No top-level x. Also an alias for category labels.' },
                     filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
                         column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' }
                     } } },
@@ -1331,7 +1331,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 definition = buildChartDefinition(args, { locale });
             }
             // Compact JSON keeps large raw bar arrays within the same result budget without dropping data points.
-            const compact = source?.analysis?.type === 'pivot' || (source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40);
+            const compact = source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40;
             const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
             const yaml = [provenance, recipe, body].filter(Boolean).join('\n');
             const validator = await chartValidator();
@@ -1381,7 +1381,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                     ? '다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다.'
                     : 'Next: if the user asked for the chart in a note, insert reportSnippet (or block) into that note with an edit tool; a chart shown only in the reply is not saved.'
             ].join('\n');
-            const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
+            let block = `\`\`\`plotly\n${yaml}\n\`\`\``;
             const sourcePrefix = locale === 'ko' ? '자료: ' : 'Source: ';
             const caption = source ? args.caption ?? args.sourceCaption : undefined;
             const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
@@ -1390,6 +1390,12 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock, staticBlockUse: 'HWPX or PPTX export only; put reportSnippet (or block) in the note' } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(normalizedArgs?.length ? { normalizedArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
+            if (source?.analysis?.type === 'pivot' && resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
+                const compactYaml = [provenance, recipe, JSON.stringify(definition)].filter(Boolean).join('\n');
+                const compactBlock = `\`\`\`plotly\n${compactYaml}\n\`\`\``;
+                result.structuredContent.reportSnippet = compactBlock + reportSnippet.slice(block.length);
+                block = compactBlock;
+            }
             if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
                 if (source?.analysis?.type === 'pivot') throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError('source.analysis.filter', locale), true);
                 delete result.structuredContent.reportSnippet;

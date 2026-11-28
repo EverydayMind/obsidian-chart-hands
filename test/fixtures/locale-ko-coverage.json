@@ -361,7 +361,7 @@
       {
         "name": "read_charts",
         "title": "Read the Plotly charts in a note",
-        "description": "List and check plotly blocks in a note, with line ranges and rebuild arguments. Dataviewjs charts are counted. Up to 20 per page.",
+        "description": "List and check plotly blocks in a note, with line ranges and rebuild arguments. To verify numbers against source data, pass chart and compare; do not compare by eye. Dataviewjs charts are counted. Up to 20 per page.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -738,7 +738,7 @@
                 },
                 "x": {
                   "type": "string",
-                  "description": "Numeric x for scatter and bubble, or alias for category labels."
+                  "description": "Scatter/bubble x column: source.x; y: series[].column; point names: source.labels. No top-level x. Also an alias for category labels."
                 },
                 "filter": {
                   "type": "array",
