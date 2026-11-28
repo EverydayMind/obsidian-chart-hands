@@ -265,7 +265,7 @@ function pivot(dataset, spec, locale, chartType = 'heatmap', path = 'analysis') 
     const labels = xs.map(label);
     const series = sorted(cells.keys(), si).map(name => ({ name: label(name), values: xs.map(x => {
         const cell = cells.get(name).get(x);
-        return cell && (fn === 'count' || cell.values.length) ? finite(reduceValues(fn, cell.values, cell.rows)) : null;
+        return fn === 'count' ? (cell?.rows ?? 0) : cell?.values.length ? finite(reduceValues(fn, cell.values, cell.rows)) : null;
     }) }));
     checkDuplicateLabels(labels, locale);
     checkDuplicateLabels(series.map(entry => entry.name), locale);

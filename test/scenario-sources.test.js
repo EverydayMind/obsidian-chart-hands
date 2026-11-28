@@ -80,7 +80,7 @@ test('H1 pivot groups repeated rows, orders periods, and preserves gaps and zero
     assert.equal(result.function, 'mean');
     assert.deepEqual(plain(result.chart), { labels: ['2026-W2', '2026-W10'], series: [{ name: '가', values: [0, null] }, { name: 'Z', values: [null, 15] }] });
     const counted = analyze(dataset, { ...spec, columns: ['week', 'product'], function: 'count' }, 'en');
-    assert.deepEqual(counted.chart.series.map(s => s.values), [[1, null], [1, 2]]);
+    assert.deepEqual(counted.chart.series.map(s => s.values), [[1, 0], [1, 2]]);
     assert.throws(() => analyze(dataset, { ...spec, columns: ['week', 'product'] }, 'en'), /analysis\.function: count/);
     assert.throws(() => analyze(dataset, { ...spec, limit: 1 }, 'en'), /inapplicable analysis key: limit/);
     assert.throws(() => analyze(parseDataset('week,product,distance\n2026-W2,A,1km\n2026-W2,A,2km'), { type: 'pivot', columns: ['week', 'product', 'distance'] }), /analysis\.function/);
@@ -95,6 +95,15 @@ test('H1 pivot groups repeated rows, orders periods, and preserves gaps and zero
     assert.equal(definition(await p.callTool('build_chart', matrixArgs(path, spec, 'area', { stacked: true }))).data[0].stackgroup, 'one');
     const one = { ...spec, filter: [{ column: 'product', op: 'eq', value: 'Z' }] };
     assert.match(message(await p.callTool('build_chart', matrixArgs(path, one, 'bar', { stacked: true }))), /stacked/);
+});
+
+test('H1 pivot fills missing count combinations with zero but leaves missing means null', () => {
+    const dataset = parseDataset('x,series,value\na,A,2\nb,B,4');
+    const spec = { type: 'pivot', columns: ['x', 'series', 'value'] };
+    const count = analyze(dataset, { ...spec, function: 'count' }, 'en');
+    const mean = analyze(dataset, { ...spec, function: 'mean' }, 'en');
+    assert.deepEqual(count.chart.series.map(s => s.values), [[1, 0], [0, 1]]);
+    assert.deepEqual(mean.chart.series.map(s => s.values), [[2, null], [null, 4]]);
 });
 
 test('H1 pivot enforces series, cell, result character and static format boundaries', async () => {
