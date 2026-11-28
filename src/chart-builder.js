@@ -1,6 +1,6 @@
 // Builds a Plotly chart definition for the build_chart agent tool. Pure: no DOM, no Obsidian API.
 import { PALETTE } from './chart-guide.js';
-import { chartDisplay, highlightIndices, joinUnit } from './chart-facts.js';
+import { chartDisplay, displayGroup, highlightIndices, joinUnit } from './chart-facts.js';
 
 export const CHART_TYPES = [
     'line', 'area', 'bar', 'barh', 'combo', 'scatter', 'bubble',
@@ -30,21 +30,32 @@ const tint = (hex) => /^#[0-9a-f]{6}$/i.test(hex) ? `#${[1, 3, 5].map(i => Math.
 const fail = (message) => {
     throw new Error(message);
 };
+export function checkSeriesInputs(series, locale) {
+    if (!Array.isArray(series)) return;
+    series.forEach((entry, i) => {
+        if (entry && Object.hasOwn(entry, 'column') && Object.hasOwn(entry, 'values')) fail(locale === 'ko'
+            ? `series[${i}]에 column과 values가 함께 있습니다. CSV 값이면 values를 빼고 source를 주세요. 숫자를 직접 주면 column을 빼세요.`
+            : `series[${i}] has both column and values. For CSV values, remove values and provide source. For direct numbers, remove column.`);
+    });
+}
+
 export function validateBuildArgs(args, locale = 'ko') {
     const { type, series = [] } = args;
     const error = (ko, en) => fail(locale === 'ko' ? ko : en);
     const reject = (key, allowed) => error(`${key}은 ${allowed}에만 쓸 수 있습니다. 해당 유형으로 바꾸거나 인자를 빼세요.`, `${key} is only supported for ${allowed}; change the type or omit it.`);
+    checkSeriesInputs(series, locale);
     if (PER_LABEL.includes(type) && Array.isArray(args.labels)) checkDuplicateLabels(args.labels, locale);
     if (args.style !== undefined && !['clean', 'plain', 'report', 'print', 'slides'].includes(args.style)) reject('style', 'clean, plain, report, print, slides');
     for (const [key, types] of [['parents', ['treemap', 'sunburst']], ['measure', ['waterfall']], ['bins', ['histogram']]]) if (args[key] !== undefined && !types.includes(type)) reject(key, types.join(', '));
     if (args.range_slider && !RANGE_SLIDER.includes(type)) reject('range_slider', RANGE_SLIDER.join(', '));
-    if (args.source?.x !== undefined && !POINTS.includes(type)) reject('source.x', 'scatter, bubble; source.labels');
+    if (args.gauge !== undefined && (type !== 'indicator' || typeof args.gauge !== 'boolean')) reject('gauge', 'indicator (boolean)');
+    const expandsSeries = args.source?.analysis?.type === 'pivot';
     series.forEach((s, i) => {
         if (!s) return;
         for (const [key, types] of [['x', POINTS], ['size', ['bubble']], ['sizeColumn', ['bubble']], ['kind', ['combo']]]) if (s[key] !== undefined && !types.includes(type)) reject(`series[${i}].${key}`, types.join(', '));
         if (s.secondary && !SECONDARY_AXIS.includes(type)) reject(`series[${i}].secondary`, SECONDARY_AXIS.join(', '));
     });
-    if (args.stacked) {
+    if (args.stacked && !expandsSeries && args.source?.analysis?.type !== 'summary') {
         const bars = series.filter((s, i) => type === 'combo' ? (s.kind || (i ? 'line' : 'bar')) === 'bar' : ['bar', 'barh'].includes(type)).length;
         if (!(type === 'area' || type === 'histogram' && series.length >= 2 || ['bar', 'barh', 'combo'].includes(type) && (bars >= 2 || type === 'combo' && series.some(s => s.kind === 'area')))) reject('stacked', 'bar/barh/combo with two bars, combo with area, area, or histogram with two series');
     }
@@ -54,16 +65,19 @@ export function validateBuildArgs(args, locale = 'ko') {
     if (args.y2_title !== undefined && !series.some(s => s?.secondary)) ignored.push('y2_title');
     if (['scatter', 'bubble', 'histogram', 'box', 'violin', 'indicator'].includes(type)) {
         if (args.labels !== undefined) ignored.push('labels');
-        if (args.source?.labels !== undefined) ignored.push('source.labels');
+        if (!POINTS.includes(type) && args.source?.labels !== undefined) ignored.push('source.labels');
     }
     if (!POINTS.includes(type)) series.forEach((s, i) => { if (s?.text?.length) ignored.push(`series[${i}].text`); });
     for (const [key, max] of [['unit', 12], ['caption', 200]]) if (args[key] !== undefined && (typeof args[key] !== 'string' || args[key].length > max || /\p{Cc}/u.test(args[key]))) reject(key, `string ≤ ${max}`);
     if (args.target !== undefined) {
-        if (!['line', 'area', 'bar', 'barh', 'combo'].includes(type)) reject('target', 'line, area, bar, barh, combo');
+        if (!['line', 'area', 'bar', 'barh', 'combo', 'indicator'].includes(type)) reject('target', 'line, area, bar, barh, combo, indicator');
         const t = args.target;
         if (!t || typeof t !== 'object' || Array.isArray(t) || Object.keys(t).some(k => !['value', 'label', 'series'].includes(k)) || !Number.isFinite(t.value) || t.label !== undefined && (typeof t.label !== 'string' || t.label.length > 100 || /\p{Cc}/u.test(t.label)) || t.series !== undefined && (!Number.isInteger(t.series) || t.series < 0 || t.series >= series.length) || series.some(s => s.secondary) && t.series === undefined) error('target의 값 또는 계열이 잘못되었습니다. 보조축이 있으면 target.series를 지정하세요.', 'Invalid target value or series; specify target.series when a secondary axis is present.');
+        if (type === 'indicator' && (t.series ?? 0) !== 0) fail('target.series must be 0 for indicator.');
+        const reference = series[0]?.values?.[1];
+        if (type === 'indicator' && reference != null && reference !== t.value) fail('target.value and series[0].values[1] must agree. Supply one reference value.');
     }
-    if (args.highlight !== undefined) {
+    if (args.highlight !== undefined && !expandsSeries) {
         const h = args.highlight, keys = h && typeof h === 'object' && !Array.isArray(h) ? Object.keys(h) : [];
         const k = keys[0];
         if (keys.length > 1 && keys.every(key => ['labels', 'top', 'bottom', 'below_target', 'above_target'].includes(key))) error(`highlight에는 선택자를 하나만 주세요(받은 것: ${keys.join(', ')}). 이름을 정해 강조하면 labels만 씁니다.`, `Give highlight only one selector (received: ${keys.join(', ')}). To highlight by name, use labels alone.`);
@@ -155,6 +169,7 @@ const checkSeries = (args, labels) => {
     if (type === 'indicator' && series[0].values.length > 2) {
         fail('an indicator takes values [value] or [value, reference].');
     }
+    if (type === 'indicator' && series[0].values[0] === null) fail('series[0].values[0] must be a number for indicator.');
     if (args.range_slider && !RANGE_SLIDER.includes(type)) {
         fail(`range_slider works only with ${RANGE_SLIDER.join(', ')}.`);
     }
@@ -189,6 +204,10 @@ const buildTrace = (args, labels, entry, index, count, clean) => {
         Object.assign(trace, { x: entry.x, y: entry.values, type: 'scatter', mode: 'markers' });
         if (Array.isArray(entry.text) && entry.text.length) {
             trace.text = entry.text.map(String);
+            if (args.sourcePointLabels && entry.values.length <= 30) {
+                trace.mode = 'markers+text';
+                trace.textposition = 'top center';
+            }
         }
         if (kind === 'bubble') {
             const largest = Math.max(...args.series.flatMap(item => item.size), 1);
@@ -350,15 +369,30 @@ const buildHeatmap = (labels, series, clean) => {
     return trace;
 };
 
+function gaugeRange(value, reference, unit) {
+    const min = Math.min(0, value, reference ?? 0), max = Math.max(0, value, reference ?? 0);
+    if (unit === '%' && min === 0 && max <= 100) return [0, 100];
+    if (min === max) return [0, 1];
+    const outward = magnitude => {
+        if (!magnitude) return 0;
+        const power = 10 ** Math.floor(Math.log10(magnitude));
+        return [1, 2, 5, 10].map(step => step * power).find(bound => Number.isFinite(bound) && bound >= magnitude) ?? (power ? Number.MAX_VALUE : magnitude);
+    };
+    return [min === 0 ? 0 : -outward(-min), outward(max)];
+}
+
 const buildIndicator = (args, entry, clean) => {
-    const [value, reference] = entry.values;
-    const trace = { type: 'indicator', mode: reference === undefined ? 'number' : 'number+delta', value };
+    const [value, embeddedReference] = entry.values;
+    const reference = args.target?.value ?? embeddedReference ?? undefined;
+    const trace = { type: 'indicator', mode: `${args.gauge ? 'gauge+' : ''}number${reference === undefined ? '' : '+delta'}`, value };
     if (reference !== undefined) {
-        trace.delta = { reference, relative: true, valueformat: '.1%' };
+        const points = ['%', '%p'].includes(args.unit);
+        trace.delta = points ? { reference, relative: false, suffix: '%p', valueformat: `,.${displayGroup([value - reference], { quantity: 'difference' }).decimals}f` } : { reference, relative: true, valueformat: '.1%' };
         if (clean) {
             Object.assign(trace.delta, { increasing: { color: PALETTE.series2 }, decreasing: { color: PALETTE.highlight } });
         }
     }
+    if (args.gauge) trace.gauge = { axis: { range: gaugeRange(value, reference, args.unit) }, ...(reference === undefined ? {} : { threshold: { value: reference } }) };
     if (entry.name) {
         trace.title = { text: entry.name };
     }
@@ -383,6 +417,7 @@ const buildLayout = (args, data, clean) => {
             layout.xaxis = axis(args.x_title);
         }
         layout.yaxis = axis(args.y_title);
+        if (type === 'barh') layout.yaxis.type = 'category';
     }
     const secondary = data.some(trace => trace.yaxis === 'y2');
     if (secondary) {
@@ -514,7 +549,7 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
             if (trace.type === 'indicator') trace.number = { ...trace.number, ...(scaled ? { prefix: scaled[1], suffix: scaled[2] } : { [prefix ? 'prefix' : 'suffix']: prefix ? args.unit : suffix }) };
         });
     }
-    if (args.target) {
+    if (args.target && type !== 'indicator') {
         const t = args.target, horizontal = type === 'barh', axis = series[t.series ?? 0]?.secondary ? 'y2' : 'y';
         const line = { dash: 'dot', color: args.style === 'print' ? PRINT_COLORS[0] : PALETTE.highlight };
         layout.shapes = [horizontal ? { type: 'line', xref: 'x', x0: t.value, x1: t.value, yref: 'paper', y0: 0, y1: 1, line } : { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: axis, y0: t.value, y1: t.value, line }];

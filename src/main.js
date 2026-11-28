@@ -1,9 +1,9 @@
 import * as obsidian from 'obsidian';
-import { parseDataset, profile, analyze, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
+import { parseDataset, profile, analyze, pivotSizeError, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
 import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-table.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
 import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
-import { analysisPresentation, chartFacts, factLines, titleDraft } from './chart-facts.js';
+import { analysisPresentation, chartFacts, defaultReduction, factLines, titleDraft } from './chart-facts.js';
 import { adviseChart } from './chart-advice.js';
 import { SUGGEST_GOALS, suggestChart } from './suggest.js';
 import { STATIC_CHART_API, parseStaticChart, renderStaticChart } from './static-chart.js';
@@ -450,6 +450,7 @@ const agentMeta = (effect, maxResultChars = AGENT_MAX_RESULT_CHARS) => ({
 const edaMeta = () => ({ ...agentMeta('read', DATA_MAX_RESULT_CHARS), 'dev.agentinterop/group': 'data', 'dev.agentinterop/resourceTypes': ['.csv'], 'dev.agentinterop/keywords': EDA_KEYWORDS });
 const GUIDE_TOPIC_NAMES = Object.keys(GUIDE_TOPICS);
 const createAgentTools = (locale) => {
+const period = locale === 'en' ? 'year_month' : '연월';
 const tools = [
     {
         name: 'eda_profile', title: 'Profile a CSV dataset',
@@ -462,19 +463,19 @@ const tools = [
     },
     {
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
-        description: 'filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {"column":"연월","op":"gte","value":"2025-01"} plus lte. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year\'s monthly average with a filter. With 2–8 columns it also gives each column\'s share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have shares and chart data. rows: cells and row numbers, paged by limit and offset. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.',
+        description: `summary returns count, sum, mean, min, max for each of 1–8 numeric columns over matching rows and each column's share of their combined sum. Use it for one overall total or average, e.g. a year's monthly average with a filter. Period example: {"column":"${period}","op":"gte","value":"2025-01"}. aggregate: one value per group and overall for mean, min, max or median (same function over all matching rows); label and original give change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.`,
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
             table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
             analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], properties: {
-                type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate', 'compare', 'rows'], description: 'compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups.' },
+                type: { type: 'string', enum: ['summary', 'histogram', 'correlation', 'aggregate', 'compare', 'rows', 'pivot'], description: 'compare: [group, value] with period, or [group, value, reference]. histogram needs one column, correlation two.' },
                 columns: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string' } },
                 filter: { type: 'array', description: 'Up to four conditions combined with AND before analysis.', maxItems: 4, items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string', description: 'CSV column to compare.' }, op: { type: 'string', description: 'Comparison operator.', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string', description: 'Value to compare against the cell.' } } } },
                 period: { type: 'object', additionalProperties: false, required: ['column', 'base', 'target'], description: 'For compare, select the period column and two period values.', properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } },
                 rank_by: { type: 'string', enum: ['difference', 'rate', 'ratio'], description: 'For compare, rank by difference or the relative rate or ratio.' },
                 method: { type: 'string', enum: ['pearson'] },
                 bins: { type: 'integer', minimum: 1, maximum: 50, description: 'Histogram bin count, default 10; intervals are left-closed, right-open except the last.' },
-                function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic.' },
+                function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'aggregate or pivot reducer. summary returns all statistics; function selects the chart value.' },
                 sort: { type: 'string', enum: AGGREGATE_SORTS, description: 'aggregate: desc (default), asc, label, original; rows: asc (default) or desc with sort_by.' },
                 sort_by: { type: 'string', description: 'rows only. Sort by this CSV column before pagination.' },
                 limit: { type: 'integer', minimum: 1, maximum: 1000, description: 'aggregate: default 60, maximum 100 groups (larger values are rejected). rows: default 50; requests above 100 are capped at 100 with limitApplied and offset guidance.' },
@@ -517,7 +518,7 @@ const tools = [
     {
         name: 'get_chart_guide',
         title: 'Plotly chart writing guide',
-        description: 'Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), report (report charts from vault data: workflow, styles, targets, highlights, facts), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.',
+        description: 'Plotly authoring help by topic. Read basics for block syntax and report for charts from vault data, goals, highlights, facts and export. Other topics cover examples, style, statistics, hierarchies, time series, scientific charts, maps, layout, Dataview JS and troubleshooting.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -531,7 +532,7 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block and check it against Plotly\'s schema. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.',
+        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block and check it against Plotly\'s schema. Raw sources read 1–200 rows after filter, sort and limit; use source.sort and source.limit for top-N. With source, omit top-level labels and series values/x/size arrays. Blanks are gaps. Direct charts use series[].values; scatter and bubble also need x (bubble also size). Insert reportSnippet or block with host editing tools. staticBlock is for HWPX or PPTX export.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -543,18 +544,18 @@ const tools = [
                 source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
                     path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
                     table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
-                    analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], description: 'Chart the result of eda_analyze aggregate or compare instead of raw rows; series[].column then names a result field (value, share, base, target, difference, rate, reference, ratio).', properties: {
-                        type: { type: 'string', enum: ['aggregate', 'compare'] }, columns: { type: 'array', minItems: 1, maxItems: 3, items: { type: 'string' } },
+                    analysis: { type: 'object', additionalProperties: false, required: ['type', 'columns'], description: 'Use eda_analyze chartArgs. summary: 2–8 columns (indicator 1), value or share. pivot: [x, series, value?], one series with column value. compare fields: base, target, value, reference, difference, rate, ratio.', properties: {
+                        type: { type: 'string', enum: ['aggregate', 'compare', 'summary', 'pivot'] }, columns: { type: 'array', minItems: 1, maxItems: 8, items: { type: 'string' } },
                         filter: { type: 'array', maxItems: 4, items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: { column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' } } } },
-                        function: { type: 'string', enum: AGGREGATE_FUNCTIONS }, sort: { type: 'string', enum: AGGREGATE_SORTS }, limit: { type: 'integer', minimum: 1, maximum: 100 },
+                        function: { type: 'string', enum: AGGREGATE_FUNCTIONS, description: 'summary/pivot use the unit to choose a default; count can omit the pivot value column.' }, sort: { type: 'string', enum: AGGREGATE_SORTS }, limit: { type: 'integer', minimum: 1, maximum: 100, description: 'For aggregate or compare. Narrow summary or pivot with filter.' },
                         period: { type: 'object', additionalProperties: false, required: ['column', 'base', 'target'], properties: { column: { type: 'string' }, base: { type: 'string' }, target: { type: 'string' } } }, rank_by: { type: 'string', enum: ['difference', 'rate', 'ratio'] }
                     } },
-                    labels: { type: 'string', description: 'CSV category column; required for per-label chart types.' },
-                    x: { type: 'string', description: 'Numeric CSV x column; required for scatter and bubble.' },
+                    labels: { type: 'string', description: 'Category column, or point names for scatter and bubble.' },
+                    x: { type: 'string', description: 'Numeric x for scatter and bubble, or alias for category labels.' },
                     filter: { type: 'array', maxItems: 4, description: 'Same AND conditions as eda_analyze; applied before charting, without pagination.', items: { type: 'object', additionalProperties: false, required: ['column', 'op', 'value'], properties: {
                         column: { type: 'string' }, op: { type: 'string', enum: ['eq', 'ne', 'gt', 'gte', 'lt', 'lte', 'prefix', 'contains'] }, value: { type: 'string' }
                     } } },
-                    sort: { type: 'object', additionalProperties: false, required: ['column'], properties: { column: { type: 'string', description: 'Numeric CSV column to sort.' }, order: { type: 'string', enum: ['desc', 'asc'], description: 'Sort order; defaults to desc.' } } },
+                    sort: { type: 'object', additionalProperties: false, required: ['column'], properties: { column: { type: 'string', description: 'Numeric or period column.' }, order: { type: 'string', enum: ['desc', 'asc'], description: 'Default desc for numbers, asc for periods.' } } },
                     limit: { type: 'integer', minimum: 1, maximum: 200, description: 'Maximum rows after filtering and sorting.' }
                 } },
                 labels: { type: 'array', maxItems: 200, items: { type: 'string', maxLength: 100 }, description: 'Category names (x axis; y axis for barh and funnel stages), slice or node names (pie, donut, treemap, sunburst), heatmap columns or radar axes. Not used by scatter, bubble, histogram, box, violin or indicator.' },
@@ -575,7 +576,7 @@ const tools = [
                             values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin.' },
                             x: { type: 'array', maxItems: 2000, items: { type: 'number' }, description: 'scatter and bubble: the x value of each point.' },
                             size: { type: 'array', maxItems: 2000, items: { type: 'number', minimum: 0 }, description: 'bubble: the size measure of each point (drawn as area).' },
-                            text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'scatter and bubble: a hover label for each point.' },
+                            text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'Point labels; override source.labels.' },
                             kind: { type: 'string', enum: ['bar', 'line', 'area'], description: 'combo: how to draw this series. Defaults to bar for the first series and line for the others.' },
                             secondary: { type: 'boolean', description: 'line, area, bar, combo: draw this series against a right-hand y axis (a different unit).' }
                         }
@@ -588,7 +589,8 @@ const tools = [
                 bins: { type: 'integer', minimum: 1, maximum: 200, description: 'histogram: the maximum number of bins.' },
                 range_slider: { type: 'boolean', description: 'line, area, bar, combo, scatter, bubble: add a range slider under the x axis for long series.' },
                 style: { type: 'string', enum: ['clean', 'plain', 'report', 'print', 'slides'], description: 'Chart presentation style.' },
-                target: { type: 'object', additionalProperties: false, required: ['value'], properties: { value: { type: 'number' }, label: { type: 'string', maxLength: 100 }, series: { type: 'integer', minimum: 0 } } },
+                gauge: { type: 'boolean', description: 'Show an indicator gauge.' },
+                target: { type: 'object', additionalProperties: false, required: ['value'], description: 'Indicator reference or axis target line.', properties: { value: { type: 'number' }, label: { type: 'string', maxLength: 100 }, series: { type: 'integer', minimum: 0 } } },
                 highlight: { type: 'object', additionalProperties: false, properties: { labels: { type: 'array', minItems: 1, maxItems: 50, items: { type: 'string' } }, top: { type: 'integer', minimum: 1, maximum: 50 }, bottom: { type: 'integer', minimum: 1, maximum: 50 }, below_target: { type: 'boolean' }, above_target: { type: 'boolean' } } },
                 unit: { type: 'string', maxLength: 12, description: 'Display unit.' },
                 caption: { type: 'string', maxLength: 200, description: 'Source or other caption below the chart.' }
@@ -633,7 +635,6 @@ if (locale === 'en') {
     };
     for (const tool of tools) {
         tool._meta['dev.agentinterop/keywords'] = [...new Set(tool._meta['dev.agentinterop/keywords'].map(keyword => translations[keyword] || keyword))];
-        if (tool.name === 'eda_analyze') tool.description = tool.description.replace('연월', 'year_month');
     }
 }
 return tools;
@@ -939,9 +940,17 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
         ? ` CSV 후보: ${paths.length ? paths.join(', ') : '(없음)'}. 후보의 path로 다시 호출하세요.`
         : ` CSV candidates: ${paths.length ? paths.join(', ') : '(none)'}. Call again with a candidate path.`;
     const readDataset = async (rawPath, table) => {
-        const path = normalizeAgentPath(rawPath);
-        const file = plugin.app.vault.getAbstractFileByPath(path);
+        let path = normalizeAgentPath(rawPath);
+        const vault = plugin.app.vault;
+        let file = vault.getAbstractFileByPath(path);
+        if (!path.includes('/')) {
+            const folded = path.normalize('NFC').toLowerCase();
+            const matches = (vault.getFiles?.() ?? []).filter(item => item.path.split('/').at(-1).normalize('NFC').toLowerCase() === folded);
+            if (matches.length > 1) throw new AgentToolError('NOT_FOUND', `File name is ambiguous: ${path}.` + candidateText(matches.map(item => item.path).sort().slice(0, 5)), true);
+            if (matches.length === 1 && file?.path !== matches[0].path) file = matches[0];
+        }
         if (!file || !file.extension) throw new AgentToolError('NOT_FOUND', `File not found in the vault: ${path}` + candidateText(csvCandidates(path)), true);
+        path = file.path;
         const ext = file.extension.toLowerCase();
         if (!['csv', 'md'].includes(ext)) throw new AgentToolError('UNSUPPORTED_FORMAT', (locale === 'ko' ? 'CSV 파일(.csv) 또는 표가 있는 Markdown 노트(.md)만 분석할 수 있습니다.' : 'Only CSV files (.csv) or Markdown notes (.md) containing tables can be analyzed.') + candidateText(csvCandidates(path, true)), true);
         if (ext === 'csv' && table !== undefined && table !== 1) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'table은 Markdown 노트(.md)에만 씁니다.' : 'table is only for Markdown notes (.md).', true);
@@ -1005,6 +1014,22 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                     }
                 }
             }
+            let chartableSummary = false;
+            if (result.type === 'summary' && !result.unitMismatch) {
+                const unit = result.unit ?? result.units?.[result.columns[0]] ?? '';
+                const fn = args.analysis.function ?? defaultReduction(unit);
+                chartableSummary = (result.perColumn?.map(entry => entry.statistics) ?? [result.statistics]).some(stats => Number.isFinite(stats[fn]));
+            }
+            if (chartableSummary || (result.type === 'pivot' && result.chart.labels.length)) {
+                const spec = args.analysis;
+                const type = result.type === 'pivot' ? 'heatmap' : result.columns.length === 1 ? 'indicator' : 'bar';
+                result.chartArgs = {
+                    type, style: 'report',
+                    source: { path, ...(dataset.table ? { table: dataset.table.index } : {}), analysis: { type: spec.type, columns: spec.columns, ...(spec.function !== undefined || result.type === 'pivot' ? { function: spec.function ?? result.function } : {}), ...(spec.filter !== undefined ? { filter: spec.filter } : {}) } },
+                    series: [{ column: 'value' }]
+                };
+            }
+            if (result.type === 'pivot' && resultLength(content, result) > DATA_RESULT_CHARS) throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError(), true);
             return { content, structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         get_chart_guide: (args) => {
@@ -1032,8 +1057,10 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             let provenance;
             let ignoredArgs;
             let factsMeta;
+            let normalizedArgs;
+            let resolvedBasename;
             let limitArg = 'labels·series';
-            const validationArgs = args.source ? { ...args, source: { ...args.source, x: undefined }, series: args.series?.map(s => ({ ...s, sizeColumn: undefined })) } : args;
+            const validationArgs = args.source ? { ...args, series: args.series?.map(s => ({ ...s, sizeColumn: undefined })) } : args;
             try { ignoredArgs = validateBuildArgs(validationArgs, locale); }
             catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
             if (ignoreTitleFrom) ignoredArgs.push('title_from');
@@ -1042,33 +1069,39 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 try { validateChartSource(args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 const { path, dataset } = await readDataset(args.source?.path, args.source?.table);
-                const requestedSource = args.source;
+                resolvedBasename = path !== normalizeAgentPath(args.source.path);
+                const requestedSource = { ...args.source, path };
+                args.source = requestedSource;
                 try { args = resolveChartSource(dataset, args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
-                limitArg = args.analysisResult ? 'source.analysis.limit' : 'source.limit';
+                normalizedArgs = args.normalizedArgs;
+                const matrix = ['summary', 'pivot'].includes(args.analysisResult?.type);
+                limitArg = args.analysisResult ? matrix ? 'source.analysis.filter' : 'source.analysis.limit' : 'source.limit';
                 factsMeta = {
-                    labelColumn: requestedSource.labels,
+                    labelColumn: args.labelColumn ?? requestedSource.labels,
                     beforeLimit: args.beforeLimit,
-                    valueSorted: Boolean(requestedSource.sort),
+                    valueSorted: args.valueSorted,
                     xUnit: args.sourceUnits?.[requestedSource.x]
                 };
                 const labels = args.labels ?? args.series[0].x ?? [];
-                source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? { first: labels[0], last: labels.at(-1) } : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
+                const bounds = args.horizontalReversed ? { first: labels.at(-1), last: labels[0] } : { first: labels[0], last: labels.at(-1) };
+                source = { path, ...(dataset.table ? { table: dataset.table } : {}), rows: args.series[0].values.length, labels: labels.length ? bounds : {}, ...(args.sourceUnits ? { units: args.sourceUnits } : {}), ...('sort' in requestedSource ? { sort: requestedSource.sort } : {}), ...('limit' in requestedSource ? { limit: requestedSource.limit } : {}) };
                 if (args.analysisResult) {
                     const r = args.analysisResult;
                     source.analysis = { type: r.type, columns: r.columns, function: r.function, ...(r.period ? { period: r.period } : {}), ...(r.filter ? { filter: r.filter } : {}) };
-                    Object.assign(source, { excludedRows: r.excludedRows, groupCount: r.groupCount, truncated: r.truncated }, ...(r.onlyInBase ? [{ onlyInBase: { count: r.onlyInBase.count } }] : []), ...(r.onlyInTarget ? [{ onlyInTarget: { count: r.onlyInTarget.count } }] : []));
+                    if (!matrix) Object.assign(source, { excludedRows: r.excludedRows, groupCount: r.groupCount, truncated: r.truncated }, ...(r.onlyInBase ? [{ onlyInBase: { count: r.onlyInBase.count } }] : []), ...(r.onlyInTarget ? [{ onlyInTarget: { count: r.onlyInTarget.count } }] : []));
                 }
                 const date = now();
                 const day = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
                 const details = [`# chart-hands source: ${path}${dataset.table ? ` table ${dataset.table.index}` : ''}`, `rows ${source.rows} of ${dataset.rows.length}`];
                 if (requestedSource.filter?.length) details.push(`filter ${requestedSource.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
-                if (requestedSource.sort) details.push(`sort ${requestedSource.sort.column} ${requestedSource.sort.order || 'desc'}`);
+                if (requestedSource.sort) details.push(`sort ${requestedSource.sort.column} ${args.sortOrder}`);
                 if (requestedSource.limit !== undefined) details.push(`limit ${requestedSource.limit}`);
                 if (source.analysis) { const a = source.analysis; details.push(`analysis ${a.type} ${a.columns.join(' ')} ${a.function}${a.period ? ` ${a.period.base}→${a.period.target}` : ''}`); }
+                if (matrix && source.analysis.filter?.length) details.push(`filter ${source.analysis.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}`);
                 details.push(`built ${day}`);
                 const line = details.join(' · ').replace(/\p{Cc}/gu, ' ');
-                provenance = line.length > 300 ? `${line.slice(0, 299)}…` : line;
+                provenance = !matrix && !resolvedBasename && line.length > 300 ? `${line.slice(0, 299)}…` : line;
             } else if (Array.isArray(args.series) && args.series.some(s => s && (Object.hasOwn(s, 'column') || Object.hasOwn(s, 'sizeColumn')))) {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'series[].column/sizeColumn에는 source가 필요합니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. 직접 입력하려면 column 대신 values:[1,2]를 주세요.' : 'series[].column/sizeColumn requires source. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]. For direct input use values:[1,2] instead of column.', true);
             } else if (!Array.isArray(args.series) || !args.series.length || args.series.some(s => !s || !Array.isArray(s.values) || !s.values.length)) {
@@ -1090,13 +1123,18 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 definition = buildChartDefinition(args, { locale });
             }
             // Compact JSON keeps large raw bar arrays within the same result budget without dropping data points.
-            const compact = source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40;
+            const compact = source?.analysis?.type === 'pivot' || (source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40);
             const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
             const yaml = `${provenance ? `${provenance}\n` : ''}${body}`;
             const loadedPlotly = plugin.ensureLibraries ? await plugin.ensureLibraries() : undefined;
             const validator = (Plotly && typeof Plotly.validate === 'function') ? Plotly : (loadedPlotly && typeof loadedPlotly.validate === 'function') ? loadedPlotly : null;
             const chart = analyzeChart(yaml, locale, validator);
-            const staticSource = JSON.stringify(args);
+            const { gauge, ...staticArgs } = args;
+            if (args.type === 'indicator' && args.target) {
+                delete staticArgs.target;
+                staticArgs.series = [{ ...args.series[0], values: [args.series[0].values[0], args.target.value] }];
+            }
+            const staticSource = JSON.stringify(staticArgs);
             let staticBlock;
             try {
                 if (staticSource.length <= 2000) {
@@ -1113,6 +1151,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             const reduce = source ? `${limitArg}을` : 'labels·series 값 개수를';
             const reduceEn = source ? limitArg : 'the number of labels and series values';
             const text = [
+                ...(resolvedBasename ? [`${locale === 'ko' ? '자료' : 'Source'}: ${source.path}`] : []),
                 chart.problems.length
                     ? `${chart.problems.length} problem(s) found in the built chart:`
                     : validator
@@ -1137,14 +1176,15 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             ].join('\n');
             const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
             const sourcePrefix = locale === 'ko' ? '자료: ' : 'Source: ';
-            const caption = source ? args.caption || args.sourceCaption : undefined;
+            const caption = source ? (resolvedBasename ? args.sourceCaption : args.caption || args.sourceCaption) : undefined;
             const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
             const result = {
                 content: [{ type: 'text', text }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock, staticBlockUse: 'HWPX or PPTX export only; put reportSnippet (or block) in the note' } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(staticBlock ? { staticBlock, staticBlockUse: 'HWPX or PPTX export only; put reportSnippet (or block) in the note' } : { staticBlockMissing }), ...(ignoredArgs.length ? { ignoredArgs } : {}), ...(normalizedArgs?.length ? { normalizedArgs } : {}), ...(source ? { source } : {}), facts, ...(draft ? { titleDraft: draft } : {}), factLines: lines, reportSnippet },
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
             if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
+                if (source?.analysis?.type === 'pivot') throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError('source.analysis.filter'), true);
                 delete result.structuredContent.reportSnippet;
                 Object.assign(result.structuredContent, { block, snippetOmitted: 'too_long' });
                 result.content[0].text += `\n${block}`;

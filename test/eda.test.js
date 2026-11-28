@@ -31,13 +31,16 @@ test('summarizes multiple columns independently and preserves the single-column 
     assert.equal(result.perColumn[1].excludedRows, 1); assert.equal(result.perColumn[2].excludedRows, 1);
     assert.equal(result.perColumn[1].statistics.sum, 2);
     const single = await call({ type: 'summary', columns: ['중국'], filter });
+    const chartArgsFor = (type, columns, extra = {}) => ({ type, style: 'report',
+        source: { path: 'data.csv', analysis: { type: 'summary', columns, filter, ...extra } }, series: [{ column: 'value' }] });
+    assert.deepEqual(result.chartArgs, chartArgsFor('bar', columns));
     assert.deepEqual(single, { type: 'summary', columns: ['중국'], totalRows: 3, excludedRows: 0,
         matched: { 기간: { first: '2025', last: '2025', rows: 2 } }, shareOf: 'sum of the listed columns', unlistedNumericColumns: ['대만', '베트남', '미국', '일본', '기타', '기간'],
-        statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2 });
+        statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2, chartArgs: chartArgsFor('indicator', ['중국']) });
     const note = 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.';
     for (const fn of ['count', 'sum', 'mean', 'min', 'max', 'median']) {
-        assert.deepEqual(await call({ type: 'summary', columns: ['중국'], filter, function: fn }), { ...single, note });
-        assert.deepEqual(await call({ type: 'summary', columns, filter, function: fn }), { ...result, note });
+        assert.deepEqual(await call({ type: 'summary', columns: ['중국'], filter, function: fn }), { ...single, note, chartArgs: chartArgsFor('indicator', ['중국'], { function: fn }) });
+        assert.deepEqual(await call({ type: 'summary', columns, filter, function: fn }), { ...result, note, chartArgs: chartArgsFor('bar', columns, { function: fn }) });
     }
     const zero = await call({ type: 'summary', columns: ['중국', '홍콩'], filter: [{ column: '기간', op: 'eq', value: 'none' }] });
     assert.equal(zero.sumTotal, 0); assert.deepEqual(zero.shares.map(item => item.share), [null, null]);

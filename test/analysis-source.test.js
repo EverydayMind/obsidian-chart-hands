@@ -29,7 +29,7 @@ test('aggregate fields, units, shares and invalid fields', () => {
 test('compare coordinates, axes, waterfall constraints and duplicate labels', () => {
     const combo = resolve(period, 'combo', [{ column: 'base' }, { column: 'target' }]);
     assert.deepEqual(combo.series[0].values, [50, 95]);
-    assert.deepEqual(resolve(period, 'barh', [{ column: 'difference' }]).series[0].values, [10, 5]);
+    assert.deepEqual(resolve(period, 'barh', [{ column: 'difference' }]).series[0].values, [5, 10]);
     assert.equal(resolve(reference, 'bar', [{ column: 'ratio' }]).series[0].values[0], 95);
     const withTarget = resolve(reference, 'bar', [{ column: 'ratio' }], { target: { value: 95 } });
     assert.equal(buildChartDefinition(withTarget).layout.shapes[0].y0, withTarget.series[0].values[0]);

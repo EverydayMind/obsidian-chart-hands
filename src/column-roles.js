@@ -14,7 +14,7 @@ export function isIdentifierHeader(name = '') {
     return ID_HEADER_RE.test(normalizeHeader(name));
 }
 
-export function inspectColumn(dataset, index) {
+export function inspectColumn(dataset, index, { weeks = false } = {}) {
     const name = dataset.headers[index] ?? '';
     const rows = dataset.rows;
     const rawValues = [];
@@ -55,7 +55,7 @@ export function inspectColumn(dataset, index) {
             allPeriod = false;
             break;
         }
-        const key = periodKey(value, { compact: hasPeriodHeader });
+        const key = periodKey(value, { compact: hasPeriodHeader, weeks });
         if (key.startsWith('S:')) {
             allPeriod = false;
             break;

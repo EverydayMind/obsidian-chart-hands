@@ -87,7 +87,7 @@
       {
         "name": "eda_analyze",
         "title": "Analyze a CSV dataset",
-        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus lte. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have shares and chart data. rows: cells and row numbers, paged by limit and offset. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
+        "description": "summary returns count, sum, mean, min, max for each of 1–8 numeric columns over matching rows and each column's share of their combined sum. Use it for one overall total or average, e.g. a year's monthly average with a filter. Period example: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"}. aggregate: one value per group and overall for mean, min, max or median (same function over all matching rows); label and original give change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -124,9 +124,10 @@
                     "correlation",
                     "aggregate",
                     "compare",
-                    "rows"
+                    "rows",
+                    "pivot"
                   ],
-                  "description": "compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups."
+                  "description": "compare: [group, value] with period, or [group, value, reference]. histogram needs one column, correlation two."
                 },
                 "columns": {
                   "type": "array",
@@ -226,7 +227,7 @@
                     "max",
                     "median"
                   ],
-                  "description": "aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic."
+                  "description": "aggregate or pivot reducer. summary returns all statistics; function selects the chart value."
                 },
                 "sort": {
                   "type": "string",
@@ -420,7 +421,7 @@
       {
         "name": "get_chart_guide",
         "title": "Plotly chart writing guide",
-        "description": "Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), report (report charts from vault data: workflow, styles, targets, highlights, facts), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.",
+        "description": "Plotly authoring help by topic. Read basics for block syntax and report for charts from vault data, goals, highlights, facts and export. Other topics cover examples, style, statistics, hierarchies, time series, scientific charts, maps, layout, Dataview JS and troubleshooting.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -483,7 +484,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. Raw sources read 1–200 rows after filter, sort and limit; use source.sort and source.limit for top-N. With source, omit top-level labels and series values/x/size arrays. Blanks are gaps. Direct charts use series[].values; scatter and bubble also need x (bubble also size). Insert reportSnippet or block with host editing tools. staticBlock is for HWPX or PPTX export.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -555,19 +556,21 @@
                     "type",
                     "columns"
                   ],
-                  "description": "Chart the result of eda_analyze aggregate or compare instead of raw rows; series[].column then names a result field (value, share, base, target, difference, rate, reference, ratio).",
+                  "description": "Use eda_analyze chartArgs. summary: 2–8 columns (indicator 1), value or share. pivot: [x, series, value?], one series with column value. compare fields: base, target, value, reference, difference, rate, ratio.",
                   "properties": {
                     "type": {
                       "type": "string",
                       "enum": [
                         "aggregate",
-                        "compare"
+                        "compare",
+                        "summary",
+                        "pivot"
                       ]
                     },
                     "columns": {
                       "type": "array",
                       "minItems": 1,
-                      "maxItems": 3,
+                      "maxItems": 8,
                       "items": {
                         "type": "string"
                       }
@@ -615,7 +618,8 @@
                         "min",
                         "max",
                         "median"
-                      ]
+                      ],
+                      "description": "summary/pivot use the unit to choose a default; count can omit the pivot value column."
                     },
                     "sort": {
                       "type": "string",
@@ -629,7 +633,8 @@
                     "limit": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 100
+                      "maximum": 100,
+                      "description": "For aggregate or compare. Narrow summary or pivot with filter."
                     },
                     "period": {
                       "type": "object",
@@ -663,11 +668,11 @@
                 },
                 "labels": {
                   "type": "string",
-                  "description": "CSV category column; required for per-label chart types."
+                  "description": "Category column, or point names for scatter and bubble."
                 },
                 "x": {
                   "type": "string",
-                  "description": "Numeric CSV x column; required for scatter and bubble."
+                  "description": "Numeric x for scatter and bubble, or alias for category labels."
                 },
                 "filter": {
                   "type": "array",
@@ -713,7 +718,7 @@
                   "properties": {
                     "column": {
                       "type": "string",
-                      "description": "Numeric CSV column to sort."
+                      "description": "Numeric or period column."
                     },
                     "order": {
                       "type": "string",
@@ -721,7 +726,7 @@
                         "desc",
                         "asc"
                       ],
-                      "description": "Sort order; defaults to desc."
+                      "description": "Default desc for numbers, asc for periods."
                     }
                   }
                 },
@@ -819,7 +824,7 @@
                       "type": "string",
                       "maxLength": 100
                     },
-                    "description": "scatter and bubble: a hover label for each point."
+                    "description": "Point labels; override source.labels."
                   },
                   "kind": {
                     "type": "string",
@@ -877,12 +882,17 @@
               ],
               "description": "Chart presentation style."
             },
+            "gauge": {
+              "type": "boolean",
+              "description": "Show an indicator gauge."
+            },
             "target": {
               "type": "object",
               "additionalProperties": false,
               "required": [
                 "value"
               ],
+              "description": "Indicator reference or axis target line.",
               "properties": {
                 "value": {
                   "type": "number"
@@ -2756,7 +2766,25 @@
           "shareOf": "sum of the listed columns",
           "unlistedNumericColumns": [
             "other"
-          ]
+          ],
+          "chartArgs": {
+            "type": "indicator",
+            "style": "report",
+            "source": {
+              "path": "data.csv",
+              "analysis": {
+                "type": "summary",
+                "columns": [
+                  "value"
+                ]
+              }
+            },
+            "series": [
+              {
+                "column": "value"
+              }
+            ]
+          }
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -3501,7 +3529,26 @@
           "unlistedNumericColumns": [
             "other"
           ],
-          "note": "summary returns count, sum, mean, min, max and quartiles together; function is not needed."
+          "note": "summary returns count, sum, mean, min, max and quartiles together; function is not needed.",
+          "chartArgs": {
+            "type": "indicator",
+            "style": "report",
+            "source": {
+              "path": "data.csv",
+              "analysis": {
+                "type": "summary",
+                "columns": [
+                  "value"
+                ],
+                "function": "sum"
+              }
+            },
+            "series": [
+              {
+                "column": "value"
+              }
+            ]
+          }
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -4871,7 +4918,7 @@
             "최댓값: B 2 · 표시 2항목 중 유효 2항목",
             "최솟값: A 1 · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: B 2 · 표시 2항목 중 유효 2항목\n- 최솟값: A 1 · 표시 2항목 중 유효 2항목"
+          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        1,\n        2\n      ],\n      \"y\": [\n        \"A\",\n        \"B\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"name\": \"Series\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"type\": \"category\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: B 2 · 표시 2항목 중 유효 2항목\n- 최솟값: A 1 · 표시 2항목 중 유효 2항목"
         }
       }
     },
@@ -7776,7 +7823,7 @@
         "content": [
           {
             "type": "text",
-            "text": "analysis.type은 aggregate 또는 compare여야 합니다."
+            "text": "source.analysis.columns: summary needs 2–8 distinct columns. Example: [\"month\",\"value\"]"
           }
         ],
         "structuredContent": {
@@ -9117,7 +9164,7 @@
         "content": [
           {
             "type": "text",
-            "text": "source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+            "text": "source는 path, table, labels, x, filter, sort, limit, analysis만 받는 객체입니다. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
           }
         ],
         "structuredContent": {
@@ -9297,7 +9344,7 @@
         "content": [
           {
             "type": "text",
-            "text": "series[].column에 CSV 열 이름을 주세요. 예: source:{path:\"data.csv\",labels:\"month\"},series:[{column:\"value\"}]"
+            "text": "series[0].column에 CSV 열 이름을 주세요. 열: month, value, other. 예: source:{\"path\":\"data.csv\",\"labels\":\"month\"},series:[{\"column\":\"value\"}]"
           }
         ],
         "structuredContent": {
@@ -9331,7 +9378,7 @@
         "content": [
           {
             "type": "text",
-            "text": "열 month에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요."
+            "text": "series[0].column month: 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요. 예: source:{\"path\":\"data.csv\",\"labels\":\"month\"},series:[{\"column\":\"value\"}]"
           }
         ],
         "structuredContent": {
@@ -15083,6 +15130,436 @@
             "code": "RESULT_TOO_LARGE",
             "retryable": true
           }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.labels에 CSV 열 이름을 주세요. 열: month. 예: source:{\"path\":\"data.csv\",\"labels\":\"month\"},series:[{\"column\":\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "unknown"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.labels: 모르는 열 unknown. 열: month. 예: source:{\"path\":\"data.csv\",\"labels\":\"month\"},series:[{\"column\":\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "cat-dup.csv",
+          "labels": "cat",
+          "sort": {
+            "column": "cat"
+          }
+        },
+        "series": [
+          {
+            "column": "a"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.sort.column cat: 값 순서는 숫자 열, 시간 순서는 기간 열을 쓰세요. 예: source:{\"path\":\"cat-dup.csv\",\"labels\":\"cat\",\"sort\":{\"column\":\"a\"}},series:[{\"column\":\"a\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "histogram",
+            "columns": [
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.analysis.type은 aggregate, compare, summary, pivot 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "series": [
+          {
+            "column": "value",
+            "values": [
+              1
+            ]
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[0]에 column과 values가 함께 있습니다. CSV 값이면 values를 빼고 source를 주세요. 숫자를 직접 주면 column을 빼세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "barh",
+        "source": {
+          "path": "data.csv",
+          "x": "month",
+          "sort": {
+            "column": "month"
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
+          "staticBlock": "```chart-hands-static\n{\"type\":\"barh\",\"series\":[{\"values\":[4,2]}],\"labels\":[\"2025-02\",\"2025-01\"],\"x_title\":\"value\"}\n```",
+          "staticBlockUse": "HWPX or PPTX export only; put reportSnippet (or block) in the note",
+          "normalizedArgs": [
+            "source.x → source.labels"
+          ],
+          "source": {
+            "path": "data.csv",
+            "rows": 2,
+            "labels": {
+              "first": "2025-01",
+              "last": "2025-02"
+            },
+            "sort": {
+              "column": "month"
+            }
+          },
+          "facts": {
+            "type": "barh",
+            "place": false,
+            "series": [
+              {
+                "index": 0,
+                "unit": "",
+                "quantity": "value",
+                "scope": {
+                  "shown": 2,
+                  "valid": 2,
+                  "beforeLimit": 2
+                },
+                "count": 2,
+                "nulls": 0,
+                "display": {
+                  "count": "2",
+                  "nulls": "0"
+                },
+                "max": {
+                  "label": "2025-02",
+                  "value": 4,
+                  "display": "4"
+                },
+                "min": {
+                  "label": "2025-01",
+                  "value": 2,
+                  "display": "2"
+                },
+                "first": {
+                  "label": "2025-01",
+                  "value": 2,
+                  "display": "2"
+                },
+                "last": {
+                  "label": "2025-02",
+                  "value": 4,
+                  "display": "4"
+                },
+                "change": {
+                  "from": "2025-01",
+                  "to": "2025-02",
+                  "value": 2,
+                  "display": "+2",
+                  "skippedNulls": 0,
+                  "skippedNullsDisplay": "0"
+                }
+              }
+            ],
+            "scope": {
+              "shown": 2,
+              "valid": 2,
+              "beforeLimit": 2
+            }
+          },
+          "titleDraft": "2025-01~2025-02 2→4, 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목",
+          "factLines": [
+            "2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목",
+            "최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목",
+            "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
+          ],
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · sort month asc · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        4,\n        2\n      ],\n      \"y\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"4\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"type\": \"category\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "data.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "labels": [
+          "A",
+          "B"
+        ],
+        "series": [
+          {
+            "values": [
+              172.4,
+              117.4
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: A 172.4 · 표시 2항목 중 유효 2항목\n최솟값: B 117.4 · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"labels\":[\"A\",\"B\"],\"series\":[{\"values\":[172.4,117.4]}]}\n```",
+          "staticBlockUse": "HWPX or PPTX export only; put reportSnippet (or block) in the note",
+          "facts": {
+            "type": "bar",
+            "place": false,
+            "series": [
+              {
+                "index": 0,
+                "unit": "",
+                "quantity": "value",
+                "scope": {
+                  "shown": 2,
+                  "valid": 2
+                },
+                "count": 2,
+                "nulls": 0,
+                "display": {
+                  "count": "2",
+                  "nulls": "0"
+                },
+                "max": {
+                  "label": "A",
+                  "value": 172.4,
+                  "display": "172.4"
+                },
+                "min": {
+                  "label": "B",
+                  "value": 117.4,
+                  "display": "117.4"
+                }
+              }
+            ],
+            "scope": {
+              "shown": 2,
+              "valid": 2
+            }
+          },
+          "titleDraft": "A 172.4로 가장 큼 · 표시 2항목 중 유효 2항목",
+          "factLines": [
+            "최댓값: A 172.4 · 표시 2항목 중 유효 2항목",
+            "최솟값: B 117.4 · 표시 2항목 중 유효 2항목"
+          ],
+          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        172.4,\n        117.4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"172.4\",\n        \"117.4\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 172.4 · 표시 2항목 중 유효 2항목\n- 최솟값: B 117.4 · 표시 2항목 중 유효 2항목"
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "indicator",
+        "unit": "%",
+        "gauge": true,
+        "target": {
+          "value": 30
+        },
+        "series": [
+          {
+            "values": [
+              14.3
+            ]
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n지표값 14.3%, 기준값 30.0%, 차이 −15.7%p, 기준 대비 47.7% · 표시 1항목 중 유효 1항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "advice": [
+            "제목이 없습니다."
+          ],
+          "staticBlock": "```chart-hands-static\n{\"type\":\"indicator\",\"unit\":\"%\",\"series\":[{\"values\":[14.3,30]}]}\n```",
+          "staticBlockUse": "HWPX or PPTX export only; put reportSnippet (or block) in the note",
+          "facts": {
+            "type": "indicator",
+            "place": false,
+            "scope": {
+              "shown": 1,
+              "valid": 1
+            },
+            "value": 14.3,
+            "display": {
+              "value": "14.3%",
+              "reference": "30.0%",
+              "difference": "−15.7%p",
+              "ratio": "47.7%"
+            },
+            "reference": 30,
+            "difference": -15.7,
+            "ratio": 0.4766666666666667
+          },
+          "factLines": [
+            "지표값 14.3%, 기준값 30.0%, 차이 −15.7%p, 기준 대비 47.7% · 표시 1항목 중 유효 1항목"
+          ],
+          "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"gauge+number+delta\",\n      \"value\": 14.3,\n      \"delta\": {\n        \"reference\": 30,\n        \"relative\": false,\n        \"suffix\": \"%p\",\n        \"valueformat\": \",.1f\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"gauge\": {\n        \"axis\": {\n          \"range\": [\n            0,\n            100\n          ]\n        },\n        \"threshold\": {\n          \"value\": 30\n        }\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        },\n        \"suffix\": \"%\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 지표값 14.3%, 기준값 30.0%, 차이 −15.7%p, 기준 대비 47.7% · 표시 1항목 중 유효 1항목"
         }
       }
     },

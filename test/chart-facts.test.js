@@ -42,8 +42,8 @@ test('displayGroup resolves collisions independent of chart order', () => {
 
 test('displayGroup chooses shared precision by maximum magnitude', () => {
     for (const [values, decimals, strings] of [
-        [[100, 12.34], 0, ['100', '12']],
-        [[1, 0.42], 1, ['1.0', '0.4']],
+        [[100, 12.34], 2, ['100.00', '12.34']],
+        [[1, 0.42], 2, ['1.00', '0.42']],
         [[0.125, 0.42], 3, ['0.125', '0.420']],
         [[1, 2], 0, ['1', '2']]
     ]) {

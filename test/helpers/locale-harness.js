@@ -390,6 +390,18 @@ async function captureExtended(code, locale) {
             { path: 'wide99-too-large.csv', goal: 'matrix' }
         ]) await call('suggest_chart', args);
     }
+    {
+        const path = 'data.csv', labels = 'month', series = [{ column: 'value' }];
+        const build = (source, extra = {}) => call('build_chart', { type: 'bar', source: { path, ...source }, series, ...extra });
+        await build({});
+        await build({ labels: 'unknown' });
+        await build({ path: 'cat-dup.csv', labels: 'cat', sort: { column: 'cat' } }, { series: [{ column: 'a' }] });
+        await build({ analysis: { type: 'histogram', columns: ['value'] } });
+        await build({ labels }, { series: [{ column: 'value', values: [1] }] });
+        await build({ x: labels, sort: { column: labels } }, { type: 'barh' });
+        await call('build_chart', { type: 'bar', labels: ['A', 'B'], series: [{ values: [172.4, 117.4] }] });
+        await call('build_chart', { type: 'indicator', unit: '%', gauge: true, target: { value: 30 }, series: [{ values: [14.3] }] });
+    }
     await call('unknown', {});
     await call('read_charts', { path: '../outside.md' });
     await call('get_chart_guide', {}, { signal: { aborted: true } });

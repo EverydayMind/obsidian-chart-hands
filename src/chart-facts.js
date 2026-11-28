@@ -16,21 +16,27 @@ export function joinUnit(number, unit = '') {
 export function formatNumber(value, decimals) {
     const [coefficient, exponent = '0'] = String(Math.abs(value)).split('e');
     const shifted = Number(`${coefficient}e${Number(exponent) + decimals}`);
-    const rounded = Number(`${Math.round(shifted)}e-${decimals}`);
+    const rounded = shifted >= 1e21 ? Math.abs(value) : Number(`${Math.round(shifted)}e-${decimals}`);
     const formatted = rounded.toLocaleString('en-US', {
         minimumFractionDigits: decimals, maximumFractionDigits: decimals, useGrouping: true
     });
     return value < 0 && rounded !== 0 ? `−${formatted}` : formatted;
 }
 
-function baseDecimals(values) {
+function baseDecimals(values, rawValues = []) {
     const maxAbs = Math.max(0, ...values.map(Math.abs));
-    return values.every(Number.isInteger) || maxAbs >= 100 ? 0 : maxAbs >= 1 ? 1 : 3;
+    const rule = values.every(Number.isInteger) || maxAbs >= 100 ? 0 : maxAbs >= 1 ? 1 : 3;
+    const precision = rawValues.reduce((max, value) => {
+        if (!Number.isFinite(value)) return max;
+        const [coefficient, exponent = '0'] = Number(value.toPrecision(12)).toString().split('e');
+        return Math.max(max, (coefficient.split('.')[1]?.length ?? 0) - Number(exponent));
+    }, 0);
+    return Math.max(rule, Math.min(2, precision));
 }
 
-export function displayGroup(values, { unit = '', quantity = 'value', target } = {}) {
+export function displayGroup(values, { unit = '', quantity = 'value', target, rawValues = quantity === 'value' ? values : [] } = {}) {
     const all = [...values, ...(Number.isFinite(target) ? [target] : [])].filter(Number.isFinite);
-    const base = baseDecimals(all);
+    const base = baseDecimals(all, rawValues);
     let decimals = base;
     const collisions = d => {
         const found = new Set();
@@ -60,6 +66,11 @@ const ADDITIVE_UNITS = new Set([
     'pcs', 'units', 'people', 'cases', 'items',
     ...[...CURRENCY].flatMap(c => ['K', 'k', 'M', 'B', 'bn', 'mn', ' thousand', ' million', ' billion'].map(s => c + s))
 ]);
+export function defaultReduction(unit) {
+    if (ADDITIVE_UNITS.has(unit)) return 'sum';
+    if (['', '%', '%p', 'pp'].includes(unit)) return 'mean';
+    return null;
+}
 const SINGLE = ['pie', 'donut', 'treemap', 'sunburst', 'waterfall', 'indicator'];
 const ADDITIVE_TYPES = ['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel'];
 const valid = Number.isFinite;
@@ -73,8 +84,8 @@ export function periodColumnKeys(labels, header = '') {
     const keys = labels.map(label => {
         const value = String(label).trim();
         if (!compact && /^\d+$/.test(value)) return '';
-        const key = periodKey(value, { compact });
-        return /^[YMDQH]\d{4}(?:-|$)/.test(key) && +key.slice(1, 5) >= 1900 && +key.slice(1, 5) <= 2100 ? key : '';
+        const key = periodKey(value, { compact, weeks: true });
+        return /^[YMDQHW]\d{4}(?:-|$)/.test(key) && +key.slice(1, 5) >= 1900 && +key.slice(1, 5) <= 2100 ? key : '';
     });
     return keys.length && keys.every(key => key && key[0] === keys[0][0]) ? keys : null;
 }
@@ -100,8 +111,13 @@ export function chartDisplay(args) {
         const members = series.flatMap((entry, i) => Boolean(entry.secondary) === secondary ? [i] : []);
         if (!members.length) continue;
         const values = members.flatMap(i => series[i].values);
+        const rawValues = args.calculatedValues ? [] : members.flatMap(i => {
+            const entry = series[i];
+            if ((entry.quantity ?? 'value') !== 'value') return [];
+            return args.type === 'indicator' ? entry.values.slice(0, 1) : entry.values;
+        });
         const target = members.includes(targetIndex) ? args.target?.value : undefined;
-        const formatted = groupedDisplay(values, target);
+        const formatted = groupedDisplay(values, target, rawValues);
         let offset = 0;
         for (const i of members) {
             const { quantity = 'value', values } = series[i];
@@ -121,15 +137,15 @@ function withUnit(string, value, unit = '', quantity) {
     return joinUnit(number, quantity === 'difference' && unit === '%' ? '%p' : unit);
 }
 
-function groupedDisplay(values, target) {
+function groupedDisplay(values, target, rawValues = []) {
     const unique = [...new Set([...values, target].filter(valid))];
     // For a large axis, find equal displays by lookup to avoid formatting every pair.
     if (unique.length <= 24) {
-        const result = displayGroup(unique, { target });
+        const result = displayGroup(unique, { target, rawValues });
         const byValue = new Map(unique.map((value, i) => [value, result.strings[i]]));
         return { strings: values.map(value => byValue.get(value) ?? null), targetString: result.targetString };
     }
-    const base = baseDecimals(unique);
+    const base = baseDecimals(unique, rawValues);
     let strings, collisions;
     for (let decimals = base; decimals <= base + 3; decimals++) {
         strings = new Map(unique.map(value => [value, formatNumber(value, decimals)]));
@@ -145,8 +161,8 @@ function groupedDisplay(values, target) {
     return { strings: values.map(value => strings.get(value) ?? null), targetString: strings.get(target) };
 }
 
-function displayValues(values, unit, quantity = 'value') {
-    return groupedDisplay(values).strings.map((string, i) => withUnit(string, values[i], unit, quantity));
+function displayValues(values, unit, quantity = 'value', rawValues = []) {
+    return groupedDisplay(values, undefined, rawValues).strings.map((string, i) => withUnit(string, values[i], unit, quantity));
 }
 
 function extrema(items) {
@@ -197,9 +213,16 @@ function perLabel(entry, labels, scope, presentation, options) {
 }
 
 export function chartFacts(args, meta = {}) {
+    if (args.horizontalReversed) {
+        args = Object.assign(Object.create(args), {
+            labels: [...args.labels].reverse(),
+            series: args.series.map(entry => ({ ...entry, values: [...entry.values].reverse() })),
+            highlight: args.originalHighlight ?? args.highlight
+        });
+    }
     const { type } = args;
     const labels = (args.labels ?? []).map(String);
-    const analysis = meta.analysis ?? args.analysisResult;
+    const analysis = meta.analysis ?? (['aggregate', 'compare'].includes(args.analysisResult?.type) ? args.analysisResult : undefined);
     const labelColumn = meta.labelColumn ?? analysis?.columns[0] ?? '';
     const beforeLimit = analysis?.groupCount ?? meta.beforeLimit;
     const common = analysis?.type === 'compare' ? analysis.groupCount : undefined;
@@ -213,7 +236,8 @@ export function chartFacts(args, meta = {}) {
         facts.scope = { ...scope(labels.length, cells.length), cells: labels.length * entries.length };
         Object.assign(facts, extrema(cells));
     } else if (type === 'indicator') {
-        const [value, reference] = entries[0].values;
+        const [value, embeddedReference] = entries[0].values;
+        const reference = args.target?.value ?? embeddedReference ?? undefined;
         facts.scope = scope(1, Number(valid(value)));
         const unit = displays[0].unit;
         facts.value = value;
@@ -222,10 +246,10 @@ export function chartFacts(args, meta = {}) {
             const difference = valid(value) && valid(reference) && valid(value - reference) ? value - reference : null;
             const ratio = valid(value) && reference && valid(value / reference) ? value / reference : null;
             Object.assign(facts, { reference, difference, ratio });
-            Object.assign(facts.display, { reference: displays[0].strings[1], difference: delta(difference, unit).display, ratio: displayValues([ratio === null ? null : ratio * 100], '%')[0] });
+            Object.assign(facts.display, { reference: displays[0].targetString ?? displays[0].strings[1], difference: delta(difference, unit).display, ratio: displayValues([ratio === null ? null : ratio * 100], '%')[0] });
         }
     } else {
-        const keys = meta.valueSorted || (analysis && !['label', 'original'].includes(analysis.sort)) ? null : periodColumnKeys(labels, labelColumn);
+        const keys = args.analysisResult?.type === 'summary' || meta.valueSorted || (analysis && !['label', 'original'].includes(analysis.sort)) ? null : periodColumnKeys(labels, labelColumn);
         const ordered = keys?.every((key, i) => i === 0 || key > keys[i - 1]);
         const additive = ADDITIVE_TYPES.includes(type) && (analysis ? analysis.type === 'aggregate' && ['sum', 'count'].includes(analysis.function) : meta.beforeLimit !== undefined);
         const indices = entries.length > 3 && targetIndex >= 3 ? [0, 1, targetIndex] : entries.slice(0, 3).map((_, i) => i);
@@ -237,7 +261,7 @@ export function chartFacts(args, meta = {}) {
                 const range = (axis, unit) => {
                     const values = pairs.map(pair => pair[axis]);
                     const [min, max] = [Math.min(...values), Math.max(...values)];
-                    const [low, high] = displayValues([min, max], unit);
+                    const [low, high] = displayValues([min, max], unit, 'value', values);
                     return { min, max, display: { min: low, max: high } };
                 };
                 return { ...info, scope: scope(entry.values.length, pairs.length), count: pairs.length, display: { count: countText(pairs.length) }, ...(pairs.length ? { x: range(0, meta.xUnit), y: range(1, unit) } : {}) };

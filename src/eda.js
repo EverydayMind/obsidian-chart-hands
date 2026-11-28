@@ -1,5 +1,7 @@
 import { periodKey } from './period.js';
-import { checkDuplicateLabels } from './chart-builder.js';
+import { checkDuplicateLabels, checkSeriesInputs } from './chart-builder.js';
+import { inspectColumn } from './column-roles.js';
+import { defaultReduction, highlightIndices } from './chart-facts.js';
 // Small, bounded CSV analysis engine. Analysis results contain no renderer-specific values.
 const MAX_ROWS = 100000;
 const MAX_COLUMNS = 100;
@@ -169,14 +171,7 @@ function aggregate(dataset, spec, locale) {
         group.rows++;
         if (value !== null) group.values.push(value);
     }
-    const reduce = ({ values, rows }) => {
-        if (fn === 'count') return rows;
-        if (fn === 'sum') return values.reduce((a, b) => a + b, 0);
-        if (fn === 'mean') { let mean = 0; values.forEach((v, i) => { mean += (v - mean) / (i + 1); }); return mean; }
-        if (fn === 'min') return values.reduce((a, b) => Math.min(a, b), Infinity);
-        if (fn === 'max') return values.reduce((a, b) => Math.max(a, b), -Infinity);
-        return quantile([...values].sort((a, b) => a - b), .5);
-    };
+    const reduce = group => reduceValues(fn, group.values, group.rows);
     let list = [...groups].map(([key, group]) => ({ group: label(key), rows: group.rows, value: reduce(group) }));
     const additive = fn === 'sum' || fn === 'count';
     const total = additive ? list.reduce((a, g) => a + g.value, 0) : null;
@@ -204,6 +199,67 @@ function aggregate(dataset, spec, locale) {
                 ? `Returned the first ${shown.length} of ${list.length} groups. To see all groups, set analysis.limit to ${list.length} (maximum ${AGGREGATE_MAX_LIMIT}).`
                 : `Returned the first ${shown.length} of ${list.length} groups. The maximum analysis.limit is ${AGGREGATE_MAX_LIMIT}; use a smaller CSV to see the remaining groups.` } : {}),
         ...(additive ? { total: finite(total) } : { overall: finite(overall) }), ...(facts?.units[0] ? { unit: facts.units[0] } : {}), groups: shown, chart: { labels: shown.map(g => g.group), values: shown.map(g => g.value) }, ...(notes.length ? { notes } : {}) };
+}
+
+function reduceValues(fn, values, rows = values.length) {
+    if (fn === 'count') return rows;
+    if (fn === 'sum') return values.reduce((a, b) => a + b, 0);
+    if (fn === 'mean') {
+        let mean = 0;
+        values.forEach((value, i) => { mean += (value - mean) / (i + 1); });
+        return mean;
+    }
+    if (fn === 'min') return values.reduce((a, b) => Math.min(a, b), Infinity);
+    if (fn === 'max') return values.reduce((a, b) => Math.max(a, b), -Infinity);
+    return quantile([...values].sort((a, b) => a - b), .5);
+}
+
+const finite = value => Number.isFinite(value) ? value : null;
+
+function chartReduction(spec, unit, path) {
+    const fn = spec.function === undefined ? defaultReduction(unit) : spec.function;
+    if (!AGGREGATE_FUNCTIONS.includes(fn)) throw new Error(`${path}.function: choose ${AGGREGATE_FUNCTIONS.join(', ')}. Example: ${JSON.stringify({ columns: spec.columns, function: 'mean' })}`);
+    return fn;
+}
+
+export function pivotSizeError(filterPath = 'analysis.filter') {
+    return `Pivot exceeds the chart or result size limit. Use ${filterPath} to select fewer rows.`;
+}
+
+function pivot(dataset, spec, locale, chartType = 'heatmap', path = 'analysis') {
+    const [xi, si, vi] = spec.columns.map(column => indexOf(dataset, column, locale));
+    if (vi === undefined && spec.function !== 'count') throw new Error(`${path}.columns: provide [x, series, value], or use ${path}.function: count with ${JSON.stringify(spec.columns)}.`);
+    const matched = dataset.rows.filter(row => !missing(row[xi]) && !missing(row[si]));
+    const facts = spec.function === 'count' ? null : checkedFacts(matched, vi, spec.columns[2], locale);
+    const unit = facts?.units[0] ?? '';
+    const fn = chartReduction(spec, unit, path);
+    const xNames = new Set(), cells = new Map();
+    matched.forEach((row, i) => {
+        const x = row[xi].trim(), series = row[si].trim();
+        xNames.add(x);
+        if (!cells.has(series)) cells.set(series, new Map());
+        const seriesCells = cells.get(series);
+        if (!seriesCells.has(x)) seriesCells.set(x, { rows: 0, values: [] });
+        const cell = seriesCells.get(x);
+        cell.rows++;
+        const value = facts?.parsed[i];
+        if (value != null) cell.values.push(value);
+    });
+    if (cells.size > (chartType === 'heatmap' ? 30 : 12) || xNames.size * cells.size > (chartType === 'heatmap' ? 1500 : 7500)) throw new Error(pivotSizeError(`${path}.filter`));
+    const sorted = (names, index) => {
+        const { role, period } = inspectColumn({ ...dataset, rows: matched }, index, { weeks: true });
+        const keys = role === 'period' ? period.keyMap : null;
+        return [...names].sort((a, b) => (keys ? compareText(keys.get(a), keys.get(b)) : 0) || compareText(a, b));
+    };
+    const xs = sorted(xNames, xi);
+    const labels = xs.map(label);
+    const series = sorted(cells.keys(), si).map(name => ({ name: label(name), values: xs.map(x => {
+        const cell = cells.get(name).get(x);
+        return cell && (fn === 'count' || cell.values.length) ? finite(reduceValues(fn, cell.values, cell.rows)) : null;
+    }) }));
+    checkDuplicateLabels(labels, locale);
+    checkDuplicateLabels(series.map(entry => entry.name), locale);
+    return { type: 'pivot', columns: spec.columns, function: fn, ...(unit ? { unit } : {}), excludedRows: dataset.rows.length - matched.length + (facts ? facts.invalidRows + facts.missingRows : 0), chart: { labels, series } };
 }
 
 function compare(dataset, spec, locale) {
@@ -318,9 +374,13 @@ export function selectRows(dataset, filter, locale = 'en', filterName = 'analysi
 }
 
 export function analyze(dataset, spec, locale = 'ko') {
+    return analyzeSource(dataset, spec, locale);
+}
+
+function analyzeSource(dataset, spec, locale, chartType, path = 'analysis') {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
-    if (!['summary', 'histogram', 'correlation', 'aggregate', 'compare', 'rows'].includes(spec.type)) throw new Error('analysis.type must be one of summary, histogram, correlation, aggregate, compare, rows.');
-    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], compare: ['period', 'function', 'sort', 'rank_by', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'] };
+    const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], compare: ['period', 'function', 'sort', 'rank_by', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'], pivot: ['function'] };
+    if (!Object.hasOwn(allowed, spec.type)) throw new Error(`${path}.type must be one of ${Object.keys(allowed).join(', ')}.`);
     const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
     const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
     if (invalidKey !== undefined && spec.type === 'compare') throw new Error(locale === 'ko' ? `compare에 쓸 수 없는 키: ${invalidKey}. 예: {"type":"compare","columns":["부서","실적","목표"]}` : `Unknown compare key: ${invalidKey}. Example: {"type":"compare","columns":["group","value","plan"]}`);
@@ -328,11 +388,16 @@ export function analyze(dataset, spec, locale = 'ko') {
     if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
     const cols = spec.columns;
     if (spec.type === 'compare' && (!Array.isArray(cols) || cols.length !== (Object.hasOwn(spec, 'period') ? 2 : 3) || cols.some(c => typeof c !== 'string'))) return compare(dataset, spec, locale);
-    const max = spec.type === 'compare' ? 3 : spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
-    const min = spec.type === 'correlation' ? 2 : 1;
-    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in analysis.columns.`);
-    const indexes = cols.map(c => indexOf(dataset, c, locale));
-    const selected = selectRows(dataset, spec.filter, locale);
+    const max = ['compare', 'pivot'].includes(spec.type) ? 3 : spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
+    const min = ['correlation', 'pivot'].includes(spec.type) ? 2 : 1;
+    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in ${path}.columns.`);
+    const indexes = cols.map((column, i) => {
+        if (spec.type === 'pivot' || path === 'source.analysis') {
+            if (!dataset.headers.includes(column)) throw new Error(`${path}.columns[${i}]: ${column}. Example: ${JSON.stringify(dataset.headers.slice(0, cols.length))}`);
+        }
+        return indexOf(dataset, column, locale);
+    });
+    const selected = selectRows(dataset, spec.filter, locale, `${path}.filter`);
     const matched = Object.fromEntries((spec.filter ?? []).map(({ column }) => {
         const i = indexOf(dataset, column);
         return [column, selected.length ? { first: selected[0].row[i], last: selected.at(-1).row[i], rows: selected.length } : { rows: 0 }];
@@ -369,6 +434,8 @@ export function analyze(dataset, spec, locale = 'ko') {
             return { rowNumber, ...(line !== undefined ? { line } : {}), values: indexes.map(i => row[i].slice(0, 200)), ...(truncatedColumns.length ? { truncatedColumns } : {}) };
         }), truncated, nextOffset: truncated ? offset + page.length : null,
         ...(requestedLimit > 100 ? { limitApplied: 100, note: locale === 'ko' ? '100행까지만 반환합니다. 이어 받으려면 offset에 nextOffset을 주세요.' : 'Returns at most 100 rows. To continue, set offset to nextOffset.' } : {}) };
+    } else if (spec.type === 'pivot') {
+        result = pivot({ ...dataset, rows: selected.map(item => item.row) }, spec, locale, chartType, path);
     } else {
         result = analyzeSelected({ ...dataset, rows: selected.map(item => item.row) }, spec, locale);
     }
@@ -384,15 +451,17 @@ export function analyze(dataset, spec, locale = 'ko') {
 }
 
 export function validateChartSource(args, locale = 'ko') {
+    checkSeriesInputs(args.series, locale);
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = args.source;
     if (!source || typeof source !== 'object' || Array.isArray(source) || typeof source.path !== 'string' || !source.path.trim() || Object.keys(source).some(k => !['path', 'table', 'labels', 'x', 'filter', 'sort', 'limit', 'analysis'].includes(k))) {
-        fail('source는 path, table, labels, x, filter, sort, limit만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, table, labels, x, filter, sort, limit. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
+        fail('source는 path, table, labels, x, filter, sort, limit, analysis만 받는 객체입니다. 예: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]', 'source must be an object with only path, table, labels, x, filter, sort, limit, analysis. Example: source:{path:"data.csv",labels:"month"},series:[{column:"value"}]');
     }
     if (Object.hasOwn(source, 'analysis')) {
         const forbidden = ['labels', 'x', 'sort', 'limit', 'filter'].filter(k => Object.hasOwn(source, k));
         if (forbidden.length) {
             const example = JSON.stringify({ path: source.path, ...(source.table !== undefined ? { table: source.table } : {}), analysis: source.analysis });
+            if (['summary', 'pivot'].includes(source.analysis?.type)) throw new Error(`source.${forbidden.join(', source.')}: with source.analysis, put the filter in source.analysis.filter. Example: source:${example}`);
             fail(
                 `source.analysis와 함께 쓸 수 없는 source 키: ${forbidden.join(', ')}. 범주는 분석 결과의 그룹에서 오고, filter·sort·limit은 analysis 안에 씁니다. 예: source:${example}`,
                 `source keys cannot be combined with source.analysis: ${forbidden.join(', ')}. Categories come from the analysis groups; put filter, sort and limit inside analysis. Example: source:${example}`
@@ -411,55 +480,96 @@ export function validateChartSource(args, locale = 'ko') {
 export function resolveChartSource(dataset, args, locale = 'ko') {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const source = validateChartSource(args, locale);
-    if (Object.hasOwn(source, 'analysis')) return resolveAnalysisSource(dataset, args, locale);
-    if (source.x !== undefined && !['scatter', 'bubble'].includes(args.type)) fail('source.x는 scatter와 bubble에만 씁니다. 범주 열은 source.labels를 쓰세요.', 'source.x is only for scatter and bubble; use source.labels for categories.');
+    if (Object.hasOwn(source, 'analysis')) {
+        const result = resolveAnalysisSource(dataset, args, locale);
+        return orderHorizontal(result, result.analysisResult?.sort !== 'original');
+    }
+    const points = ['scatter', 'bubble'].includes(args.type);
+    const needsLabels = ['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel', 'treemap', 'sunburst', 'waterfall', 'heatmap', 'radar'].includes(args.type);
+    const alias = needsLabels && source.labels === undefined && source.x !== undefined;
+    const labelColumn = alias ? source.x : source.labels;
+    if (source.x !== undefined && !points && !alias) fail('source.x는 scatter와 bubble에만 씁니다. 범주 열은 source.labels를 쓰세요.', 'source.x is only for scatter and bubble; use source.labels for categories.');
     if (args.type !== 'bubble' && args.series.some(s => s.sizeColumn !== undefined)) fail('sizeColumn은 bubble에만 씁니다.', 'sizeColumn is only for bubble.');
     let selected = selectRows(dataset, source.filter, locale, 'source.filter');
-    const selectedRows = selected.map(item => item.row), units = {};
-    const numericIndex = name => {
+    const selectedRows = selected.map(item => item.row), units = Object.create(null);
+    const selectedDataset = { ...dataset, rows: selectedRows };
+    const roles = new Map();
+    const role = i => {
+        if (!roles.has(i)) roles.set(i, inspectColumn(dataset, i, { weeks: true }).role);
+        return roles.get(i);
+    };
+    const example = where => {
+        const categorical = dataset.headers.filter((_, i) => ['category', 'period'].includes(role(i)));
+        const numeric = dataset.headers.filter((_, i) => role(i) === 'numeric');
+        const demoSource = { path: source.path, ...(source.table ? { table: source.table } : {}) };
+        const demoSeries = { column: numeric[points ? 1 : 0] ?? numeric[0] ?? dataset.headers[0] };
+        if (needsLabels) demoSource.labels = categorical[0] ?? dataset.headers[0];
+        if (points) demoSource.x = numeric[0] ?? dataset.headers[0];
+        if (args.type === 'bubble') demoSeries.sizeColumn = numeric[2] ?? numeric[0] ?? dataset.headers[0];
+        if (where === 'source.sort.column') {
+            const orderColumn = dataset.headers.find((_, i) => role(i) === 'period') ?? numeric[0];
+            if (orderColumn) demoSource.sort = { column: orderColumn };
+        }
+        return { categories: categorical.join(', '), input: `source:${JSON.stringify(demoSource)},series:${JSON.stringify([demoSeries])}` };
+    };
+    const sourceColumn = (name, where, numeric = false) => {
+        if (!dataset.headers.includes(name)) {
+            const { categories, input } = example(where);
+            const hint = where === 'source.labels' && categories ? categories : dataset.headers.join(', ');
+            if (name === undefined) fail(`${where}에 CSV 열 이름을 주세요. 열: ${hint}. 예: ${input}`, `Provide a CSV column name in ${where}. Columns: ${hint}. Example: ${input}`);
+            fail(`${where}: 모르는 열 ${name}. 열: ${hint}. 예: ${input}`, `${where}: Unknown column ${name}. Columns: ${hint}. Example: ${input}`);
+        }
         const i = indexOf(dataset, name, locale);
-        const facts = checkedFacts(selectedRows, i, name, locale);
-        if (facts.invalidRows) fail(`열 ${name}에 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요.`, `Column ${name} contains non-numeric values. Choose a numeric column.`);
-        if (facts.units[0]) units[name] = facts.units[0];
+        if (numeric) {
+            const facts = columnFacts(selectedRows, i);
+            if (facts.invalidRows) {
+                const { input } = example(where);
+                fail(`${where} ${name}: 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요. 예: ${input}`, `${where} ${name}: contains non-numeric values. Choose a numeric column. Example: ${input}`);
+            }
+            try { checkedFacts(selectedRows, i, name, locale); }
+            catch (error) { throw new Error(`${where}: ${error.message} Example: ${example(where).input}`); }
+            if (facts.units[0]) units[name] = facts.units[0];
+        }
         return i;
     };
-    // Validate every numeric role before sort and limit, even if later rows are hidden.
-    if (source.sort) numericIndex(source.sort.column);
-    if (['scatter', 'bubble'].includes(args.type) && typeof source.x === 'string' && source.x) numericIndex(source.x);
-    for (const entry of args.series) {
-        if (typeof entry.column === 'string' && entry.column) numericIndex(entry.column);
-        if (args.type === 'bubble' && typeof entry.sizeColumn === 'string' && entry.sizeColumn) numericIndex(entry.sizeColumn);
-    }
+    // Validate whole filtered columns before limiting the output rows.
+    const labelsIndex = needsLabels || source.labels !== undefined ? sourceColumn(labelColumn, alias ? 'source.x' : 'source.labels') : undefined;
+    const xIndex = points ? sourceColumn(source.x, 'source.x', true) : undefined;
+    const seriesIndexes = args.series.map((entry, i) => ({
+        value: sourceColumn(entry.column, `series[${i}].column`, true),
+        size: args.type === 'bubble' ? sourceColumn(entry.sizeColumn, `series[${i}].sizeColumn`, true) : undefined
+    }));
+    let sortOrder, valueSorted = false;
     if (source.sort) {
-        const i = numericIndex(source.sort.column);
-        const direction = source.sort.order === 'asc' ? 1 : -1;
+        const i = sourceColumn(source.sort.column, 'source.sort.column');
+        const { role: sortRole, period } = inspectColumn(selectedDataset, i, { weeks: true });
+        const columnKind = sortRole === 'empty' ? role(i) : sortRole;
+        if (!['period', 'numeric', 'empty'].includes(columnKind)) {
+            const { input } = example('source.sort.column');
+            fail(`source.sort.column ${source.sort.column}: 값 순서는 숫자 열, 시간 순서는 기간 열을 쓰세요. 예: ${input}`, `source.sort.column ${source.sort.column}: use a numeric column for value order or a period column for chronological order. Example: ${input}`);
+        }
+        valueSorted = columnKind === 'numeric';
+        if (valueSorted) sourceColumn(source.sort.column, 'source.sort.column', true);
+        sortOrder = source.sort.order ?? (columnKind === 'period' ? 'asc' : 'desc');
+        const direction = sortOrder === 'asc' ? 1 : -1;
+        const value = row => missing(row[i]) ? null : period ? period.keyMap.get(row[i].trim()) : number(row[i]);
         selected.sort((a, b) => {
-            const av = missing(a.row[i]) ? null : number(a.row[i]);
-            const bv = missing(b.row[i]) ? null : number(b.row[i]);
-            return av === null ? (bv === null ? 0 : 1) : bv === null ? -1 : direction * (av - bv);
+            const av = value(a.row), bv = value(b.row);
+            return av === null ? (bv === null ? 0 : 1) : bv === null ? -1 : direction * (period ? compareText(av, bv) : av - bv);
         });
     }
     if (source.limit !== undefined) selected = selected.slice(0, source.limit);
     if (!selected.length || selected.length > 200) fail('source의 결과는 1~200행이어야 합니다. source.filter 또는 source.limit을 고치세요.', 'source must match 1–200 rows. Change source.filter or source.limit.');
-    const column = (name, where, numeric) => {
-        const ordinary = 'source:{path:"data.csv",labels:"month"},series:[{column:"value"}]';
-        const scatter = 'type:"scatter",source:{path:"data.csv",x:"x"},series:[{column:"y"}]';
-        const bubble = 'type:"bubble",source:{path:"data.csv",x:"x"},series:[{column:"y",sizeColumn:"size"}]';
-        const example = where === 'source.x' ? scatter : where === 'series[].sizeColumn' ? bubble : where === 'series[].column' && args.type === 'scatter' ? scatter : where === 'series[].column' && args.type === 'bubble' ? bubble : ordinary;
-        if (typeof name !== 'string' || !name) fail(`${where}에 CSV 열 이름을 주세요. 예: ${example}`, `Provide a CSV column name in ${where}. Example: ${example}`);
-        const i = numeric ? numericIndex(name) : indexOf(dataset, name, locale);
-        return selected.map(({ row }) => numeric ? (missing(row[i]) ? null : number(row[i])) : row[i]);
-    };
+    const column = (i, numeric = false) => selected.map(({ row }) => numeric ? number(row[i]) : row[i]);
     const resolved = { ...args };
     delete resolved.source;
-    const points = ['scatter', 'bubble'].includes(args.type);
-    const needsLabels = !['scatter', 'bubble', 'histogram', 'box', 'violin', 'indicator'].includes(args.type);
-    if (needsLabels || source.labels !== undefined) resolved.labels = column(source.labels, 'source.labels', false);
+    const sourceLabels = labelsIndex === undefined ? undefined : column(labelsIndex);
+    if (sourceLabels && !points) resolved.labels = sourceLabels;
     if (needsLabels) checkDuplicateLabels(resolved.labels, locale);
-    const x = points ? column(source.x, 'source.x', true) : undefined;
-    resolved.series = args.series.map(entry => {
-        const { column: name, sizeColumn, ...rest } = entry;
-        return { ...rest, values: column(name, 'series[].column', true), ...(points ? { x } : {}), ...(args.type === 'bubble' ? { size: column(sizeColumn, 'series[].sizeColumn', true) } : {}) };
+    const x = points ? column(xIndex, true) : undefined;
+    resolved.series = args.series.map(({ column: name, sizeColumn, ...rest }, i) => {
+        const { value, size } = seriesIndexes[i];
+        return { ...rest, values: column(value, true), ...(points ? { x } : {}), ...(size !== undefined ? { size: column(size, true) } : {}), ...(points && sourceLabels && rest.text === undefined ? { text: sourceLabels.map(label) } : {}) };
     });
     const seriesUnits = args.series.map(s => units[s.column] || '');
     for (const secondary of [false, true]) {
@@ -483,16 +593,102 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
     Object.defineProperties(resolved, {
         sourceCaption: { value: sourceCaption },
         seriesUnits: { value: seriesUnits },
-        beforeLimit: { value: selectedRows.length }
+        beforeLimit: { value: selectedRows.length },
+        sourcePointLabels: { value: points && Boolean(sourceLabels) },
+        labelColumn: { value: labelColumn },
+        sortOrder: { value: sortOrder },
+        valueSorted: { value: valueSorted },
+        normalizedArgs: { value: alias ? ['source.x → source.labels'] : [] }
     });
-    if (Object.keys(units).length) Object.defineProperty(resolved, 'sourceUnits', { value: units, enumerable: false });
+    if (Object.keys(units).length) Object.defineProperty(resolved, 'sourceUnits', { value: { ...units } });
+    return orderHorizontal(resolved, Boolean(source.sort));
+}
+
+function orderHorizontal(resolved, ordered) {
+    if (resolved.type === 'barh' && ordered) {
+        const highlight = resolved.highlight;
+        const key = Object.keys(highlight ?? {})[0];
+        const rank = highlight?.[key];
+        const ranked = resolved.series.length === 1 && Object.keys(highlight ?? {}).length === 1 && ['top', 'bottom'].includes(key) && Number.isInteger(rank) && rank >= 1 && rank <= 50;
+        const selectedLabels = () => highlightIndices(highlight, resolved.labels, resolved.series[0].values).map(i => resolved.labels[i]);
+        const selected = ranked ? selectedLabels() : [];
+        resolved.labels.reverse();
+        for (const entry of resolved.series) entry.values.reverse();
+        Object.defineProperty(resolved, 'horizontalReversed', { value: true });
+        // Keep the original tie-break when reversing the trace and freezing its input.
+        if (selected.length && selectedLabels().some(name => !selected.includes(name))) {
+            resolved.highlight = { labels: selected };
+            Object.defineProperty(resolved, 'originalHighlight', { value: highlight });
+        }
+    }
+    return resolved;
+}
+
+function resolveMatrixSource(dataset, args, locale) {
+    const spec = args.source.analysis;
+    const isPivot = spec.type === 'pivot';
+    const path = 'source.analysis';
+    const types = isPivot ? ['bar', 'barh', 'line', 'area', 'heatmap'] : ['pie', 'donut', 'bar', 'barh', 'funnel', 'treemap', 'indicator'];
+    if (!types.includes(args.type)) throw new Error(`${path}.type ${spec.type}: chart type must be one of ${types.join(', ')}.`);
+    const fields = isPivot || args.type === 'indicator' ? ['value'] : ['value', 'share'];
+    if (args.series.length !== 1 || !fields.includes(args.series[0].column)) throw new Error(`series: ${spec.type} needs one series with column ${fields.join(' or ')}. Example: [{"column":"value"}]`);
+    const { column, ...entry } = args.series[0];
+    let result, labels, series, unit;
+    if (isPivot) {
+        result = analyzeSource(dataset, spec, locale, args.type, path);
+        ({ labels, series } = result.chart);
+        if (!labels.length) throw new Error(`${path}.filter: pivot returned no categories. Select rows with nonblank x and series columns.`);
+        unit = result.unit ?? '';
+        series = series.map(({ name, values }) => ({ ...entry, name, values, quantity: 'value' }));
+    } else {
+        const min = args.type === 'indicator' ? 1 : 2;
+        const max = args.type === 'indicator' ? 1 : 8;
+        if (!Array.isArray(spec.columns) || spec.columns.length < min || spec.columns.length > max || spec.columns.some(name => typeof name !== 'string') || new Set(spec.columns).size !== spec.columns.length) throw new Error(`${path}.columns: summary needs ${min === max ? min : `${min}–${max}`} distinct columns. Example: ${JSON.stringify(dataset.headers.slice(0, min))}`);
+        if (spec.function !== undefined) chartReduction(spec, undefined, path);
+        const stats = analyzeSource(dataset, spec, locale, undefined, path);
+        if (stats.unitMismatch) throw new Error(`${path}.columns: summary columns have different units (${stats.unitMismatch.join(', ')}). Select columns with the same unit.`);
+        const sourceUnit = stats.unit ?? stats.units?.[spec.columns[0]] ?? '';
+        const fn = chartReduction(spec, sourceUnit, path);
+        const values = (stats.perColumn?.map(item => item.statistics) ?? [stats.statistics]).map(row => row[fn] ?? null);
+        let shares;
+        if (column === 'share') {
+            const total = values.reduce((sum, value) => sum + value, 0);
+            if (values.some(value => value < 0) || !Number.isFinite(total) || total <= 0) throw new Error('series[0].column share needs nonnegative summary values with a positive total. Use column value instead.');
+            shares = values.map(value => value === null ? null : value / total);
+        }
+        labels = spec.columns;
+        series = [{ ...entry, ...(args.type === 'indicator' ? { name: entry.name ?? labels[0] } : {}), quantity: column, values: shares ? shares.map(value => value === null ? null : value * 100) : values }];
+        unit = column === 'share' ? '%' : fn === 'count' ? '' : sourceUnit;
+        result = { type: 'summary', columns: spec.columns, function: fn, filteredRows: stats.filteredRows ?? stats.totalRows, filter: spec.filter };
+    }
+    if (unit && args.unit !== undefined && args.unit !== unit) throw new Error(`unit ${args.unit} differs from ${unit}; use the source unit.`);
+    const resolved = { ...args, series, ...(args.type === 'indicator' ? {} : { labels: [...labels] }) };
+    delete resolved.source;
+    if (args.type === 'treemap') resolved.parents = labels.map(() => '');
+    if (unit && args.unit === undefined) resolved.unit = unit;
+    if (isPivot && args.type !== 'heatmap') {
+        const horizontal = args.type === 'barh';
+        resolved[horizontal ? 'y_title' : 'x_title'] ??= spec.columns[0];
+        resolved[horizontal ? 'x_title' : 'y_title'] ??= withAxisUnit(spec.columns[2] ?? 'Count', unit, locale);
+    }
+    const filter = spec.filter?.length ? ` · ${locale === 'ko' ? '조건' : 'filter'} ${spec.filter.map(f => `${f.column} ${f.op} ${f.value}`).join('; ')}` : '';
+    const table = dataset.table ? ` ${locale === 'ko' ? '표' : 'table'} ${dataset.table.index}` : '';
+    const sourceCaption = `${locale === 'ko' ? '자료' : 'Source'}: ${args.source.path}${table} · ${spec.type} ${spec.columns.join(' ')} ${result.function}${filter}`.replace(/\p{Cc}/gu, ' ').slice(0, 200);
+    if (args.caption === undefined && ['report', 'print', 'slides'].includes(args.style)) resolved.caption = sourceCaption;
+    Object.defineProperties(resolved, {
+        sourceCaption: { value: sourceCaption },
+        analysisResult: { value: result },
+        calculatedValues: { value: true },
+        labelColumn: { value: isPivot ? spec.columns[0] : '' }
+    });
     return resolved;
 }
 
 function resolveAnalysisSource(dataset, args, locale) {
     const fail = (ko, en) => { throw new Error(locale === 'ko' ? ko : en); };
     const spec = args.source.analysis;
-    if (!spec || !['aggregate', 'compare'].includes(spec.type)) fail('analysis.type은 aggregate 또는 compare여야 합니다.', 'analysis.type must be aggregate or compare.');
+    if (['summary', 'pivot'].includes(spec?.type)) return resolveMatrixSource(dataset, args, locale);
+    if (!spec || !['aggregate', 'compare'].includes(spec.type)) fail('source.analysis.type은 aggregate, compare, summary, pivot 중 하나여야 합니다.', 'source.analysis.type must be aggregate, compare, summary or pivot.');
     if (!['bar', 'barh', 'line', 'area', 'combo', 'pie', 'donut', 'funnel', 'radar', 'heatmap', 'waterfall'].includes(args.type)) fail('이 차트 유형에는 source.analysis를 쓸 수 없습니다.', 'This chart type does not support source.analysis.');
     const result = analyze(dataset, spec, locale);
     if (!result.groups.length) fail('분석 결과에 그룹이 없습니다.', 'The analysis returned no groups.');
@@ -529,6 +725,7 @@ function resolveAnalysisSource(dataset, args, locale) {
         sourceCaption: { value: sourceCaption },
         seriesUnits: { value: seriesUnits },
         analysisResult: { value: result },
+        calculatedValues: { value: true },
         sourceUnits: { value: Object.fromEntries(args.series.map(s => [s.column, units[s.column]])) }
     });
     return resolved;

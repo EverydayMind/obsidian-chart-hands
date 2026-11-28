@@ -46,6 +46,7 @@ export function parseStaticChart(source) {
         if (series.quantity !== undefined && !['value', 'share', 'rate', 'ratio', 'difference'].includes(series.quantity)) return invalid();
     }
     if (total > 10000) return invalid();
+    if (args.series.some(series => series.quantity !== undefined)) Object.defineProperty(args, 'calculatedValues', { value: true });
     for (const key of ['title', 'x_title', 'y_title', 'y2_title', 'unit', 'caption']) if (args[key] !== undefined) args[key] = literal(args[key]);
     if (args.target?.label !== undefined) args.target.label = literal(args.target.label);
     if (args.highlight?.labels) args.highlight.labels = args.highlight.labels.map(literal);

@@ -87,7 +87,7 @@
       {
         "name": "eda_analyze",
         "title": "Analyze a CSV dataset",
-        "description": "filter ANDs up to four conditions: eq, ne, gt, gte, lt, lte, prefix, contains. Numbers compare numerically, else as strings. Period: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"} plus lte. summary gives count, sum, mean, min, max for each of 1–8 numeric columns over matching rows; use it for one overall total or average, e.g. a year's monthly average with a filter. With 2–8 columns it also gives each column's share of their combined sum. histogram takes one column, correlation two. aggregate groups columns[0], reduces columns[1]: one value per group by sum, mean, count, min, max or median; count may omit the value column. For mean, min, max or median it also returns overall, the same function over all matching rows. Sort desc, asc, label or original; label and original give change from the previous group. Groups have shares and chart data. rows: cells and row numbers, paged by limit and offset. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
+        "description": "summary returns count, sum, mean, min, max for each of 1–8 numeric columns over matching rows and each column's share of their combined sum. Use it for one overall total or average, e.g. a year's monthly average with a filter. Period example: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"}. aggregate: one value per group and overall for mean, min, max or median (same function over all matching rows); label and original give change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -124,9 +124,10 @@
                     "correlation",
                     "aggregate",
                     "compare",
-                    "rows"
+                    "rows",
+                    "pivot"
                   ],
-                  "description": "compare: two periods with columns [group, value] and period {column, base, target}, or value against plan with [group, value, reference]. Returns difference and rate or ratio per group, groups found in one period only, and overall over common groups."
+                  "description": "compare: [group, value] with period, or [group, value, reference]. histogram needs one column, correlation two."
                 },
                 "columns": {
                   "type": "array",
@@ -226,7 +227,7 @@
                     "max",
                     "median"
                   ],
-                  "description": "aggregate only. Default sum with a value column, count without. summary ignores it and returns every statistic."
+                  "description": "aggregate or pivot reducer. summary returns all statistics; function selects the chart value."
                 },
                 "sort": {
                   "type": "string",
@@ -420,7 +421,7 @@
       {
         "name": "get_chart_guide",
         "title": "Plotly chart writing guide",
-        "description": "Return guidance for writing Plotly chart blocks for Chart Hands. Topics: basics (block format, YAML rules, which chart type fits which question, workflow), style (polished look: palette, margins, labels, annotations), report (report charts from vault data: workflow, styles, targets, highlights, facts), examples (line, bar and pie blocks), statistical (histogram, box, violin, correlation heatmap, density, splom, error bars), hierarchy (treemap, sunburst, icicle, sankey, waterfall, funnel, parcats), timeseries (date axes, range slider and buttons, candlestick, event shading, KPI indicator and gauge), scientific (contour, 3D surface, polar, wind rose, ternary, parallel coordinates, table), maps (choropleth, scattergeo, tile maps), layout (subplots, secondary axis, rich hover, reference lines, buttons, sliders), dataviewjs (dynamic charts), errors (fixing charts that do not render). Read basics before writing a chart by hand.",
+        "description": "Plotly authoring help by topic. Read basics for block syntax and report for charts from vault data, goals, highlights, facts and export. Other topics cover examples, style, statistics, hierarchies, time series, scientific charts, maps, layout, Dataview JS and troubleshooting.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -483,7 +484,7 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. source:{path,labels?,x?,filter?,sort?,limit?} reads 1–200 rows after filtering and limit. For top-N pass source.sort and source.limit instead of sorting with eda_analyze and copying the values. Do not combine source with labels or series values/x/size. Blank numeric cells become gaps. Without source, supply series[].values; per-label types need labels, scatter/bubble need x (bubble also size), histogram/box/violin use observations, indicator uses [value,reference?]. combo uses kind; secondary uses the right axis. treemap/sunburst need parents. Returns a plotly fence in reportSnippet or block, with a compact staticBlock for HWPX when compatible. Insert with host note-editing tools; no file is changed.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. Raw sources read 1–200 rows after filter, sort and limit; use source.sort and source.limit for top-N. With source, omit top-level labels and series values/x/size arrays. Blanks are gaps. Direct charts use series[].values; scatter and bubble also need x (bubble also size). Insert reportSnippet or block with host editing tools. staticBlock is for HWPX or PPTX export.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -555,19 +556,21 @@
                     "type",
                     "columns"
                   ],
-                  "description": "Chart the result of eda_analyze aggregate or compare instead of raw rows; series[].column then names a result field (value, share, base, target, difference, rate, reference, ratio).",
+                  "description": "Use eda_analyze chartArgs. summary: 2–8 columns (indicator 1), value or share. pivot: [x, series, value?], one series with column value. compare fields: base, target, value, reference, difference, rate, ratio.",
                   "properties": {
                     "type": {
                       "type": "string",
                       "enum": [
                         "aggregate",
-                        "compare"
+                        "compare",
+                        "summary",
+                        "pivot"
                       ]
                     },
                     "columns": {
                       "type": "array",
                       "minItems": 1,
-                      "maxItems": 3,
+                      "maxItems": 8,
                       "items": {
                         "type": "string"
                       }
@@ -615,7 +618,8 @@
                         "min",
                         "max",
                         "median"
-                      ]
+                      ],
+                      "description": "summary/pivot use the unit to choose a default; count can omit the pivot value column."
                     },
                     "sort": {
                       "type": "string",
@@ -629,7 +633,8 @@
                     "limit": {
                       "type": "integer",
                       "minimum": 1,
-                      "maximum": 100
+                      "maximum": 100,
+                      "description": "For aggregate or compare. Narrow summary or pivot with filter."
                     },
                     "period": {
                       "type": "object",
@@ -663,11 +668,11 @@
                 },
                 "labels": {
                   "type": "string",
-                  "description": "CSV category column; required for per-label chart types."
+                  "description": "Category column, or point names for scatter and bubble."
                 },
                 "x": {
                   "type": "string",
-                  "description": "Numeric CSV x column; required for scatter and bubble."
+                  "description": "Numeric x for scatter and bubble, or alias for category labels."
                 },
                 "filter": {
                   "type": "array",
@@ -713,7 +718,7 @@
                   "properties": {
                     "column": {
                       "type": "string",
-                      "description": "Numeric CSV column to sort."
+                      "description": "Numeric or period column."
                     },
                     "order": {
                       "type": "string",
@@ -721,7 +726,7 @@
                         "desc",
                         "asc"
                       ],
-                      "description": "Sort order; defaults to desc."
+                      "description": "Default desc for numbers, asc for periods."
                     }
                   }
                 },
@@ -819,7 +824,7 @@
                       "type": "string",
                       "maxLength": 100
                     },
-                    "description": "scatter and bubble: a hover label for each point."
+                    "description": "Point labels; override source.labels."
                   },
                   "kind": {
                     "type": "string",
@@ -877,12 +882,17 @@
               ],
               "description": "Chart presentation style."
             },
+            "gauge": {
+              "type": "boolean",
+              "description": "Show an indicator gauge."
+            },
             "target": {
               "type": "object",
               "additionalProperties": false,
               "required": [
                 "value"
               ],
+              "description": "Indicator reference or axis target line.",
               "properties": {
                 "value": {
                   "type": "number"
@@ -1181,7 +1191,7 @@
       }
     ]
   },
-  "digest": "c8542a91b77bc0f2c280654ad649bc2a2b8673cead57d36a54a1a50783282fd3",
+  "digest": "15a2d71191c71553ae2131081ef397b383b9ad96f1629b155d3c37de76f4781e",
   "results": [
     {
       "name": "eda_profile",
@@ -1307,7 +1317,25 @@
             "sum": 6
           },
           "shareOf": "sum of the listed columns",
-          "unlistedNumericColumns": []
+          "unlistedNumericColumns": [],
+          "chartArgs": {
+            "type": "indicator",
+            "style": "report",
+            "source": {
+              "path": "data.csv",
+              "analysis": {
+                "type": "summary",
+                "columns": [
+                  "value"
+                ]
+              }
+            },
+            "series": [
+              {
+                "column": "value"
+              }
+            ]
+          }
         },
         "_meta": {
           "dev.agentinterop/resource": {
