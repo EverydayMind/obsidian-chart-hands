@@ -21,7 +21,6 @@ function assertPure(producer, value) {
 }
 
 test('expanded Korean golden matches HEAD and current runtime without normalization', async () => {
-    const expected = fs.readFileSync(golden);
     const { headSource } = require('./helpers/locale-harness');
     // Keep each full snapshot paired with its own capture cases, including after a future commit.
     const filename = path.join(__dirname, 'helpers', 'locale-harness.js');
@@ -30,7 +29,9 @@ test('expanded Korean golden matches HEAD and current runtime without normalizat
     baseline.paths = Module._nodeModulePaths(path.dirname(filename));
     baseline._compile(headSource('test/helpers/locale-harness.js'), filename);
     assert.deepEqual(bytes(await baseline.exports.captureExtended(await buildHead(), 'ko')), Buffer.from(headSource('test/fixtures/locale-ko-coverage.json')), 'HEAD baseline');
-    assert.deepEqual(bytes(await captureExtended(buildPlugin(), 'ko')), expected, 'current Korean output');
+    const current = bytes(await captureExtended(buildPlugin(), 'ko'));
+    if (process.env.UPDATE_LOCALE_GOLDEN === '1') fs.writeFileSync(golden, current);
+    else assert.deepEqual(current, fs.readFileSync(golden), 'current Korean output');
 });
 
 test('English checks all guide topics, chart types, analysis families, empty results, errors and rendered UI', async () => {
@@ -71,16 +72,20 @@ test('every authored Korean source literal is exercised by the Korean output fix
     }
     collect(ko);
     const dir = path.join(__dirname, '..', 'src');
+    const missing = [];
     for (const file of fs.readdirSync(dir).filter(name => name.endsWith('.js'))) {
         const source = ts.createSourceFile(file, fs.readFileSync(path.join(dir, file), 'utf8'), ts.ScriptTarget.Latest, true, ts.ScriptKind.JS);
         function visit(node) {
             if ((ts.isStringLiteral(node) || ts.isTemplateHead(node) || ts.isTemplateMiddle(node) || ts.isTemplateTail(node) || ts.isNoSubstitutionTemplateLiteral(node)) && hangul.test(node.text)) {
-                assert.ok(strings.some(value => value.includes(node.text)), `${file}:${source.getLineAndCharacterOfPosition(node.pos).line + 1}: unexercised Korean literal ${node.text}`);
+                if (!strings.some(value => value.includes(node.text))) {
+                    missing.push(`${file}:${source.getLineAndCharacterOfPosition(node.pos).line + 1}: ${node.text}`);
+                }
             }
             ts.forEachChild(node, visit);
         }
         visit(source);
     }
+    assert.deepEqual(missing, [], 'unexercised Korean literals');
 });
 
 test('locale remains pinned across language changes and providers keep independent languages', async () => {

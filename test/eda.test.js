@@ -13,10 +13,10 @@ bundle.filename = bundle.id; bundle.paths = Module._nodeModulePaths(__dirname);
 bundle._compile(require('./helpers/build-plugin')(), bundle.filename);
 Module._load = load;
 const { createAgentProvider } = bundle.exports;
-function provider(csv) {
+function provider(csv, locale) {
     return createAgentProvider({ manifest: { id: 'chart-hands', name: 'Chart Hands', version: 'test' },
         ensureLibraries() { throw new Error('EDA must not load Plotly'); },
-        app: { vault: { getAbstractFileByPath: p => p === 'data.csv' ? { path: p, extension: 'csv' } : null, cachedRead: async () => csv } } });
+        app: { vault: { getAbstractFileByPath: p => p === 'data.csv' ? { path: p, extension: 'csv' } : null, cachedRead: async () => csv } } }, locale);
 }
 test('summarizes multiple columns independently and preserves the single-column shape', async () => {
     const columns = ['중국', '홍콩', '대만', '베트남', '미국', '일본', '기타'];
@@ -37,7 +37,7 @@ test('summarizes multiple columns independently and preserves the single-column 
     assert.deepEqual(single, { type: 'summary', columns: ['중국'], totalRows: 3, excludedRows: 0,
         matched: { 기간: { first: '2025', last: '2025', rows: 2 } }, shareOf: 'sum of the listed columns', unlistedNumericColumns: ['대만', '베트남', '미국', '일본', '기타', '기간'],
         statistics: { count: 2, min: 1, q1: 1.5, median: 2, q3: 2.5, max: 3, mean: 2, stddevSample: Math.SQRT2, sum: 4 }, filter, filteredRows: 2, chartArgs: chartArgsFor('indicator', ['중국']) });
-    const note = 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.';
+    const note = 'summary는 개수, 합계, 평균, 최솟값, 최댓값, 사분위수를 함께 반환하므로 function을 생략할 수 있습니다.';
     for (const fn of ['count', 'sum', 'mean', 'min', 'max', 'median']) {
         assert.deepEqual(await call({ type: 'summary', columns: ['중국'], filter, function: fn }), { ...single, note, chartArgs: chartArgsFor('indicator', ['중국'], { function: fn }) });
         assert.deepEqual(await call({ type: 'summary', columns, filter, function: fn }), { ...result, note, chartArgs: chartArgsFor('bar', columns, { function: fn }) });
@@ -61,8 +61,8 @@ test('sorts rows before pagination with stable ties and blanks last', async () =
         assert.ok(error.content[0].text.includes(`rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":"네온_달러kg","sort":"${sort}" (sort는 그대로 두고 sort_by를 더한다)`));
     }
     assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '없음' })).content[0].text, /모르는 열/);
-    for (const sort of ['label', 'original']) assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort })).content[0].text, /asc or desc/);
-    assert.match((await call({ type: 'rows', columns: ['연월'], sort: 'invalid' })).content[0].text, /rows sort must be asc or desc/);
+    for (const sort of ['label', 'original']) assert.match((await call({ type: 'rows', columns: ['연월'], sort_by: '문자', sort })).content[0].text, /asc 또는 desc/);
+    assert.match((await call({ type: 'rows', columns: ['연월'], sort: 'invalid' })).content[0].text, /rows sort는 asc 또는 desc/);
 });
 test('profiles quoted CSV, missing values, numeric summaries and categories', async () => {
     const p = provider('age,score,name\r\n20,5,"a,b"\r\n30,,"a,b"\r\n40,15,"line\nbreak"\r\n');
@@ -208,10 +208,10 @@ test('analysis errors identify invalid keys and explain accepted values', async 
     const p = provider('x,y\n1,2');
     const error = async analysis => (await p.callTool('eda_analyze', { path: 'data.csv', analysis })).content[0].text;
     for (const fn of [null, 1, {}, 'invalid', undefined]) {
-        assert.match(await error({ type: 'summary', columns: ['x'], function: fn }), /summary function must be one of count, sum, mean, min, max, median, or omitted\./);
+        assert.match(await error({ type: 'summary', columns: ['x'], function: fn }), /summary function은 count, sum, mean, min, max, median 중 하나를 쓰거나 생략하세요/);
     }
     for (const type of ['histogram', 'correlation', 'rows']) {
-        assert.match(await error({ type, columns: type === 'correlation' ? ['x', 'y'] : ['x'], function: 'mean' }), /Unknown or inapplicable analysis key: function/);
+        assert.match(await error({ type, columns: type === 'correlation' ? ['x', 'y'] : ['x'], function: 'mean' }), /쓸 수 없는 분석 키: function/);
     }
     for (const [analysis, patterns] of [
         [{ type: 'bad', columns: ['x'] }, [/summary/, /rows/]],
@@ -226,6 +226,20 @@ test('analysis errors identify invalid keys and explain accepted values', async 
     ]) {
         const result = await error(analysis);
         for (const pattern of patterns) assert.match(JSON.stringify(result), pattern);
+    }
+});
+
+test('d9bb801 summary, pivot and sort guidance follows the requested locale', async () => {
+    for (const [analysis, ko, en] of [
+        [{ type: 'summary', columns: ['x'], function: 'invalid' }, /중 하나를 쓰거나 생략하세요/, /or omitted/],
+        [{ type: 'pivot', columns: ['x', 'y'] }, /count로 지정하세요/, /function: count/],
+        [{ type: 'rows', columns: ['x'], sort: 'invalid' }, /asc 또는 desc/, /asc or desc/]
+    ]) {
+        for (const [locale, pattern] of [['ko', ko], ['en', en]]) {
+            const result = await provider('x,y\n1,2', locale).callTool('eda_analyze', { path: 'data.csv', analysis });
+            assert.equal(result.structuredContent.code, 'INVALID_ARGUMENT');
+            assert.match(result.content[0].text, pattern);
+        }
     }
 });
 

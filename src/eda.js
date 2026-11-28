@@ -216,23 +216,33 @@ function reduceValues(fn, values, rows = values.length) {
 
 const finite = value => Number.isFinite(value) ? value : null;
 
-function chartReduction(spec, unit, path) {
+const edaError = (locale, ko, en) => new Error(locale === 'ko' ? ko : en);
+
+function chartReduction(spec, unit, path, locale) {
     const fn = spec.function === undefined ? defaultReduction(unit) : spec.function;
-    if (!AGGREGATE_FUNCTIONS.includes(fn)) throw new Error(`${path}.function: choose ${AGGREGATE_FUNCTIONS.join(', ')}. Example: ${JSON.stringify({ columns: spec.columns, function: 'mean' })}`);
+    if (!AGGREGATE_FUNCTIONS.includes(fn)) {
+        const functions = AGGREGATE_FUNCTIONS.join(', ');
+        const example = JSON.stringify({ columns: spec.columns, function: 'mean' });
+        throw edaError(locale, `${path}.function: ${functions} 중 하나를 고르세요. 예: ${example}`, `${path}.function: choose ${functions}. Example: ${example}`);
+    }
     return fn;
 }
 
-export function pivotSizeError(filterPath = 'analysis.filter') {
-    return `Pivot exceeds the chart or result size limit. Use ${filterPath} to select fewer rows.`;
+export function pivotSizeError(filterPath = 'analysis.filter', locale = 'en') {
+    return locale === 'ko'
+        ? `피벗이 차트 또는 결과 크기 한도를 넘습니다. ${filterPath}로 행을 줄이세요.`
+        : `Pivot exceeds the chart or result size limit. Use ${filterPath} to select fewer rows.`;
 }
 
 function pivot(dataset, spec, locale, chartType = 'heatmap', path = 'analysis') {
     const [xi, si, vi] = spec.columns.map(column => indexOf(dataset, column, locale));
-    if (vi === undefined && spec.function !== 'count') throw new Error(`${path}.columns: provide [x, series, value], or use ${path}.function: count with ${JSON.stringify(spec.columns)}.`);
+    if (vi === undefined && spec.function !== 'count') throw edaError(locale,
+        `${path}.columns에 [x, series, value]를 주거나 ${path}.function을 count로 지정하세요. 예: ${JSON.stringify(spec.columns)}`,
+        `${path}.columns: provide [x, series, value], or use ${path}.function: count with ${JSON.stringify(spec.columns)}.`);
     const matched = dataset.rows.filter(row => !missing(row[xi]) && !missing(row[si]));
     const facts = spec.function === 'count' ? null : checkedFacts(matched, vi, spec.columns[2], locale);
     const unit = facts?.units[0] ?? '';
-    const fn = chartReduction(spec, unit, path);
+    const fn = chartReduction(spec, unit, path, locale);
     const xNames = new Set(), cells = new Map();
     matched.forEach((row, i) => {
         const x = row[xi].trim(), series = row[si].trim();
@@ -245,7 +255,7 @@ function pivot(dataset, spec, locale, chartType = 'heatmap', path = 'analysis') 
         const value = facts?.parsed[i];
         if (value != null) cell.values.push(value);
     });
-    if (cells.size > (chartType === 'heatmap' ? 30 : 12) || xNames.size * cells.size > (chartType === 'heatmap' ? 1500 : 7500)) throw new Error(pivotSizeError(`${path}.filter`));
+    if (cells.size > (chartType === 'heatmap' ? 30 : 12) || xNames.size * cells.size > (chartType === 'heatmap' ? 1500 : 7500)) throw new Error(pivotSizeError(`${path}.filter`, locale));
     const sorted = (names, index) => {
         const { role, period } = inspectColumn({ ...dataset, rows: matched }, index, { weeks: true });
         const keys = role === 'period' ? period.keyMap : null;
@@ -380,20 +390,30 @@ export function analyze(dataset, spec, locale = 'ko') {
 function analyzeSource(dataset, spec, locale, chartType, path = 'analysis') {
     if (!spec || typeof spec !== 'object' || Array.isArray(spec)) throw new Error('analysis must be an object.');
     const allowed = { summary: ['function'], histogram: ['bins'], correlation: ['method'], aggregate: ['function', 'sort', 'limit'], compare: ['period', 'function', 'sort', 'rank_by', 'limit'], rows: ['limit', 'offset', 'sort_by', 'sort'], pivot: ['function'] };
-    if (!Object.hasOwn(allowed, spec.type)) throw new Error(`${path}.type must be one of ${Object.keys(allowed).join(', ')}.`);
+    if (!Object.hasOwn(allowed, spec.type)) throw edaError(locale,
+        `${path}.type은 ${Object.keys(allowed).join(', ')} 중 하나여야 합니다.`,
+        `${path}.type must be one of ${Object.keys(allowed).join(', ')}.`);
     const keys = ['type', 'columns', 'filter', ...allowed[spec.type]];
     const invalidKey = Object.keys(spec).find(key => !keys.includes(key));
     if (invalidKey !== undefined && spec.type === 'compare') throw new Error(locale === 'ko' ? `compare에 쓸 수 없는 키: ${invalidKey}. 예: {"type":"compare","columns":["부서","실적","목표"]}` : `Unknown compare key: ${invalidKey}. Example: {"type":"compare","columns":["group","value","plan"]}`);
-    if (invalidKey !== undefined) throw new Error(`Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
-    if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw new Error('summary function must be one of count, sum, mean, min, max, median, or omitted.');
+    if (invalidKey !== undefined) throw edaError(locale,
+        `${spec.type}에 쓸 수 없는 분석 키: ${invalidKey}. 쓸 수 있는 키: ${keys.join(', ')}.`,
+        `Unknown or inapplicable analysis key: ${invalidKey}. ${spec.type} accepts: ${keys.join(', ')}.`);
+    if (spec.type === 'summary' && Object.hasOwn(spec, 'function') && !AGGREGATE_FUNCTIONS.includes(spec.function)) throw edaError(locale,
+        'summary function은 count, sum, mean, min, max, median 중 하나를 쓰거나 생략하세요.',
+        'summary function must be one of count, sum, mean, min, max, median, or omitted.');
     const cols = spec.columns;
     if (spec.type === 'compare' && (!Array.isArray(cols) || cols.length !== (Object.hasOwn(spec, 'period') ? 2 : 3) || cols.some(c => typeof c !== 'string'))) return compare(dataset, spec, locale);
     const max = ['compare', 'pivot'].includes(spec.type) ? 3 : spec.type === 'rows' || spec.type === 'summary' ? 8 : spec.type === 'aggregate' || spec.type === 'correlation' ? 2 : 1;
     const min = ['correlation', 'pivot'].includes(spec.type) ? 2 : 1;
-    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw new Error(`${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in ${path}.columns.`);
+    if (!Array.isArray(cols) || cols.length < min || cols.length > max || cols.some(c => typeof c !== 'string')) throw edaError(locale,
+        `${spec.type}의 ${path}.columns에 열 이름을 ${min === max ? min : `${min}~${max}`}개 주세요.`,
+        `${spec.type} needs ${min === max ? min : `${min} to ${max}`} column${max === 1 ? '' : 's'} as strings in ${path}.columns.`);
     const indexes = cols.map((column, i) => {
         if (spec.type === 'pivot' || path === 'source.analysis') {
-            if (!dataset.headers.includes(column)) throw new Error(`${path}.columns[${i}]: ${column}. Example: ${JSON.stringify(dataset.headers.slice(0, cols.length))}`);
+            if (!dataset.headers.includes(column)) throw edaError(locale,
+                `${path}.columns[${i}]: 모르는 열 ${column}. 예: ${JSON.stringify(dataset.headers.slice(0, cols.length))}`,
+                `${path}.columns[${i}]: ${column}. Example: ${JSON.stringify(dataset.headers.slice(0, cols.length))}`);
         }
         return indexOf(dataset, column, locale);
     });
@@ -408,13 +428,13 @@ function analyzeSource(dataset, spec, locale, chartType, path = 'analysis') {
         if (!Number.isInteger(requestedLimit) || requestedLimit < 1 || requestedLimit > 1000) throw new Error('rows limit must be an integer from 1 to 1000.');
         const limit = Math.min(requestedLimit, 100);
         if (!Number.isSafeInteger(offset) || offset < 0) throw new Error('rows offset must be an integer from 0 to 9007199254740991.');
-        if (spec.sort !== undefined && !['asc', 'desc'].includes(spec.sort)) throw new Error('rows sort must be asc or desc.');
+        if (spec.sort !== undefined && !['asc', 'desc'].includes(spec.sort)) throw edaError(locale, 'rows sort는 asc 또는 desc여야 합니다.', 'rows sort must be asc or desc.');
         if (spec.sort !== undefined && spec.sort_by === undefined) throw new Error(locale === 'ko'
             ? `rows에서 sort를 쓰려면 sort_by에 열 이름을 함께 줄 것. 예: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (sort는 그대로 두고 sort_by를 더한다)`
             : `To use sort with rows, also provide a column name in sort_by. Example: "sort_by":${JSON.stringify(cols[cols.length - 1])},"sort":${JSON.stringify(spec.sort)} (keep sort as it is and add sort_by)`);
         let sortNote;
         if (spec.sort_by !== undefined) {
-            if (typeof spec.sort_by !== 'string') throw new Error('rows sort_by must be a column name.');
+            if (typeof spec.sort_by !== 'string') throw edaError(locale, 'rows sort_by에 열 이름을 주세요.', 'rows sort_by must be a column name.');
             const sortIndex = indexOf(dataset, spec.sort_by, locale), direction = spec.sort ?? 'asc';
             const facts = columnFacts(selected.map(item => item.row), sortIndex);
             const numeric = facts.strictNumeric;
@@ -447,7 +467,12 @@ function analyzeSource(dataset, spec, locale, chartType, path = 'analysis') {
             return !cols.includes(name) && columnFacts(dataset.rows, i).strictNumeric;
         });
     }
-    return { ...result, ...scope, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}), ...(spec.type === 'summary' && Object.hasOwn(spec, 'function') ? { note: 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.' } : {}) };
+    const note = spec.type === 'summary' && Object.hasOwn(spec, 'function') ? {
+        note: locale === 'ko'
+            ? 'summary는 개수, 합계, 평균, 최솟값, 최댓값, 사분위수를 함께 반환하므로 function을 생략할 수 있습니다.'
+            : 'summary returns count, sum, mean, min, max and quartiles together; function is not needed.'
+    } : {};
+    return { ...result, ...scope, totalRows: dataset.rows.length, ...(spec.filter !== undefined ? { filter: spec.filter, filteredRows: selected.length } : {}), ...note };
 }
 
 export function validateChartSource(args, locale = 'ko') {
@@ -461,7 +486,9 @@ export function validateChartSource(args, locale = 'ko') {
         const forbidden = ['labels', 'x', 'sort', 'limit', 'filter'].filter(k => Object.hasOwn(source, k));
         if (forbidden.length) {
             const example = JSON.stringify({ path: source.path, ...(source.table !== undefined ? { table: source.table } : {}), analysis: source.analysis });
-            if (['summary', 'pivot'].includes(source.analysis?.type)) throw new Error(`source.${forbidden.join(', source.')}: with source.analysis, put the filter in source.analysis.filter. Example: source:${example}`);
+            if (['summary', 'pivot'].includes(source.analysis?.type)) fail(
+                `source.${forbidden.join(', source.')}: source.analysis를 쓸 때는 source.analysis.filter에 조건을 주세요. 예: source:${example}`,
+                `source.${forbidden.join(', source.')}: with source.analysis, put the filter in source.analysis.filter. Example: source:${example}`);
             fail(
                 `source.analysis와 함께 쓸 수 없는 source 키: ${forbidden.join(', ')}. 범주는 분석 결과의 그룹에서 오고, filter·sort·limit은 analysis 안에 씁니다. 예: source:${example}`,
                 `source keys cannot be combined with source.analysis: ${forbidden.join(', ')}. Categories come from the analysis groups; put filter, sort and limit inside analysis. Example: source:${example}`
@@ -527,7 +554,7 @@ export function resolveChartSource(dataset, args, locale = 'ko') {
                 fail(`${where} ${name}: 숫자가 아닌 값이 있습니다. 숫자 열을 선택하세요. 예: ${input}`, `${where} ${name}: contains non-numeric values. Choose a numeric column. Example: ${input}`);
             }
             try { checkedFacts(selectedRows, i, name, locale); }
-            catch (error) { throw new Error(`${where}: ${error.message} Example: ${example(where).input}`); }
+            catch (error) { fail(`${where}: ${error.message} 예: ${example(where).input}`, `${where}: ${error.message} Example: ${example(where).input}`); }
             if (facts.units[0]) units[name] = facts.units[0];
         }
         return i;
@@ -625,35 +652,51 @@ function orderHorizontal(resolved, ordered) {
 }
 
 function resolveMatrixSource(dataset, args, locale) {
+    const fail = (ko, en) => { throw edaError(locale, ko, en); };
     const spec = args.source.analysis;
     const isPivot = spec.type === 'pivot';
     const path = 'source.analysis';
     const types = isPivot ? ['bar', 'barh', 'line', 'area', 'heatmap'] : ['pie', 'donut', 'bar', 'barh', 'funnel', 'treemap', 'indicator'];
-    if (!types.includes(args.type)) throw new Error(`${path}.type ${spec.type}: chart type must be one of ${types.join(', ')}.`);
+    if (!types.includes(args.type)) fail(
+        `${path}.type ${spec.type}: 차트 유형은 ${types.join(', ')} 중 하나여야 합니다.`,
+        `${path}.type ${spec.type}: chart type must be one of ${types.join(', ')}.`);
     const fields = isPivot || args.type === 'indicator' ? ['value'] : ['value', 'share'];
-    if (args.series.length !== 1 || !fields.includes(args.series[0].column)) throw new Error(`series: ${spec.type} needs one series with column ${fields.join(' or ')}. Example: [{"column":"value"}]`);
+    if (args.series.length !== 1 || !fields.includes(args.series[0].column)) fail(
+        `series: ${spec.type}에는 column이 ${fields.join(' 또는 ')}인 계열 하나를 주세요. 예: [{"column":"value"}]`,
+        `series: ${spec.type} needs one series with column ${fields.join(' or ')}. Example: [{"column":"value"}]`);
     const { column, ...entry } = args.series[0];
     let result, labels, series, unit;
     if (isPivot) {
         result = analyzeSource(dataset, spec, locale, args.type, path);
         ({ labels, series } = result.chart);
-        if (!labels.length) throw new Error(`${path}.filter: pivot returned no categories. Select rows with nonblank x and series columns.`);
+        if (!labels.length) fail(
+            `${path}.filter: 피벗에 범주가 없습니다. x와 계열 열이 비어 있지 않은 행을 고르세요.`,
+            `${path}.filter: pivot returned no categories. Select rows with nonblank x and series columns.`);
         unit = result.unit ?? '';
         series = series.map(({ name, values }) => ({ ...entry, name, values, quantity: 'value' }));
     } else {
         const min = args.type === 'indicator' ? 1 : 2;
         const max = args.type === 'indicator' ? 1 : 8;
-        if (!Array.isArray(spec.columns) || spec.columns.length < min || spec.columns.length > max || spec.columns.some(name => typeof name !== 'string') || new Set(spec.columns).size !== spec.columns.length) throw new Error(`${path}.columns: summary needs ${min === max ? min : `${min}–${max}`} distinct columns. Example: ${JSON.stringify(dataset.headers.slice(0, min))}`);
-        if (spec.function !== undefined) chartReduction(spec, undefined, path);
+        if (!Array.isArray(spec.columns) || spec.columns.length < min || spec.columns.length > max || spec.columns.some(name => typeof name !== 'string') || new Set(spec.columns).size !== spec.columns.length) {
+            const count = min === max ? min : `${min}–${max}`;
+            const example = JSON.stringify(dataset.headers.slice(0, min));
+            fail(`${path}.columns: summary에 서로 다른 열 이름을 ${count}개 주세요. 예: ${example}`,
+                `${path}.columns: summary needs ${count} distinct columns. Example: ${example}`);
+        }
+        if (spec.function !== undefined) chartReduction(spec, undefined, path, locale);
         const stats = analyzeSource(dataset, spec, locale, undefined, path);
-        if (stats.unitMismatch) throw new Error(`${path}.columns: summary columns have different units (${stats.unitMismatch.join(', ')}). Select columns with the same unit.`);
+        if (stats.unitMismatch) fail(
+            `${path}.columns: summary 열의 단위가 다릅니다(${stats.unitMismatch.join(', ')}). 같은 단위의 열을 고르세요.`,
+            `${path}.columns: summary columns have different units (${stats.unitMismatch.join(', ')}). Select columns with the same unit.`);
         const sourceUnit = stats.unit ?? stats.units?.[spec.columns[0]] ?? '';
-        const fn = chartReduction(spec, sourceUnit, path);
+        const fn = chartReduction(spec, sourceUnit, path, locale);
         const values = (stats.perColumn?.map(item => item.statistics) ?? [stats.statistics]).map(row => row[fn] ?? null);
         let shares;
         if (column === 'share') {
             const total = values.reduce((sum, value) => sum + value, 0);
-            if (values.some(value => value < 0) || !Number.isFinite(total) || total <= 0) throw new Error('series[0].column share needs nonnegative summary values with a positive total. Use column value instead.');
+            if (values.some(value => value < 0) || !Number.isFinite(total) || total <= 0) fail(
+                'series[0].column share는 음수가 없고 합계가 양수인 summary 값에만 쓸 수 있습니다. column을 value로 바꾸세요.',
+                'series[0].column share needs nonnegative summary values with a positive total. Use column value instead.');
             shares = values.map(value => value === null ? null : value / total);
         }
         labels = spec.columns;
@@ -661,7 +704,9 @@ function resolveMatrixSource(dataset, args, locale) {
         unit = column === 'share' ? '%' : fn === 'count' ? '' : sourceUnit;
         result = { type: 'summary', columns: spec.columns, function: fn, filteredRows: stats.filteredRows ?? stats.totalRows, filter: spec.filter };
     }
-    if (unit && args.unit !== undefined && args.unit !== unit) throw new Error(`unit ${args.unit} differs from ${unit}; use the source unit.`);
+    if (unit && args.unit !== undefined && args.unit !== unit) fail(
+        `unit ${args.unit}은 원자료 단위 ${unit}와 다릅니다. 원자료 단위를 쓰세요.`,
+        `unit ${args.unit} differs from ${unit}; use the source unit.`);
     const resolved = { ...args, series, ...(args.type === 'indicator' ? {} : { labels: [...labels] }) };
     delete resolved.source;
     if (args.type === 'treemap') resolved.parents = labels.map(() => '');

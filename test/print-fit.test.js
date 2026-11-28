@@ -73,10 +73,11 @@ const Plotly = {
 
 async function setup(saved = {}) {
     const window = { setTimeout: fn => fn(), clearTimeout() {} };
+    const processors = {};
     const obsidian = {
         Plugin: class {
             async loadData() { return saved; }
-            registerMarkdownCodeBlockProcessor() {}
+            registerMarkdownCodeBlockProcessor(name, callback) { processors[name] = callback; }
             addCommand() {}
             registerEvent() {}
             addSettingTab() {}
@@ -88,7 +89,7 @@ async function setup(saved = {}) {
     };
     const stubs = { obsidian, d3: {}, 'plotly.js-dist-min': Plotly };
     const module = { exports: {} };
-    const context = vm.createContext({ window, document: {}, console, module, exports: module.exports,
+    const context = vm.createContext({ window, document: { createElement: () => new FakeElement() }, console, module, exports: module.exports,
         require: name => stubs[name], WeakRef, structuredClone, Promise,
         ResizeObserver: class { observe() {} disconnect() {} } });
     vm.runInContext('Array.prototype.contains = Array.prototype.includes;', context);
@@ -97,8 +98,29 @@ async function setup(saved = {}) {
     plugin.manifest = { id: 'chart-hands', name: 'Chart Hands', version: '0' };
     plugin.app = { workspace: { onLayoutReady(fn) { fn(); }, trigger() {}, on() { return {}; } } };
     await plugin.onload();
-    return { plugin, window };
+    return { plugin, window, processors };
 }
+
+test('H7 the plotly block renderer accepts empty fit and rejects extra top-level keys', async () => {
+    const h = await setup({ fitWidth: 'fill' });
+    const ctx = { addChild() {} };
+    for (const fit of [{}, '', null]) {
+        const el = new FakeElement();
+        el.appendChild = child => {
+            child.clientWidth = 320;
+            return FakeElement.prototype.appendChild.call(el, child);
+        };
+        await h.processors.plotly(JSON.stringify({ data: [{ y: [1, 2] }], fit }), el, ctx);
+        assert.equal(el.children[0]._fullLayout.width, 320);
+    }
+    for (const invalid of [{ fit: { mode: 'fill' } }, { fit: '', frames: [] }]) {
+        const el = new FakeElement();
+        await h.processors.plotly(JSON.stringify({ data: [{ y: [1, 2] }], ...invalid }), el, ctx);
+        assert.equal(el.children.length, 1);
+        assert.match(el.children[0].textContent, /fit/);
+    }
+    h.plugin.onunload();
+});
 
 test('styles.css passes the community plugin CSS lint', () => {
     assert.doesNotMatch(css, /!important/);

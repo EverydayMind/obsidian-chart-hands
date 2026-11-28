@@ -44,7 +44,7 @@ async function capture(locale = 'ko', factory = createAgentProvider, originalSou
         : source.match(/\.(?:setName|setDesc|addOption)\([^\n]+|new obsidian\.Notice\([^\n]+|const NEW_PLOTLY_CHART[^\n]+/g);
     return { descriptor, digest: crypto.createHash('sha256').update(JSON.stringify(descriptor)).digest('hex'), results, ui };
 }
-test('Korean output remains byte-identical to the original snapshot', async () => {
+test('Korean output matches the approved locale snapshot', async () => {
     const actual = Buffer.from(JSON.stringify(await capture(), null, 2) + '\n');
     if (process.env.UPDATE_LOCALE_GOLDEN === '1') fs.writeFileSync(golden, actual);
     else assert.deepEqual(actual, fs.readFileSync(golden));

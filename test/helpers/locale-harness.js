@@ -20,7 +20,7 @@ async function buildHead() {
     return result.outputFiles[0].text.replace(/import\((["'][^"']+["'])\)/g, 'Promise.resolve().then(() => require($1))');
 }
 
-function loadHarness(code, locale) {
+function loadHarness(code, locale, yaml) {
     const ui = [], processors = {}, commands = [];
     let appLanguage = locale;
     const record = (kind, ...values) => ui.push({ kind, values });
@@ -64,7 +64,8 @@ function loadHarness(code, locale) {
         },
         Notice: class { constructor(...values) { record('notice', ...values); } hide() {} },
         MarkdownRenderChild: class {},
-        parseYaml: text => JSON.parse(text.replace(/^\s*#.*$/gm, '')), stringifyYaml: value => JSON.stringify(value, null, 2) + '\n'
+        parseYaml: yaml?.parse ?? (text => JSON.parse(text.replace(/^\s*#.*$/gm, ''))),
+        stringifyYaml: yaml?.stringify ?? (value => JSON.stringify(value, null, 2) + '\n')
     };
     const module = { exports: {} };
     const context = vm.createContext({ module, exports: module.exports, window: { setTimeout: fn => fn() },
@@ -401,6 +402,78 @@ async function captureExtended(code, locale) {
         await build({ x: labels, sort: { column: labels } }, { type: 'barh' });
         await call('build_chart', { type: 'bar', labels: ['A', 'B'], series: [{ values: [172.4, 117.4] }] });
         await call('build_chart', { type: 'indicator', unit: '%', gauge: true, target: { value: 30 }, series: [{ values: [14.3] }] });
+    }
+    {
+        const path = 'data.csv';
+        const analyze = (analysis, input = path) => call('eda_analyze', { path: input, analysis });
+        const summary = { type: 'summary', columns: ['value', 'other'] };
+        const pivot = { type: 'pivot', columns: ['month', 'value', 'other'] };
+        const matrix = (analysis, extra = {}, source = {}) => call('build_chart', {
+            type: 'bar', source: { path, analysis, ...source }, series: [{ column: 'value' }], ...extra
+        });
+        for (const analysis of [
+            { ...summary, type: 'invalid' }, { ...summary, sort: 'desc' }, { ...summary, function: 'invalid' },
+            { ...summary, columns: [] }, { ...pivot, columns: ['missing', 'value', 'other'] },
+            { ...pivot, columns: ['month', 'value'] }, { ...pivot, function: 'invalid' },
+            { ...pivot, type: 'rows', sort: 'invalid' }, { ...pivot, type: 'rows', sort_by: 1 }
+        ]) await analyze(analysis);
+        await matrix(summary, { type: 'line' });
+        await matrix(summary, { series: [{ column: 'sum' }] });
+        await matrix(summary, {}, { filter: [] });
+        await matrix({ ...summary, columns: ['value'] });
+        await matrix({ ...summary, columns: ['a', 'c'] }, {}, { path: 'matrix-units.csv' });
+        await matrix({ ...summary, columns: ['a', 'b'] }, { unit: '%' }, { path: 'matrix-units.csv' });
+        await matrix({ ...summary, columns: ['a', 'b'] }, { series: [{ column: 'share' }] }, { path: 'matrix-dup.csv' });
+        files['zero-summary.csv'] = 'month,value,other\n2025-01,0,0';
+        await matrix(summary, { series: [{ column: 'share' }] }, { path: 'zero-summary.csv' });
+        await matrix({ ...pivot, filter: [{ column: 'month', op: 'eq', value: 'missing' }] });
+        files['pivot-limit.csv'] = 'month,value,other\n' + Array.from({ length: 31 }, (_, i) => '2025-01,N' + i + ',1').join('\n');
+        await analyze(pivot, 'pivot-limit.csv');
+        await call('build_chart', { type: 'bar', source: { path: 'units.csv', labels: 'label' }, series: [{ column: 'value' }] });
+    }
+    {
+        const fence = source => ['```plotly', typeof source === 'string' ? source : JSON.stringify(source), '```'].join('\n');
+        const data = [{ type: 'bar', x: ['2025-01', '2025-02'], y: [2, 5] }];
+        const body = JSON.stringify({ data, fit: {} });
+        files['existing.md'] = [
+            fence('# chart-hands build v1: {broken}\n' + body),
+            fence('# chart-hands build v2: {}\n' + body),
+            fence({ data, layout: { yaxis2: {} } }),
+            fence({ data: Array(13).fill(data[0]) }),
+            fence({ data: [{ type: 'pie', labels: ['A'], values: [1] }] }),
+            fence('data: [\nstyle: report\n  color: #abcdef\n\tbogus: ['),
+            '```plotly\n' + body
+        ].join('\n\n');
+        const path = 'existing.md';
+        await call('read_charts', { path });
+        await call('read_charts', { path, chart: 8 });
+        const compare = { path: 'data.csv', labels: 'month', columns: ['value'] };
+        for (const spec of [{}, { chart: 1 }, { chart: 1, compare: { ...compare, tolerance: -1 } },
+            { chart: 1, compare: { ...compare, labels: 'missing' } }, { chart: 1, compare: { ...compare, columns: undefined } },
+            { chart: 1, compare: { ...compare, path: 'trend-dup.csv', columns: ['a'] } },
+            { chart: 1, compare }, { chart: 5, compare }]) {
+            await call('read_charts', { path, compare, ...spec });
+        }
+        files['no-labels.md'] = fence({ data: [{ y: [1] }] });
+        await call('read_charts', { path: 'no-labels.md', chart: 1, compare });
+        files['wide-labels.csv'] = 'label,value\n' + Array.from({ length: 10 }, (_, i) => 'A'.repeat(500) + i + ',1').join('\n');
+        files['wide-labels.md'] = fence({ data: [{ x: Array.from({ length: 10 }, (_, i) => 'B'.repeat(500) + i), y: Array(10).fill(0) }] });
+        await call('read_charts', { path: 'wide-labels.md', chart: 1, compare: { path: 'wide-labels.csv', labels: 'label', columns: ['value'] } });
+        const edit = (chart, extra = {}, input = path) => call('build_chart', { type: 'bar', from_chart: { path: input, chart }, ...extra });
+        await edit(1, { target: { value: 3 }, title: 'Edited title', style: 'slides' });
+        await edit(1, { labels: [] });
+        await edit(1, { style: 'plain' });
+        await edit(1, { target: { value: 'invalid' } });
+        await edit(1, { caption: 'two\nlines' });
+        await edit(3);
+        await edit(4);
+        await edit(5, { style: 'report' });
+        await edit(6);
+        await edit(7);
+        files['large-chart.md'] = fence({ data: [{ y: [1], customdata: ['X'.repeat(16000)] }] });
+        await edit(1, { title: 'Edited title' }, 'large-chart.md');
+        plugin.app.plugins = { enabledPlugins: new Set(['dataview']), plugins: { dataview: { settings: { enableDataviewJs: false } } } };
+        await call('get_chart_guide', { topic: 'dataviewjs' });
     }
     await call('unknown', {});
     await call('read_charts', { path: '../outside.md' });

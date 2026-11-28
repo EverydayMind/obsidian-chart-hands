@@ -96,7 +96,14 @@ test('descriptor follows the agentinterop v1 subset', async () => {
         }
     }
     const description = descriptor.tools.find(tool => tool.name === 'eda_analyze').description;
-    for (const phrase of ['count, sum, mean, min, max for each', '"op":"gte","value":"2025-01"', 'one overall total or average', "each column's share of their combined sum", 'one value per group', 'same function over all matching rows', '1–8 numeric columns over matching rows', "e.g. a year's monthly average with a filter", 'label and original give change from the previous group', '1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.']) assert.ok(description.includes(phrase));
+    for (const phrase of [
+        'stats and shares for 1–8 numeric columns', '"op":"gte","value":"2025-01"',
+        'aggregate groups by columns[0], reduces columns[1] (sum, mean, count, min, max, median)',
+        'count may omit columns[1]', 'overall reduces all matching rows', 'label or original for change from the previous group'
+    ]) assert.ok(description.includes(phrase));
+    const build = descriptor.tools.find(tool => tool.name === 'build_chart').inputSchema;
+    assert.deepEqual(build.required, ['type']);
+    assert.match(build.properties.series.items.properties.values.description, /Indicator: \[value, reference\?\]/);
     assert.ok(descriptor.tools.find(tool => tool.name === 'eda_analyze').description.length <= 1024);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/effect']]), [['eda_profile', 'read'], ['eda_analyze', 'read'], ['check_chart', 'pure'], ['read_charts', 'read'], ['get_chart_guide', 'pure'], ['build_chart', 'read'], ['suggest_chart', 'read']]);
     assert.deepEqual(descriptor.tools.map(tool => [tool.name, tool._meta['dev.agentinterop/maxResultChars']]), [['eda_profile', 16000], ['eda_analyze', 16000], ['check_chart', 8000], ['read_charts', 8000], ['get_chart_guide', 8000], ['build_chart', 16000], ['suggest_chart', 16000]]);
@@ -208,7 +215,13 @@ test('read_charts finds plotly blocks, reports line ranges and pages without gap
     assert.notEqual(result.isError, true);
     assertPlainJson(result);
     assert.deepEqual(result._meta, { 'dev.agentinterop/resource': { path: 'notes/chart.md' } });
-    assert.deepEqual(result.structuredContent, { charts: 3, from: 1, to: 3, withProblems: 1, dataviewBlocks: 1, complete: true, advice: [{ chart: 1, count: 2 }, { chart: 3, count: 2 }] });
+    const { items, ...summary } = result.structuredContent;
+    assert.deepEqual(summary, { charts: 3, from: 1, to: 3, withProblems: 1, dataviewBlocks: 1, complete: true, advice: [{ chart: 1, count: 2 }, { chart: 3, count: 2 }] });
+    assert.deepEqual(items.map(({ chart, snippet, closed, rebuild }) => [chart, snippet, closed, rebuild]), [
+        [1, { startLine: 3, endLine: 5 }, true, null],
+        [2, { startLine: 7, endLine: 9 }, true, null],
+        [3, { startLine: 19, endLine: 20 }, false, null]
+    ]);
     const lines = text(result).split('\n');
     assert.equal(lines[0], 'Note notes/chart.md · 3 plotly chart(s) · showing 1-3 · 1 dataviewjs chart block(s), not checked');
     assert.equal(lines[1], 'Chart 1 · lines 3-5 · traces: 1(scatter 2 points) · no problems · 2 advice');
@@ -221,7 +234,7 @@ test('read_charts finds plotly blocks, reports line ranges and pages without gap
         const page = await many.callTool('read_charts', { path: 'notes/chart.md', from });
         assert.notEqual(page.isError, true);
         assert.equal(page.structuredContent.from, from);
-        assert.ok(text(page).length <= 8000, 'a page must fit the declared maxResultChars');
+        assert.ok(text(page).length + 1 + JSON.stringify(page.structuredContent).length <= 8000, 'a page must fit the declared maxResultChars');
         seen += page.structuredContent.to - page.structuredContent.from + 1;
         pages++;
         if (page.structuredContent.complete) break;

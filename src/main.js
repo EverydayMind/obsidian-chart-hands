@@ -2,7 +2,8 @@ import * as obsidian from 'obsidian';
 import { parseDataset, profile, analyze, pivotSizeError, resolveChartSource, validateChartSource, AGGREGATE_FUNCTIONS, AGGREGATE_SORTS } from './eda.js';
 import { splitLines, fenceOpen, fenceClose, tableDataset } from './markdown-table.js';
 import { GUIDE_TOPICS } from './chart-guide.js';
-import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, validateBuildArgs } from './chart-builder.js';
+import { CHART_TYPES, SINGLE_SERIES_TYPES, buildChartDefinition, restyleChart, validateBuildArgs } from './chart-builder.js';
+import { compareTraces, isRecord, readRebuild, rebuildComment, snippetEndLine, tracePoints } from './note-charts.js';
 import { analysisPresentation, chartFacts, defaultReduction, factLines, titleDraft } from './chart-facts.js';
 import { adviseChart } from './chart-advice.js';
 import { SUGGEST_GOALS, suggestChart } from './suggest.js';
@@ -82,8 +83,9 @@ let settings = Object.assign({}, DEFAULT_SETTINGS);
 // can still be garbage collected.
 const liveCharts = new Set();
 
+const emptyFit = fit => fit === '' || (Object.prototype.toString.call(fit) === '[object Object]' && !Object.keys(fit).length);
 const normalizeFit = (fit) => {
-    if (fit === undefined || fit === null) {
+    if (fit === undefined || fit === null || emptyFit(fit)) {
         return null;
     }
     // YAML 1.1 parsers read `fit: off` as false.
@@ -93,7 +95,7 @@ const normalizeFit = (fit) => {
     if (fit === true) {
         return 'fill';
     }
-    if (typeof fit === 'string' && FIT_MODES.contains(fit.toLowerCase())) {
+    if (typeof fit === 'string' && FIT_MODES.includes(fit.toLowerCase())) {
         return fit.toLowerCase();
     }
     throw `fit must be one of: ${FIT_MODES.join(', ')}.`;
@@ -412,6 +414,25 @@ const isDataviewEnabled = (app) => {
     catch { /* Fall back to loaded plugin instances when enabledPlugins is inaccessible. */ }
     return Boolean(plugins.plugins?.dataview);
 };
+const dataviewGuideStatus = (app, locale) => {
+    const enabled = isDataviewEnabled(app);
+    let javascript = null;
+    try {
+        const setting = app?.plugins?.plugins?.dataview?.settings?.enableDataviewJs;
+        if (typeof setting === 'boolean') javascript = setting;
+    }
+    catch { /* The plugin may be reloading when the guide is called. */ }
+    const ko = locale === 'ko';
+    const state = ko ? ['꺼짐', '켜짐'] : ['off', 'on'];
+    const queries = javascript === null ? (ko ? '확인할 수 없음' : 'unknown') : state[Number(javascript)];
+    const effect = !enabled || javascript === false
+        ? (ko ? ' — dataviewjs 블록은 코드로만 보입니다.' : ' — dataviewjs blocks appear as code.')
+        : '';
+    const line = ko
+        ? `지금 상태: Dataview ${state[Number(enabled)]} · JavaScript 쿼리 ${queries}${effect}`
+        : `Current status: Dataview ${state[Number(enabled)]} · JavaScript queries ${queries}${effect}`;
+    return { status: { enabled, javascript }, line };
+};
 const newPlotlyChartByDataviewjs = (editor, app) => {
     insertChartBlock(editor, dataviewjsPlotlyChart);
     if (!isDataviewEnabled(app)) {
@@ -463,7 +484,7 @@ const tools = [
     },
     {
         name: 'eda_analyze', title: 'Analyze a CSV dataset',
-        description: `summary returns count, sum, mean, min, max for each of 1–8 numeric columns over matching rows and each column's share of their combined sum. Use it for one overall total or average, e.g. a year's monthly average with a filter. Period example: {"column":"${period}","op":"gte","value":"2025-01"}. aggregate: one value per group and overall for mean, min, max or median (same function over all matching rows); label and original give change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.`,
+        description: `summary: stats and shares for 1–8 numeric columns. aggregate groups by columns[0], reduces columns[1] (sum, mean, count, min, max, median); count may omit columns[1]. For mean/min/max/median overall reduces all matching rows. Sort label or original for change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. Period filter: {"column":"${period}","op":"gte","value":"2025-01"}.`,
         inputSchema: { type: 'object', additionalProperties: false, required: ['path', 'analysis'], properties: {
             path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative CSV path, or a Markdown note (.md); its pipe table is read (table picks which, 1-based, default 1).' },
             table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown notes only: which pipe table to read, 1-based; default 1.' },
@@ -487,7 +508,7 @@ const tools = [
     {
         name: 'check_chart',
         title: 'Check a Plotly chart',
-        description: 'Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note. It also lists optional advice (presentation notes) that never makes a chart invalid.',
+        description: 'Check plotly YAML/JSON syntax, top-level keys and Plotly attributes. Reports problems and optional presentation advice. Call before writing a hand-edited block.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -502,14 +523,22 @@ const tools = [
     {
         name: 'read_charts',
         title: 'Read the Plotly charts in a note',
-        description: 'Find the plotly code blocks in a note and return, for each chart, its line range, trace types and point counts, title, and the problems found by the check. Returns at most 20 charts per call and gives the next from value when there are more. Charts drawn with dataviewjs are counted but not checked.',
+        description: 'List and check plotly blocks in a note, with line ranges and rebuild arguments. Dataviewjs charts are counted. Up to 20 per page.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
             required: ['path'],
             properties: {
                 path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative path of a Markdown note.' },
-                from: { type: 'integer', minimum: 1, maximum: 100000, description: 'Start reading at this chart number. Defaults to 1.' }
+                from: { type: 'integer', minimum: 1, maximum: 100000, description: 'First chart to list, default 1.' },
+                chart: { type: 'integer', minimum: 1, description: '1-based chart number.' },
+                compare: { type: 'object', additionalProperties: false, required: ['path', 'labels'], description: 'With chart, compare raw values to a CSV or Markdown table.', properties: {
+                    path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative data path.' },
+                    table: { type: 'integer', minimum: 1, maximum: 1000, description: 'Markdown table number, default 1.' },
+                    labels: { type: 'string', description: 'Label column.' },
+                    columns: { type: 'array', minItems: 1, items: { type: 'string' }, description: 'Numeric columns in trace order. Omit only for unique trace-name matches.' },
+                    tolerance: { type: 'number', minimum: 0, description: 'Absolute tolerance, default 0.' }
+                } }
             }
         },
         annotations: { readOnlyHint: true },
@@ -518,7 +547,7 @@ const tools = [
     {
         name: 'get_chart_guide',
         title: 'Plotly chart writing guide',
-        description: 'Plotly authoring help by topic. Read basics for block syntax and report for charts from vault data, goals, highlights, facts and export. Other topics cover examples, style, statistics, hierarchies, time series, scientific charts, maps, layout, Dataview JS and troubleshooting.',
+        description: 'Plotly authoring guide. Use basics for syntax, report for facts and export, and dataviewjs for live charts.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -532,13 +561,20 @@ const tools = [
     {
         name: 'build_chart',
         title: 'Build a Plotly chart block',
-        description: (locale === 'ko' ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. ' : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ') + 'Build a plotly block and check it against Plotly\'s schema. Raw sources read 1–200 rows after filter, sort and limit; use source.sort and source.limit for top-N. With source, omit top-level labels and series values/x/size arrays. Blanks are gaps. Direct charts use series[].values; scatter and bubble also need x (bubble also size). Insert reportSnippet or block with host editing tools. staticBlock is for HWPX or PPTX export.',
+        description: (locale === 'ko'
+            ? 'CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. '
+            : 'To plot values from a CSV, pass source and series[].column instead of copying the numbers. ')
+            + 'Build a plotly block and check it against Plotly\'s schema. Raw sources read 1–200 rows after filtering and sorting. Blanks are gaps. Insert reportSnippet or block with host editing tools. staticBlock is for HWPX/PPTX.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
-            required: ['type', 'series'],
+            required: ['type'],
             properties: {
-                type: { type: 'string', enum: CHART_TYPES, description: 'Chart type.' },
+                type: { type: 'string', enum: CHART_TYPES, description: 'Chart type, ignored with from_chart.' },
+                from_chart: { type: 'object', additionalProperties: false, required: ['path', 'chart'], description: 'Edit an existing chart using style, target, title or caption.', properties: {
+                    path: { type: 'string', minLength: 1, maxLength: 4096, description: 'Vault-relative note path.' },
+                    chart: { type: 'integer', minimum: 1, description: '1-based chart number.' }
+                } },
                 title: { type: 'string', maxLength: 200, description: 'Chart title.' },
                 title_from: { type: 'string', enum: ['facts'], description: 'facts: use the returned titleDraft as the chart title.' },
                 source: { type: 'object', additionalProperties: false, required: ['path'], properties: {
@@ -573,7 +609,7 @@ const tools = [
                             column: { type: 'string', description: 'Numeric CSV column; required with source. Without source provide values instead.' },
                             sizeColumn: { type: 'string', description: 'Numeric CSV size column; required for bubble with source.' },
                             name: { type: 'string', maxLength: 100, description: 'Series name, shown in the legend.' },
-                            values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin.' },
+                            values: { type: 'array', minItems: 1, maxItems: 2000, items: { type: 'number' }, description: 'Per label or x; raw for histogram, box, violin. Indicator: [value, reference?].' },
                             x: { type: 'array', maxItems: 2000, items: { type: 'number' }, description: 'scatter and bubble: the x value of each point.' },
                             size: { type: 'array', maxItems: 2000, items: { type: 'number', minimum: 0 }, description: 'bubble: the size measure of each point (drawn as area).' },
                             text: { type: 'array', maxItems: 2000, items: { type: 'string', maxLength: 100 }, description: 'Point labels; override source.labels.' },
@@ -602,7 +638,7 @@ const tools = [
     {
         name: 'suggest_chart',
         title: 'Suggest chart types for a dataset',
-        description: 'Suggest chart types for a goal from the data\'s shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or a Markdown table, classifies columns (period, category, numeric with unit) and returns up to three candidates with the reason, cautions found in the data, and build arguments that build_chart accepts as they are; needs lists what the data cannot tell (a target value, the periods to compare). Deterministic rules; does not draw or change files.',
+        description: 'Suggest chart types for a goal from the data\'s shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or Markdown table, classifies columns (period, category, numeric with unit), and returns up to three candidates with reasons, cautions and arguments for build_chart. needs lists missing inputs such as a target value or the periods to compare.',
         inputSchema: {
             type: 'object',
             additionalProperties: false,
@@ -709,6 +745,46 @@ const lintTrace = (trace, where, add) => {
 // Mistakes that parse fine but draw nothing useful, found from the source text and parsed value.
 const LINT_MAX_FINDINGS = 8;
 const UNQUOTED_HEX = /(?::|-|\[|,)\s*#[0-9a-fA-F]{3,8}\s*(?:[,\]}]|$)/;
+const sourceLines = function* (source) {
+    let scalarIndent = null;
+    for (const [index, line] of source.split(/\r?\n/).entries()) {
+        if (!line.trim()) continue;
+        const indent = /^ */.exec(line)[0].length;
+        if (scalarIndent !== null && indent > scalarIndent) continue;
+        scalarIndent = null;
+        yield { line, number: index + 1 };
+        const block = /^( *)(?:- +)*(?:[^#]+?: +)?[|>](?:[1-9][+-]?|[+-][1-9]?)? *(?:#.*)?$/.exec(line);
+        if (block) scalarIndent = /^(?: *- +)* */.exec(line)[0].length;
+    }
+};
+const unquotedColor = line => {
+    const match = UNQUOTED_HEX.exec(line);
+    if (!match) return false;
+    const hash = match.index + match[0].indexOf('#');
+    let quote = '';
+    for (let i = 0; i < hash; i++) {
+        const char = line[i];
+        if (quote === '"' && char === '\\') i++;
+        else if (quote && char === quote) quote = '';
+        else if (!quote && (char === '"' || char === "'")) quote = char;
+        else if (!quote && char === '#' && (i === 0 || /\s/.test(line[i - 1]))) return false;
+    }
+    return !quote;
+};
+const syntaxHints = (source, locale) => {
+    const hints = [];
+    for (const { line, number } of sourceLines(source)) {
+        const key = /^(?:"([^"]+)" *:|'([^']+)' *:(?=\s|$)|([\p{L}_][\p{L}\p{N}_. -]*) *:(?=\s|$))/u.exec(line)?.slice(1).find(Boolean)?.trim();
+        const hint = (code, ko, en) => hints.push({ line: number, code, message: locale === 'ko' ? ko : en });
+        if (unquotedColor(line)) hint('UNQUOTED_HEX', '색상값을 따옴표로 감싸세요.', 'Quote the color value.');
+        if (hints.length < LINT_MAX_FINDINGS && key && !allowValues.includes(key)) {
+            hint('UNKNOWN_TOP_LEVEL_KEY', '최상위 키는 data, layout, config, fit만 쓸 수 있습니다.', 'Top-level keys must be data, layout, config or fit.');
+        }
+        if (hints.length < LINT_MAX_FINDINGS && /^ *\t/.test(line)) hint('TAB_INDENT', '들여쓰기에 탭 대신 공백을 쓰세요.', 'Indent with spaces instead of tabs.');
+        if (hints.length >= LINT_MAX_FINDINGS) break;
+    }
+    return hints;
+};
 const looksLikeScript = (text) => /\$\{|=>|^\s*function\b/.test(text);
 const lintChart = (source, json, problems) => {
     const findings = [];
@@ -717,12 +793,9 @@ const lintChart = (source, json, problems) => {
             findings.push(message);
         }
     };
-    const lines = source.split(/\r?\n/);
-    lines.forEach((line, index) => {
-        if (!/^\s*#/.test(line) && UNQUOTED_HEX.test(line)) {
-            add(`Line ${index + 1}: unquoted colour. YAML reads # as a comment, so the value becomes null. Write it in quotes, e.g. color: "#2563EB".`);
-        }
-    });
+    for (const { line, number } of sourceLines(source)) {
+        if (unquotedColor(line)) add(`Line ${number}: unquoted colour. YAML reads # as a comment, so the value becomes null. Write it in quotes, e.g. color: "#2563EB".`);
+    }
     const hexFound = findings.length > 0;
     const walk = (value, path, depth) => {
         if (depth > 12 || findings.length >= LINT_MAX_FINDINGS) {
@@ -790,6 +863,8 @@ const analyzeChart = (source, locale = getLocale(), plotly = Plotly) => {
     }
     catch (error) {
         result.problems.push(`Cannot parse as YAML/JSON: ${agentClip(error && error.message ? error.message : error, 300)}`);
+        const hints = syntaxHints(source, locale);
+        if (hints.length) result.hints = hints;
         return result;
     }
     if (!json || typeof json !== 'object' || Array.isArray(json)) {
@@ -800,10 +875,8 @@ const analyzeChart = (source, locale = getLocale(), plotly = Plotly) => {
     if (unknown.length) {
         result.problems.push(`Unsupported top-level keys: ${unknown.map(key => agentClip(key, 40)).join(', ')}. Only data, layout, config and fit are allowed; any other key stops the chart from drawing.${unknown.includes('frames') ? ' Animations (frames) are not available; use layout.sliders or layout.updatemenus.' : ''}`);
     }
-    if (json.fit !== undefined && json.fit !== null && typeof json.fit !== 'boolean'
-        && !(typeof json.fit === 'string' && FIT_MODES.includes(json.fit.toLowerCase()))) {
-        result.problems.push(`fit must be one of: ${FIT_MODES.join(', ')}.`);
-    }
+    try { normalizeFit(json.fit); }
+    catch (error) { result.problems.push(String(error)); }
     if (json.data === undefined || json.data === null) {
         result.problems.push('data is missing. Put the list of traces in data.');
     }
@@ -836,6 +909,7 @@ const analyzeChart = (source, locale = getLocale(), plotly = Plotly) => {
         }
     }
     result.advice = adviseChart(json, locale);
+    if (emptyFit(json.fit)) result.advice.unshift(locale === 'ko' ? '빈 fit을 지우세요.' : 'Remove the empty fit value.');
     return result;
 };
 const stripPlotlyFence = (source) => {
@@ -857,6 +931,9 @@ const problemLines = (problems) => {
     }
     return lines;
 };
+const hintLines = (chart, locale) => (chart.hints ?? []).map(
+    ({ line, message }) => locale === 'ko' ? `  - ${line}줄: ${message}` : `  - Line ${line}: ${message}`
+);
 const adviceLines = (advice, locale) => advice.length
     ? [
         locale === 'ko'
@@ -895,7 +972,9 @@ const findChartBlocks = (markdown) => {
             body.push(lines[index]);
         }
         if (language === 'plotly') {
-            charts.push({ startLine, endLine: Math.min(index + 1, lines.length), closed, source: body.join('\n') });
+            const endLine = Math.min(index + 1, lines.length);
+            const snippet = { startLine, endLine: closed ? snippetEndLine(lines, endLine) : endLine };
+            charts.push({ startLine, endLine, snippet, closed, source: body.join('\n') });
         }
         else if (language === 'dataviewjs' && body.some(line => line.includes('renderPlotly'))) {
             dataview++;
@@ -909,8 +988,49 @@ const normalizeAgentPath = (value) => {
     if (!raw || /^(?:[A-Za-z]:|\/)/.test(raw) || [...raw].some(char => char.charCodeAt(0) < 32) || parts.includes('..')) {
         throw new AgentToolError('INVALID_ARGUMENT', 'path must be a vault-relative path.', true);
     }
-    return parts.filter(part => part && part !== '.').join('/');
+    const path = parts.filter(part => part && part !== '.').join('/');
+    if (!path) throw new AgentToolError('INVALID_ARGUMENT', 'path must be a vault-relative path.', true);
+    return path;
 };
+const chartResource = (path, paths) => {
+    const evidence = [...new Set(paths)].filter(source => source !== path);
+    return {
+        'dev.agentinterop/resource': { path, ...(evidence.length ? { paths: evidence } : {}) },
+        ...(evidence.length ? { 'dev.agentinterop/evidencePaths': evidence } : {})
+    };
+};
+const comparisonSummary = (traces, locale) => {
+    const points = traces.reduce((sum, trace) => sum + trace.compared, 0);
+    const differences = traces.reduce((sum, trace) => sum + trace.mismatchCount, 0);
+    const chartOnly = traces.reduce((sum, trace) => sum + trace.chartOnly.count, 0);
+    const dataOnly = traces.reduce((sum, trace) => sum + trace.dataOnly.count, 0);
+    const sample = traces.find(trace => trace.mismatches.length)?.mismatches[0];
+    const preview = sample ? (locale === 'ko'
+        ? `: ${agentClip(sample.label, 100)} 차트 ${sample.chart}, 자료 ${sample.data}`
+        : `: ${agentClip(sample.label, 100)} chart ${sample.chart}, data ${sample.data}`) : '';
+    return locale === 'ko'
+        ? `${traces.length}계열 · 비교 ${points}점 · 다른 값 ${differences}개${preview} · 차트에만 ${chartOnly}개 · 자료에만 ${dataOnly}개`
+        : `${traces.length} trace(s) · ${points} compared · ${differences} different${preview} · ${chartOnly} chart-only · ${dataOnly} data-only`;
+};
+const factsFromDefinition = (definition, target) => definition.data.flatMap((trace, index) => {
+    const type = trace.type === 'bar' && trace.orientation === 'h' ? 'barh' : trace.type ?? 'scatter';
+    let [labels, values] = tracePoints(trace);
+    if (['histogram', 'box', 'violin'].includes(type)) values = trace.y ?? trace.x;
+    if (['funnel', 'treemap', 'sunburst'].includes(type)) [labels, values] = type === 'funnel' ? [trace.y, trace.x] : [trace.labels, trace.values];
+    if (type === 'indicator') values = [trace.value, ...(Number.isFinite(trace.delta?.reference) ? [trace.delta.reference] : [])];
+    if (type === 'heatmap' && Array.isArray(trace.z) && trace.z.length && trace.z.every(row => Array.isArray(row) && row.every(v => v === null || Number.isFinite(v)))) {
+        const columns = Array.isArray(trace.x) && trace.x.length === trace.z[0].length ? trace.x : trace.z[0].map((_, i) => i);
+        return [{ trace: index + 1, ...chartFacts({ type, labels: columns, series: trace.z.map((row, i) => ({ values: row, name: trace.y?.[i] })) }) }];
+    }
+    if (trace.z !== undefined || type === 'heatmap') return [];
+    if (!Array.isArray(values) || !values.some(Number.isFinite) || !values.every(value => value === null || Number.isFinite(value))) return [];
+    const points = type === 'scatter' && Array.isArray(trace.x) && trace.x.length === values.length && trace.x.every(Number.isFinite);
+    const factType = type === 'scatter' && !points ? 'line' : type;
+    if (!Array.isArray(labels) || labels.length !== values.length) labels = values.map((_, i) => String(i + 1));
+    const args = { type: factType, labels, series: [{ values, name: trace.name, ...(points ? { x: trace.x } : {}) }] };
+    if (target && index === (target.series ?? 0)) args.target = { ...target, series: 0 };
+    return [{ trace: index + 1, ...chartFacts(args) }];
+});
 const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Date() } = {}) => {
     const descriptor = {
         provider: {
@@ -961,6 +1081,90 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             return { path, dataset: ext === 'csv' ? parseDataset(text) : tableDataset(text, table, locale) };
         }
         catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message + (ext === 'md' && /no pipe tables|파이프 표가 없습니다/.test(error.message) ? candidateText(csvCandidates(path, true)) : ''), true); }
+    };
+    const readNoteCharts = async rawPath => {
+        const path = normalizeAgentPath(rawPath);
+        const file = plugin.app.vault.getAbstractFileByPath(path);
+        if (!file || typeof file.extension !== 'string') {
+            throw new AgentToolError('NOT_FOUND', `Note not found in the vault: ${path}`, true);
+        }
+        if (file.extension.toLowerCase() !== 'md') {
+            throw new AgentToolError('UNSUPPORTED_FORMAT', 'Only Markdown notes (.md) can be read.');
+        }
+        return { path: file.path, ...findChartBlocks(await plugin.app.vault.cachedRead(file)) };
+    };
+    const chartAt = (found, index) => {
+        if (!Number.isInteger(index) || index < 1 || index > found.charts.length) {
+            throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko'
+                ? `chart에 실제 차트 번호를 주세요. 차트 수 ${found.charts.length}개.`
+                : `chart must identify an existing chart. The note has ${found.charts.length} chart(s).`, true);
+        }
+        return found.charts[index - 1];
+    };
+    const closedChart = block => {
+        if (!block.closed) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? '차트 펜스를 먼저 닫으세요.' : 'Close the chart fence first.', true);
+        try {
+            const definition = parseChartYaml(block.source);
+            if (isRecord(definition) && Array.isArray(definition.data) && definition.data.length && definition.data.every(isRecord)
+                && (definition.layout == null || isRecord(definition.layout))
+                && Object.keys(definition).every(key => allowValues.includes(key))) return definition;
+        }
+        catch { /* Report the repair path for any parse failure. */ }
+        throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? '차트 정의를 읽을 수 없습니다. check_chart로 검사하세요.' : 'Cannot read the chart definition. Run check_chart.', true);
+    };
+    const chartValidator = async () => {
+        const loaded = await plugin.ensureLibraries?.();
+        return typeof Plotly?.validate === 'function' ? Plotly : typeof loaded?.validate === 'function' ? loaded : null;
+    };
+    const editExistingChart = async args => {
+        if (Object.hasOwn(args, 'source') || Object.hasOwn(args, 'labels') || args.series?.some?.(series => series && Object.hasOwn(series, 'values'))) {
+            throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko'
+                ? 'from_chart와 함께 source, labels, series[].values를 쓸 수 없습니다.'
+                : 'from_chart cannot be combined with source, labels or series[].values.', true);
+        }
+        const found = await readNoteCharts(args.from_chart?.path);
+        const block = chartAt(found, args.from_chart?.chart);
+        let definition = closedChart(block);
+        try { definition = restyleChart(definition, args, locale); }
+        catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
+        const provenance = extractProvenance(block.source);
+        const { rebuild } = readRebuild(block.source, normalizeAgentPath, locale);
+        let recipe = '';
+        if (rebuild) {
+            const updated = { ...rebuild };
+            for (const key of ['style', 'target', 'title', 'caption']) if (args[key] !== undefined) updated[key] = args[key];
+            if (args.title !== undefined) delete updated.title_from;
+            try {
+                validateBuildArgs(updated, locale);
+                recipe = rebuildComment(updated);
+            }
+            catch { /* The source builder cannot express every permitted edit to a Plotly definition. */ }
+        }
+        const body = [provenance && `${PROVENANCE_PREFIX} ${provenance}`, recipe, obsidian.stringifyYaml(definition).trimEnd()].filter(Boolean).join('\n');
+        const chart = analyzeChart(body, locale, await chartValidator());
+        const facts = factsFromDefinition(definition, args.target);
+        const ignoredArgs = Object.keys(args).filter(key => !['from_chart', 'style', 'target', 'title', 'caption'].includes(key));
+        const text = [
+            chart.problems.length
+                ? `${chart.problems.length} problem(s) found in the built chart:`
+                : locale === 'ko' ? '차트 블록을 바꾸고 검사했습니다.' : 'Edited and checked the chart block.',
+            ...problemLines(chart.problems), ...hintLines(chart, locale), ...adviceLines(chart.advice, locale)
+        ].join('\n');
+        const result = {
+            content: [{ type: 'text', text }],
+            structuredContent: {
+                valid: chart.problems.length === 0, problems: chart.problems.length,
+                ...(chart.advice.length ? { advice: chart.advice } : {}),
+                ignoredArgs, replaces: { startLine: block.startLine, endLine: block.endLine },
+                staticBlockMissing: 'unsupported', facts, factLines: facts.flatMap(fact => factLines(fact, locale)),
+                block: `\`\`\`plotly\n${body}\n\`\`\``
+            },
+            _meta: chartResource(found.path, rebuild ? [rebuild.source.path] : [])
+        };
+        if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
+            throw new AgentToolError('RESULT_TOO_LARGE', locale === 'ko' ? '차트 블록이 결과 한도를 넘습니다.' : 'The chart block exceeds the result size limit.', true);
+        }
+        return result;
     };
     const handlers = {
         eda_profile: async (args) => {
@@ -1029,7 +1233,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                     series: [{ column: 'value' }]
                 };
             }
-            if (result.type === 'pivot' && resultLength(content, result) > DATA_RESULT_CHARS) throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError(), true);
+            if (result.type === 'pivot' && resultLength(content, result) > DATA_RESULT_CHARS) throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError('analysis.filter', locale), true);
             return { content, structuredContent: result, _meta: { 'dev.agentinterop/resource': { path } } };
         },
         get_chart_guide: (args) => {
@@ -1038,12 +1242,14 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 throw new AgentToolError('INVALID_ARGUMENT', `topic must be one of: ${GUIDE_TOPIC_NAMES.join(', ')}.`, true);
             }
             const others = GUIDE_TOPIC_NAMES.filter(name => name !== topic).join(', ');
+            const dataview = topic === 'dataviewjs' ? dataviewGuideStatus(plugin.app, locale) : null;
             return Promise.resolve({
-                content: [{ type: 'text', text: `${GUIDE_TOPICS[topic]}\n\nOther topics: ${others}.` }],
-                structuredContent: { topic, topics: GUIDE_TOPIC_NAMES }
+                content: [{ type: 'text', text: `${dataview ? dataview.line + '\n\n' : ''}${GUIDE_TOPICS[topic]}\n\nOther topics: ${others}.` }],
+                structuredContent: { topic, topics: GUIDE_TOPIC_NAMES, ...(dataview ? { dataview: dataview.status } : {}) }
             });
         },
         build_chart: async ({ title_from: titleFrom, ...args }) => {
+            if (Object.hasOwn(args, 'from_chart')) return editExistingChart({ ...args, ...(titleFrom === undefined ? {} : { title_from: titleFrom }) });
             if (titleFrom !== undefined && titleFrom !== 'facts') {
                 throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'title_from은 facts만 받습니다.' : 'title_from only accepts facts.', true);
             }
@@ -1055,6 +1261,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             let definition;
             let source;
             let provenance;
+            let recipe;
             let ignoredArgs;
             let factsMeta;
             let normalizedArgs;
@@ -1072,6 +1279,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 resolvedBasename = path !== normalizeAgentPath(args.source.path);
                 const requestedSource = { ...args.source, path };
                 args.source = requestedSource;
+                recipe = rebuildComment({ ...args, title_from: ignoreTitleFrom ? undefined : titleFrom });
                 try { args = resolveChartSource(dataset, args, locale); }
                 catch (error) { throw new AgentToolError('INVALID_ARGUMENT', error.message, true); }
                 normalizedArgs = args.normalizedArgs;
@@ -1125,9 +1333,8 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             // Compact JSON keeps large raw bar arrays within the same result budget without dropping data points.
             const compact = source?.analysis?.type === 'pivot' || (source && !source.analysis && ['bar', 'barh'].includes(args.type) && args.series.length === 1 && source.rows > 40);
             const body = compact ? JSON.stringify(definition) : obsidian.stringifyYaml(definition).trimEnd();
-            const yaml = `${provenance ? `${provenance}\n` : ''}${body}`;
-            const loadedPlotly = plugin.ensureLibraries ? await plugin.ensureLibraries() : undefined;
-            const validator = (Plotly && typeof Plotly.validate === 'function') ? Plotly : (loadedPlotly && typeof loadedPlotly.validate === 'function') ? loadedPlotly : null;
+            const yaml = [provenance, recipe, body].filter(Boolean).join('\n');
+            const validator = await chartValidator();
             const chart = analyzeChart(yaml, locale, validator);
             const { gauge, ...staticArgs } = args;
             if (args.type === 'indicator' && args.target) {
@@ -1176,7 +1383,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             ].join('\n');
             const block = `\`\`\`plotly\n${yaml}\n\`\`\``;
             const sourcePrefix = locale === 'ko' ? '자료: ' : 'Source: ';
-            const caption = source ? (resolvedBasename ? args.sourceCaption : args.caption || args.sourceCaption) : undefined;
+            const caption = source ? args.caption ?? args.sourceCaption : undefined;
             const reportSnippet = [block, ...(lines.length ? [lines.map(line => `- ${line}`).join('\n')] : []), ...(caption ? [caption.startsWith(sourcePrefix) ? caption : `${sourcePrefix}${caption}`] : [])].join('\n\n');
             const result = {
                 content: [{ type: 'text', text }],
@@ -1184,7 +1391,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 ...(source ? { _meta: { 'dev.agentinterop/resource': { path: source.path } } } : {})
             };
             if (resultLength(result.content, result.structuredContent) > DATA_RESULT_CHARS) {
-                if (source?.analysis?.type === 'pivot') throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError('source.analysis.filter'), true);
+                if (source?.analysis?.type === 'pivot') throw new AgentToolError('RESULT_TOO_LARGE', pivotSizeError('source.analysis.filter', locale), true);
                 delete result.structuredContent.reportSnippet;
                 Object.assign(result.structuredContent, { block, snippetOmitted: 'too_long' });
                 result.content[0].text += `\n${block}`;
@@ -1194,55 +1401,73 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
             return result;
         },
         check_chart: (args) => __awaiter(void 0, void 0, void 0, function* () {
-            const loadedPlotly = plugin.ensureLibraries ? yield plugin.ensureLibraries() : undefined;
-            const validator = (Plotly && typeof Plotly.validate === 'function') ? Plotly : (loadedPlotly && typeof loadedPlotly.validate === 'function') ? loadedPlotly : null;
+            const validator = yield chartValidator();
             const chart = analyzeChart(stripPlotlyFence(args.source), locale, validator);
             const summary = `traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 400)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}`;
             const lines = chart.problems.length
                 ? [`${chart.problems.length} problem(s) · ${summary}`, ...problemLines(chart.problems)]
                 : [`No problems · ${summary}`];
-            lines.push(...adviceLines(chart.advice, locale));
+            lines.push(...hintLines(chart, locale), ...adviceLines(chart.advice, locale));
             return {
                 content: [{ type: 'text', text: lines.join('\n') }],
-                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, traces: chart.traces.length, ...(chart.advice.length ? { advice: chart.advice } : {}) }
+                structuredContent: { valid: chart.problems.length === 0, problems: chart.problems.length, traces: chart.traces.length, ...(chart.advice.length ? { advice: chart.advice } : {}), ...(chart.hints ? { hints: chart.hints } : {}) }
             };
         }),
-        read_charts: (args) => __awaiter(void 0, void 0, void 0, function* () {
-            const path = normalizeAgentPath(args.path);
-            const file = plugin.app.vault.getAbstractFileByPath(path);
-            if (!file || typeof file.extension !== 'string') {
-                throw new AgentToolError('NOT_FOUND', `Note not found in the vault: ${path}`, true);
-            }
-            if (file.extension.toLowerCase() !== 'md') {
-                throw new AgentToolError('UNSUPPORTED_FORMAT', 'Only Markdown notes (.md) can be read.');
-            }
-            const found = findChartBlocks(yield plugin.app.vault.cachedRead(file));
-            if (found.charts.length && plugin.ensureLibraries) yield plugin.ensureLibraries();
+        read_charts: async (args) => {
+            const found = await readNoteCharts(args.path);
+            const { path } = found;
             const total = found.charts.length;
-            const from = typeof args.from === 'number' ? args.from : 1;
-            if (from > Math.max(total, 1)) {
+            const single = args.chart !== undefined;
+            const selected = single ? chartAt(found, args.chart) : null;
+            const from = single ? args.chart : args.from ?? 1;
+            if (!Number.isInteger(from) || from < 1 || from > Math.max(total, 1)) {
                 throw new AgentToolError('INVALID_ARGUMENT', `from must be between 1 and ${Math.max(total, 1)}.`, true);
+            }
+            const validator = total ? await chartValidator() : null;
+            let compare;
+            if (args.compare !== undefined) {
+                if (!selected || !isRecord(args.compare)) throw new AgentToolError('INVALID_ARGUMENT', locale === 'ko' ? 'compare에는 chart 번호와 자료 설정을 주세요.' : 'compare requires a chart number and data settings.', true);
+                const definition = closedChart(selected);
+                const data = await readDataset(args.compare.path, args.compare.table);
+                try {
+                    compare = { path: data.path, ...(data.dataset.table ? { table: data.dataset.table.index } : {}), traces: compareTraces(definition.data, data.dataset, args.compare, locale) };
+                }
+                catch (error) {
+                    const toolError = new AgentToolError('INVALID_ARGUMENT', error.message, true);
+                    toolError.resourceMeta = chartResource(path, [data.path]);
+                    throw toolError;
+                }
             }
             const lines = [];
             const sources = [];
             const advice = [];
+            const items = [];
+            const evidence = compare ? [compare.path] : [];
             let size = 0;
             let next = from;
             let withProblems = 0;
-            while (next <= total && next - from < AGENT_MAX_CHARTS) {
+            while (next <= total && next - from < (single ? 1 : AGENT_MAX_CHARTS)) {
                 const block = found.charts[next - 1];
-                const chart = analyzeChart(block.source, locale);
+                const chart = analyzeChart(block.source, locale, validator);
                 const provenance = extractProvenance(block.source);
+                const item = {
+                    chart: next, startLine: block.startLine, endLine: block.endLine, closed: block.closed,
+                    snippet: block.snippet, ...readRebuild(block.source, normalizeAgentPath, locale),
+                    ...(chart.hints ? { hints: chart.hints } : {}),
+                    ...(chart.advice.length ? { advice: chart.advice } : {})
+                };
                 const entry = [
                     `Chart ${next} · lines ${block.startLine}-${block.endLine}${block.closed ? '' : ' · no closing fence'} · traces: ${chart.traces.length}${chart.traces.length ? `(${agentClip(chart.traces.join(', '), 200)})` : ''}${chart.title ? ` · title "${chart.title}"` : ''}${provenance ? ` · source "${agentClip(provenance, 120)}"` : ''} · ${chart.problems.length ? `${chart.problems.length} problem(s)` : 'no problems'}${chart.advice.length ? ` · ${chart.advice.length} advice` : ''}`,
-                    ...problemLines(chart.problems)
+                    ...problemLines(chart.problems),
+                    ...hintLines(chart, locale)
                 ].join('\n');
                 // Stop before the page budget so the host never cuts a chart in half; always return one.
-                if (next > from && size + entry.length > AGENT_PAGE_CHARS) {
-                    break;
-                }
+                const entrySize = entry.length + JSON.stringify(item).length + provenance.length + 80;
+                if (next > from && size + entrySize > AGENT_PAGE_CHARS) break;
+                items.push(item);
+                if (item.rebuild) evidence.push(item.rebuild.source.path);
                 lines.push(entry);
-                size += entry.length + 1;
+                size += entrySize;
                 if (chart.problems.length) {
                     withProblems++;
                 }
@@ -1254,23 +1479,41 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                 }
                 next++;
             }
-            const complete = next > total;
+            const complete = single || next > total;
             const text = [
+                ...(compare ? [
+                    locale === 'ko' ? '원자료 열과 같은 값을 그린 차트에만 뜻이 있습니다.' : 'This comparison is meaningful for charts that plot the original column values.',
+                    comparisonSummary(compare.traces, locale)
+                ] : []),
                 `Note ${path} · ${total} plotly chart(s)${total ? ` · showing ${from}-${next - 1}` : ''}${found.dataview ? ` · ${found.dataview} dataviewjs chart block(s), not checked` : ''}`,
                 ...lines,
                 ...(complete ? [] : [`… continue with from=${next} (${total - next + 1} more chart(s))`])
             ].join('\n');
-            return {
+            const result = {
                 content: [{ type: 'text', text }],
                 structuredContent: Object.assign(
-                    { charts: total, from, to: next - 1, withProblems, dataviewBlocks: found.dataview, complete },
+                    { charts: total, from, to: next - 1, withProblems, dataviewBlocks: found.dataview, complete, items },
                     complete ? {} : { nextFrom: next },
                     sources.length ? { sources } : {},
-                    advice.length ? { advice } : {}
+                    advice.length ? { advice } : {},
+                    compare ? { compare } : {}
                 ),
-                _meta: { 'dev.agentinterop/resource': { path } }
+                _meta: chartResource(path, evidence)
             };
-        }),
+            if (compare && resultLength(result.content, result.structuredContent) > AGENT_MAX_RESULT_CHARS) {
+                const samples = compare.traces.map(trace => trace.mismatches);
+                let limit = 50;
+                do {
+                    limit = Math.floor(limit / 2);
+                    compare.traces.forEach((trace, i) => { trace.mismatches = samples[i].slice(0, limit); });
+                } while (limit && resultLength(result.content, result.structuredContent) > AGENT_MAX_RESULT_CHARS);
+            }
+            if (resultLength(result.content, result.structuredContent) > AGENT_MAX_RESULT_CHARS) {
+                throw new AgentToolError('RESULT_TOO_LARGE', locale === 'ko'
+                    ? '차트 읽기 결과가 문자 한도를 넘습니다.' : 'The chart read exceeds the result size limit.', true);
+            }
+            return result;
+        },
         suggest_chart: async (args) => {
             const { path, dataset } = await readDataset(args.path, args.table);
             let result;
@@ -1361,7 +1604,7 @@ const createAgentProvider = (plugin, locale = getLocale(), { now = () => new Dat
                     isError: true,
                     content: [{ type: 'text', text: known ? error.message : `Tool error: ${error && error.message ? error.message : error}` }],
                     structuredContent: { code, retryable },
-                    _meta: { 'dev.agentinterop/error': { code, retryable } }
+                    _meta: { 'dev.agentinterop/error': { code, retryable }, ...(known ? error.resourceMeta : {}) }
                 };
             }
         }),

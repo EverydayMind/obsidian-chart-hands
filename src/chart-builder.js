@@ -449,24 +449,7 @@ const buildLayout = (args, data, clean) => {
     if (!clean) {
         return layout;
     }
-    layout.margin = { l: 50, r: 30, t: 90, b: 50, autoexpand: true };
-    layout.font = { color: PALETTE.text };
-    if (title) {
-        layout.title.font = { color: PALETTE.title, size: 18 };
-    }
-    if (axes) {
-        const grid = { automargin: true, showgrid: true, gridcolor: PALETTE.grid, griddash: 'dot', showline: false, zeroline: false };
-        const plain = { automargin: true, showgrid: false, showline: false, zeroline: false };
-        const horizontal = type === 'barh' || type === 'funnel';
-        if (layout.xaxis) {
-            Object.assign(layout.xaxis, horizontal || type === 'scatter' || type === 'bubble' ? grid : plain);
-        }
-        Object.assign(layout.yaxis, horizontal || type === 'heatmap' ? plain : grid);
-        if (secondary) {
-            // An overlaying axis syncs its ticks to the primary grid by default, which gives odd tick values.
-            Object.assign(layout.yaxis2, { automargin: true, showgrid: false, zeroline: false, tickmode: 'auto' });
-        }
-    }
+    applyBaseStyle(layout, type, secondary, Boolean(title));
     if (type === 'radar') {
         layout.polar = {
             radialaxis: { visible: true, gridcolor: PALETTE.grid, linecolor: PALETTE.grid },
@@ -488,6 +471,136 @@ const buildLayout = (args, data, clean) => {
     }
     return layout;
 };
+
+function applyBaseStyle(layout, type, secondary, title) {
+    layout.margin = { ...layout.margin, l: 50, r: 30, t: 90, b: 50, autoexpand: true };
+    layout.font = { ...layout.font, color: PALETTE.text };
+    if (title) {
+        layout.title.font = { ...layout.title.font, color: PALETTE.title, size: 18 };
+    }
+    if (!NO_AXES.includes(type)) {
+        const grid = { automargin: true, showgrid: true, gridcolor: PALETTE.grid, griddash: 'dot', showline: false, zeroline: false };
+        const plain = { automargin: true, showgrid: false, showline: false, zeroline: false };
+        const horizontal = type === 'barh' || type === 'funnel';
+        if (layout.xaxis) {
+            Object.assign(layout.xaxis, horizontal || type === 'scatter' || type === 'bubble' ? grid : plain);
+        }
+        Object.assign(layout.yaxis, horizontal || type === 'heatmap' ? plain : grid);
+        if (secondary) {
+            // An overlaying axis syncs its ticks to the primary grid by default, which gives odd tick values.
+            Object.assign(layout.yaxis2, { automargin: true, showgrid: false, zeroline: false, tickmode: 'auto' });
+        }
+    }
+}
+
+const REPORT_STYLES = ['report', 'print', 'slides'];
+function applyReportStyle(layout, style, colors = PRINT_COLORS) {
+    layout.font = { ...layout.font, family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif', size: style === 'slides' ? 16 : 13 };
+    if (layout.title && typeof layout.title === 'object') {
+        Object.assign(layout.title, { x: 0, xanchor: 'left', font: { ...layout.title.font, color: PALETTE.title, size: style === 'slides' ? 26 : 20 } });
+    }
+    if (style === 'print') {
+        layout.colorway = colors;
+        layout.paper_bgcolor = layout.plot_bgcolor = '#FFFFFF';
+    }
+}
+
+function addTarget(layout, target, horizontal, axis, style, unit, locale, printColor = PRINT_COLORS[0]) {
+    const line = { dash: 'dot', color: style === 'print' ? printColor : PALETTE.highlight };
+    const { value, label } = target;
+    const shape = horizontal
+        ? { type: 'line', xref: 'x', x0: value, x1: value, yref: 'paper', y0: 0, y1: 1, line }
+        : { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: axis, y0: value, y1: value, line };
+    const position = horizontal ? { xref: 'x', x: value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: value };
+    layout.shapes = [...(layout.shapes || []), shape];
+    layout.annotations = [...(layout.annotations || []), { ...position, yanchor: 'bottom', showarrow: false, text: label ?? (locale === 'ko' ? '목표' : 'Target') + ' ' + joinUnit(value, unit) }];
+}
+
+function addCaption(layout, caption) {
+    layout.annotations = [...(layout.annotations || []), { xref: 'paper', yref: 'paper', x: 0, y: -0.2, xanchor: 'left', yanchor: 'top', showarrow: false, text: caption, font: { size: 11, color: '#6B7280' } }];
+    layout.margin = { ...layout.margin, b: Math.max(layout.margin?.b || 0, 90) };
+}
+const isBuilderCaption = annotation => annotation?.xref === 'paper' && annotation.yref === 'paper'
+    && annotation.x === 0 && annotation.y === -0.2 && annotation.xanchor === 'left' && annotation.yanchor === 'top'
+    && annotation.showarrow === false && annotation.font?.size === 11 && annotation.font.color === '#6B7280';
+
+const GRAYS = ['#222222', '#555555', '#888888', '#BBBBBB', '#707070'];
+function printTraceColors(data) {
+    const shades = new Map();
+    const gray = value => {
+        if (Array.isArray(value)) return value.map(gray);
+        if (typeof value !== 'string') return value; // Numeric colors are data; retain their values.
+        if (value === 'transparent') return value;
+        if (!shades.has(value)) shades.set(value, GRAYS[shades.size % GRAYS.length]);
+        const shade = shades.get(value);
+        const opacity = /^rgba\([^,]+,[^,]+,[^,]+,\s*([0-9.]+)\s*\)$/i.exec(value);
+        if (opacity) {
+            const channel = parseInt(shade.slice(1, 3), 16);
+            return 'rgba(' + [channel, channel, channel, opacity[1]].join(',') + ')';
+        }
+        return shade;
+    };
+    const recolor = part => {
+        if (!part || typeof part !== 'object') return;
+        for (const key of ['color', 'fillcolor', 'outliercolor', 'fgcolor', 'bgcolor']) {
+            if (Object.hasOwn(part, key)) part[key] = gray(part[key]);
+        }
+        for (const key of ['line', 'marker', 'pattern', 'textfont', 'selected', 'unselected']) recolor(part[key]);
+        if (Object.hasOwn(part, 'colorscale') || Array.isArray(part.color) && part.color.some(Number.isFinite)) {
+            part.colorscale = Array.isArray(part.colorscale)
+                ? part.colorscale.map(stop => Array.isArray(stop) ? [stop[0], gray(stop[1])] : stop)
+                : [[0, GRAYS[3]], [1, GRAYS[0]]];
+            part.autocolorscale = false;
+        }
+    };
+    data.forEach(recolor);
+}
+
+// Edit the parsed definition directly. No trace is reconstructed from builder arguments.
+export function restyleChart(definition, args, locale) {
+    const error = (ko, en) => fail(locale === 'ko' ? ko : en);
+    const { data } = definition;
+    const layout = { ...definition.layout };
+    if (data.length > 12) error('계열이 12개를 넘는 차트는 바꿀 수 없습니다.', 'Charts with more than 12 traces cannot be edited.');
+    if (Object.keys(layout).some(key => /^[xy]axis(?:[2-9]|\d{2,})$/.test(key))
+        || data.some(trace => [trace.xaxis, trace.yaxis].some(axis => /^[xy](?:[2-9]|\d{2,})$/.test(axis)))) {
+        error('보조축이 있는 차트는 바꿀 수 없습니다.', 'Charts with secondary axes cannot be edited.');
+    }
+    const types = data.map(trace => trace.type ?? 'scatter');
+    const cartesian = types.every(type => ['bar', 'scatter', 'line', 'area', 'histogram', 'box'].includes(type));
+    if (!cartesian && (args.style !== undefined || args.target !== undefined)) {
+        error('이 차트에서는 title과 caption만 바꿀 수 있습니다.', 'This chart supports title and caption edits only.');
+    }
+    const horizontalBar = trace => trace.type === 'bar' && trace.orientation === 'h';
+    const horizontal = data.every(horizontalBar);
+    if (args.title !== undefined) layout.title = { ...(typeof layout.title === 'object' ? layout.title : null), text: args.title };
+    if (args.style !== undefined) {
+        if (!REPORT_STYLES.includes(args.style)) error('from_chart의 style은 report, print, slides 중 하나여야 합니다.', 'from_chart style must be report, print or slides.');
+        layout.xaxis ??= {};
+        layout.yaxis ??= {};
+        const points = data.every(trace => (trace.type ?? 'scatter') === 'scatter' && !String(trace.mode ?? '').includes('lines') && !trace.stackgroup);
+        applyBaseStyle(layout, horizontal ? 'barh' : points ? 'scatter' : 'bar', false, layout.title && typeof layout.title === 'object');
+        applyReportStyle(layout, args.style, GRAYS);
+        if (args.style === 'print') printTraceColors(data);
+        if (Array.isArray(layout.annotations) && layout.annotations.some(isBuilderCaption)) layout.margin.b = Math.max(layout.margin.b, 90);
+    }
+    if (args.target !== undefined) {
+        const { target } = args;
+        if (!target || typeof target !== 'object' || Array.isArray(target) || Object.keys(target).some(key => !['value', 'label', 'series'].includes(key))
+            || !Number.isFinite(target.value) || target.series !== undefined && (!Number.isInteger(target.series) || target.series < 0 || target.series >= data.length)
+            || target.label !== undefined && (typeof target.label !== 'string' || target.label.length > 100 || /\p{Cc}/u.test(target.label))) {
+            error('target의 값 또는 계열이 잘못되었습니다.', 'Invalid target value or series.');
+        }
+        const onX = horizontalBar(data[target.series ?? 0]);
+        addTarget(layout, target, onX, 'y', args.style, '', locale, GRAYS[0]);
+    }
+    if (args.caption !== undefined) {
+        if (typeof args.caption !== 'string' || args.caption.length > 200 || /\p{Cc}/u.test(args.caption)) error('caption에는 200자 이하의 한 줄을 주세요.', 'caption must be one line of up to 200 characters.');
+        if (Array.isArray(layout.annotations)) layout.annotations = layout.annotations.filter(annotation => !isBuilderCaption(annotation));
+        if (args.caption) addCaption(layout, args.caption);
+    }
+    return { ...definition, layout };
+}
 
 // Returns { data, layout, config }. Throws an Error with a message the agent can act on.
 export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = {}) => {
@@ -528,12 +641,9 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         data[0].text = type === 'heatmap' ? displays.map(entry => entry.strings) : displays[0].strings;
     }
     const layout = buildLayout(args, data, clean);
-    if (['report', 'print', 'slides'].includes(args.style)) {
-        layout.font = { ...layout.font, family: '"Malgun Gothic", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif', size: args.style === 'slides' ? 16 : 13 };
-        if (layout.title) Object.assign(layout.title, { x: 0, xanchor: 'left', font: { color: PALETTE.title, size: args.style === 'slides' ? 26 : 20 } });
+    if (REPORT_STYLES.includes(args.style)) {
+        applyReportStyle(layout, args.style);
         if (args.style === 'print') {
-            layout.colorway = PRINT_COLORS;
-            layout.paper_bgcolor = layout.plot_bgcolor = '#FFFFFF';
             if (type === 'heatmap') data[0].colorscale = [[0, '#F9FAFB'], [1, '#111827']];
             data.forEach((trace, i) => { if (trace.type === 'bar') trace.marker = { ...trace.marker, color: layout.colorway[i % 5], ...(data.filter(t => t.type === 'bar').length > 1 ? { pattern: { shape: ['', '/', 'x', '.'][i % 4] } } : {}) }; });
         }
@@ -550,11 +660,8 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
         });
     }
     if (args.target && type !== 'indicator') {
-        const t = args.target, horizontal = type === 'barh', axis = series[t.series ?? 0]?.secondary ? 'y2' : 'y';
-        const line = { dash: 'dot', color: args.style === 'print' ? PRINT_COLORS[0] : PALETTE.highlight };
-        layout.shapes = [horizontal ? { type: 'line', xref: 'x', x0: t.value, x1: t.value, yref: 'paper', y0: 0, y1: 1, line } : { type: 'line', xref: 'paper', x0: 0, x1: 1, yref: axis, y0: t.value, y1: t.value, line }];
-        const targetValue = joinUnit(t.value, args.unit || '');
-        layout.annotations = [{ ...(horizontal ? { xref: 'x', x: t.value, yref: 'paper', y: 1 } : { xref: 'paper', x: 1, xanchor: 'right', yref: axis, y: t.value }), yanchor: 'bottom', showarrow: false, text: t.label ?? `${locale === 'ko' ? '목표' : 'Target'} ${targetValue}` }];
+        const axis = series[args.target.series ?? 0]?.secondary ? 'y2' : 'y';
+        addTarget(layout, args.target, type === 'barh', axis, args.style, args.unit || '', locale);
     }
     if (args.highlight) {
         const highlightColor = args.style === 'print' ? '#111827' : PALETTE.highlight;
@@ -575,9 +682,6 @@ export const buildChartDefinition = (args, { mode = 'strict', locale = 'ko' } = 
             data[i].marker = { ...data[i].marker, color: labels.map((_, n) => chosen.has(n) ? highlightColor : mutedColor) };
         }
     }
-    if (args.caption) {
-        layout.annotations = [...(layout.annotations || []), { xref: 'paper', yref: 'paper', x: 0, y: -0.2, xanchor: 'left', yanchor: 'top', showarrow: false, text: args.caption, font: { size: 11, color: '#6B7280' } }];
-        layout.margin = { ...layout.margin, b: Math.max(layout.margin?.b || 0, 90) };
-    }
+    if (args.caption) addCaption(layout, args.caption);
     return { data, layout, config };
 };

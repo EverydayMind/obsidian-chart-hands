@@ -87,7 +87,7 @@
       {
         "name": "eda_analyze",
         "title": "Analyze a CSV dataset",
-        "description": "summary returns count, sum, mean, min, max for each of 1–8 numeric columns over matching rows and each column's share of their combined sum. Use it for one overall total or average, e.g. a year's monthly average with a filter. Period example: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"}. aggregate: one value per group and overall for mean, min, max or median (same function over all matching rows); label and original give change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. 1,234, 12%, ₩5 and △5 (negative) are numbers; mixed units are refused.",
+        "description": "summary: stats and shares for 1–8 numeric columns. aggregate groups by columns[0], reduces columns[1] (sum, mean, count, min, max, median); count may omit columns[1]. For mean/min/max/median overall reduces all matching rows. Sort label or original for change from the previous group. pivot: [x, series, value?]; count may omit value. rows: paginated cells and row numbers. Period filter: {\"column\":\"연월\",\"op\":\"gte\",\"value\":\"2025-01\"}.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -307,7 +307,7 @@
       {
         "name": "check_chart",
         "title": "Check a Plotly chart",
-        "description": "Check the content of a plotly code block (YAML or JSON): that it parses, that the top-level keys are only data, layout, config and fit, that trace and layout attributes and values suit Plotly, and common mistakes such as unquoted colours. Returns a list of problems. Call it before writing a chart block into a note. Does not change any note. It also lists optional advice (presentation notes) that never makes a chart invalid.",
+        "description": "Check plotly YAML/JSON syntax, top-level keys and Plotly attributes. Reports problems and optional presentation advice. Call before writing a hand-edited block.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -361,7 +361,7 @@
       {
         "name": "read_charts",
         "title": "Read the Plotly charts in a note",
-        "description": "Find the plotly code blocks in a note and return, for each chart, its line range, trace types and point counts, title, and the problems found by the check. Returns at most 20 charts per call and gives the next from value when there are more. Charts drawn with dataviewjs are counted but not checked.",
+        "description": "List and check plotly blocks in a note, with line ranges and rebuild arguments. Dataviewjs charts are counted. Up to 20 per page.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -379,7 +379,52 @@
               "type": "integer",
               "minimum": 1,
               "maximum": 100000,
-              "description": "Start reading at this chart number. Defaults to 1."
+              "description": "First chart to list, default 1."
+            },
+            "chart": {
+              "type": "integer",
+              "minimum": 1,
+              "description": "1-based chart number."
+            },
+            "compare": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "labels"
+              ],
+              "description": "With chart, compare raw values to a CSV or Markdown table.",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Vault-relative data path."
+                },
+                "table": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 1000,
+                  "description": "Markdown table number, default 1."
+                },
+                "labels": {
+                  "type": "string",
+                  "description": "Label column."
+                },
+                "columns": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string"
+                  },
+                  "description": "Numeric columns in trace order. Omit only for unique trace-name matches."
+                },
+                "tolerance": {
+                  "type": "number",
+                  "minimum": 0,
+                  "description": "Absolute tolerance, default 0."
+                }
+              }
             }
           }
         },
@@ -421,7 +466,7 @@
       {
         "name": "get_chart_guide",
         "title": "Plotly chart writing guide",
-        "description": "Plotly authoring help by topic. Read basics for block syntax and report for charts from vault data, goals, highlights, facts and export. Other topics cover examples, style, statistics, hierarchies, time series, scientific charts, maps, layout, Dataview JS and troubleshooting.",
+        "description": "Plotly authoring guide. Use basics for syntax, report for facts and export, and dataviewjs for live charts.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -484,13 +529,12 @@
       {
         "name": "build_chart",
         "title": "Build a Plotly chart block",
-        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. Raw sources read 1–200 rows after filter, sort and limit; use source.sort and source.limit for top-N. With source, omit top-level labels and series values/x/size arrays. Blanks are gaps. Direct charts use series[].values; scatter and bubble also need x (bubble also size). Insert reportSnippet or block with host editing tools. staticBlock is for HWPX or PPTX export.",
+        "description": "CSV의 값을 그릴 때는 값을 옮겨 적지 말고 source와 series[].column을 준다. Build a plotly block and check it against Plotly's schema. Raw sources read 1–200 rows after filtering and sorting. Blanks are gaps. Insert reportSnippet or block with host editing tools. staticBlock is for HWPX/PPTX.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
           "required": [
-            "type",
-            "series"
+            "type"
           ],
           "properties": {
             "type": {
@@ -516,7 +560,29 @@
                 "radar",
                 "indicator"
               ],
-              "description": "Chart type."
+              "description": "Chart type, ignored with from_chart."
+            },
+            "from_chart": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "path",
+                "chart"
+              ],
+              "description": "Edit an existing chart using style, target, title or caption.",
+              "properties": {
+                "path": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096,
+                  "description": "Vault-relative note path."
+                },
+                "chart": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "description": "1-based chart number."
+                }
+              }
             },
             "title": {
               "type": "string",
@@ -798,7 +864,7 @@
                     "items": {
                       "type": "number"
                     },
-                    "description": "One number per label (per x for scatter and bubble), or raw observations for histogram, box and violin."
+                    "description": "Per label or x; raw for histogram, box, violin. Indicator: [value, reference?]."
                   },
                   "x": {
                     "type": "array",
@@ -987,7 +1053,7 @@
       {
         "name": "suggest_chart",
         "title": "Suggest chart types for a dataset",
-        "description": "Suggest chart types for a goal from the data's shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or a Markdown table, classifies columns (period, category, numeric with unit) and returns up to three candidates with the reason, cautions found in the data, and build arguments that build_chart accepts as they are; needs lists what the data cannot tell (a target value, the periods to compare). Deterministic rules; does not draw or change files.",
+        "description": "Suggest chart types for a goal from the data's shape: trend, compare, rank, share, distribution, relationship, target, change or matrix. Reads a vault CSV or Markdown table, classifies columns (period, category, numeric with unit), and returns up to three candidates with reasons, cautions and arguments for build_chart. needs lists missing inputs such as a target value or the periods to compare.",
         "inputSchema": {
           "type": "object",
           "additionalProperties": false,
@@ -3106,7 +3172,7 @@
         "content": [
           {
             "type": "text",
-            "text": "correlation needs 2 columns as strings in analysis.columns."
+            "text": "correlation의 analysis.columns에 열 이름을 2개 주세요."
           }
         ],
         "structuredContent": {
@@ -3529,7 +3595,7 @@
           "unlistedNumericColumns": [
             "other"
           ],
-          "note": "summary returns count, sum, mean, min, max and quartiles together; function is not needed.",
+          "note": "summary는 개수, 합계, 평균, 최솟값, 최댓값, 사분위수를 함께 반환하므로 function을 생략할 수 있습니다.",
           "chartArgs": {
             "type": "indicator",
             "style": "report",
@@ -4067,6 +4133,23 @@
           "withProblems": 0,
           "dataviewBlocks": 0,
           "complete": true,
+          "items": [
+            {
+              "chart": 1,
+              "startLine": 1,
+              "endLine": 3,
+              "closed": true,
+              "snippet": {
+                "startLine": 1,
+                "endLine": 3
+              },
+              "rebuild": null,
+              "advice": [
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            }
+          ],
           "advice": [
             {
               "chart": 1,
@@ -4099,7 +4182,8 @@
           "to": 0,
           "withProblems": 0,
           "dataviewBlocks": 0,
-          "complete": true
+          "complete": true,
+          "items": []
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -4503,7 +4587,7 @@
         "content": [
           {
             "type": "text",
-            "text": "Use DataviewJS only when the user explicitly wants a chart computed from dynamic vault data and the Dataview plugin is enabled. Present the block for the user to run; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.\n\n```dataviewjs\n// Compute data, layout and config yourself, then call:\nawait window.renderPlotly(this.container, data, layout, config);\n```\n\nCode that reads window.Plotly or window.d3 directly must first run: const { Plotly, d3 } = await window.loadPlotlyLibraries();\nwindow.renderPlotly waits for the libraries by itself. Plotly.newPlot does not work inside DataviewJS; use window.renderPlotly. The read_charts tool counts dataviewjs chart blocks but does not check them.\n\nOther topics: basics, style, report, examples, statistical, hierarchy, timeseries, scientific, maps, layout, errors."
+            "text": "지금 상태: Dataview 꺼짐 · JavaScript 쿼리 확인할 수 없음 — dataviewjs 블록은 코드로만 보입니다.\n\nUse DataviewJS only when the user explicitly wants a chart computed from dynamic vault data and the Dataview plugin is enabled. Present the block for the user to run; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.\n\n```dataviewjs\n// Compute data, layout and config yourself, then call:\nawait window.renderPlotly(this.container, data, layout, config);\n```\n\nCode that reads window.Plotly or window.d3 directly must first run: const { Plotly, d3 } = await window.loadPlotlyLibraries();\nwindow.renderPlotly waits for the libraries by itself. Plotly.newPlot does not work inside DataviewJS; use window.renderPlotly. The read_charts tool counts dataviewjs chart blocks but does not check them.\n\nOther topics: basics, style, report, examples, statistical, hierarchy, timeseries, scientific, maps, layout, errors."
           }
         ],
         "structuredContent": {
@@ -4521,7 +4605,11 @@
             "layout",
             "dataviewjs",
             "errors"
-          ]
+          ],
+          "dataview": {
+            "enabled": false,
+            "javascript": null
+          }
         }
       }
     },
@@ -7309,7 +7397,7 @@
             "최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목",
             "최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: large.csv · rows 100 of 100 · built 2026-11-23\n{\"data\":[{\"x\":[\"aaaaaaaaaaaaaaaaaaaaaaaaa0\",\"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\"aaaaaaaaaaaaaaaaaaaaaaaaa99\"],\"y\":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99],\"type\":\"bar\",\"marker\":{\"color\":\"#2563EB\"}}],\"layout\":{\"xaxis\":{\"automargin\":true,\"showgrid\":false,\"showline\":false,\"zeroline\":false},\"yaxis\":{\"title\":{\"text\":\"value\"},\"automargin\":true,\"showgrid\":true,\"gridcolor\":\"#E2E8F0\",\"griddash\":\"dot\",\"showline\":false,\"zeroline\":false},\"margin\":{\"l\":50,\"r\":30,\"t\":90,\"b\":50,\"autoexpand\":true},\"font\":{\"color\":\"#334155\"}},\"config\":{\"responsive\":true,\"displaylogo\":false}}\n```\n\n- 최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n- 최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n\n자료: large.csv · 100행"
+          "reportSnippet": "```plotly\n# chart-hands source: large.csv · rows 100 of 100 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"large.csv\",\"labels\":\"name\"},\"series\":[{\"column\":\"value\"}]}\n{\"data\":[{\"x\":[\"aaaaaaaaaaaaaaaaaaaaaaaaa0\",\"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\"aaaaaaaaaaaaaaaaaaaaaaaaa99\"],\"y\":[0,1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26,27,28,29,30,31,32,33,34,35,36,37,38,39,40,41,42,43,44,45,46,47,48,49,50,51,52,53,54,55,56,57,58,59,60,61,62,63,64,65,66,67,68,69,70,71,72,73,74,75,76,77,78,79,80,81,82,83,84,85,86,87,88,89,90,91,92,93,94,95,96,97,98,99],\"type\":\"bar\",\"marker\":{\"color\":\"#2563EB\"}}],\"layout\":{\"xaxis\":{\"automargin\":true,\"showgrid\":false,\"showline\":false,\"zeroline\":false},\"yaxis\":{\"title\":{\"text\":\"value\"},\"automargin\":true,\"showgrid\":true,\"gridcolor\":\"#E2E8F0\",\"griddash\":\"dot\",\"showline\":false,\"zeroline\":false},\"margin\":{\"l\":50,\"r\":30,\"t\":90,\"b\":50,\"autoexpand\":true},\"font\":{\"color\":\"#334155\"}},\"config\":{\"responsive\":true,\"displaylogo\":false}}\n```\n\n- 최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n- 최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n\n자료: large.csv · 100행"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -7640,7 +7728,7 @@
             "최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목",
             "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · filter value gt 0 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"4\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"자료: data.csv · 2행 · 조건 value gt 0\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행 · 조건 value gt 0"
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · filter value gt 0 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"data.csv\",\"labels\":\"month\",\"filter\":[{\"column\":\"value\",\"op\":\"gt\",\"value\":\"0\"}]},\"series\":[{\"column\":\"value\"}],\"style\":\"report\"}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"4\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 90,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 13\n    },\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"yref\": \"paper\",\n        \"x\": 0,\n        \"y\": -0.2,\n        \"xanchor\": \"left\",\n        \"yanchor\": \"top\",\n        \"showarrow\": false,\n        \"text\": \"자료: data.csv · 2행 · 조건 value gt 0\",\n        \"font\": {\n          \"size\": 11,\n          \"color\": \"#6B7280\"\n        }\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행 · 조건 value gt 0"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -7749,7 +7837,7 @@
             "최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목",
             "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · analysis aggregate month value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"y\": [\n        4,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"4\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행 · aggregate month value sum"
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · analysis aggregate month value sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"data.csv\",\"analysis\":{\"type\":\"aggregate\",\"columns\":[\"month\",\"value\"]}},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"y\": [\n        4,\n        2\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"4\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행 · aggregate month value sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -7823,7 +7911,7 @@
         "content": [
           {
             "type": "text",
-            "text": "source.analysis.columns: summary needs 2–8 distinct columns. Example: [\"month\",\"value\"]"
+            "text": "source.analysis.columns: summary에 서로 다른 열 이름을 2–8개 주세요. 예: [\"month\",\"value\"]"
           }
         ],
         "structuredContent": {
@@ -8231,7 +8319,7 @@
             "최댓값: total 100% · 표시 1항목 중 유효 1항목",
             "최솟값: total 100% · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis aggregate label value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"비중\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"100%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"비중(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: total 100% · 표시 1항목 중 유효 1항목\n- 최솟값: total 100% · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · aggregate label value sum"
+          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis aggregate label value sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"compare.md\",\"analysis\":{\"type\":\"aggregate\",\"columns\":[\"label\",\"value\"]}},\"series\":[{\"column\":\"share\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"비중\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"100%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"비중(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: total 100% · 표시 1항목 중 유효 1항목\n- 최솟값: total 100% · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · aggregate label value sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -8367,7 +8455,7 @@
             "최댓값: total −1 · 표시 1항목 중 유효 1항목",
             "최솟값: total −1 · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        -1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"−1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 기준 대비 50.0%, 차이 −1 · 공통 1항목\n- 최댓값: total −1 · 표시 1항목 중 유효 1항목\n- 최솟값: total −1 · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · compare label value reference sum"
+          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"compare.md\",\"analysis\":{\"type\":\"compare\",\"columns\":[\"label\",\"value\",\"reference\"]}},\"series\":[{\"column\":\"difference\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        -1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"−1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 기준 대비 50.0%, 차이 −1 · 공통 1항목\n- 최댓값: total −1 · 표시 1항목 중 유효 1항목\n- 최솟값: total −1 · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · compare label value reference sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -8503,7 +8591,7 @@
             "최댓값: total 50% · 표시 1항목 중 유효 1항목",
             "최솟값: total 50% · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        50\n      ],\n      \"type\": \"bar\",\n      \"name\": \"기준 대비\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"50%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"기준 대비(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 기준 대비 50.0%, 차이 −1 · 공통 1항목\n- 최댓값: total 50% · 표시 1항목 중 유효 1항목\n- 최솟값: total 50% · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · compare label value reference sum"
+          "reportSnippet": "```plotly\n# chart-hands source: compare.md table 1 · rows 1 of 1 · analysis compare label value reference sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"compare.md\",\"analysis\":{\"type\":\"compare\",\"columns\":[\"label\",\"value\",\"reference\"]}},\"series\":[{\"column\":\"ratio\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"total\"\n      ],\n      \"y\": [\n        50\n      ],\n      \"type\": \"bar\",\n      \"name\": \"기준 대비\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"50%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"기준 대비(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 기준 대비 50.0%, 차이 −1 · 공통 1항목\n- 최댓값: total 50% · 표시 1항목 중 유효 1항목\n- 최솟값: total 50% · 표시 1항목 중 유효 1항목\n\n자료: compare.md 표 1 · 1행 · compare label value reference sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -8648,7 +8736,7 @@
             "최댓값: A +100% · 표시 1항목 중 유효 1항목",
             "최솟값: A +100% · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: period.csv · rows 1 of 2 · analysis compare group value sum 2025→2026 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감률\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"+100%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감률(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2026 2, 2025 대비 +1 (+100%) · 양 기간 공통 1항목\n- 최댓값: A +100% · 표시 1항목 중 유효 1항목\n- 최솟값: A +100% · 표시 1항목 중 유효 1항목\n\n자료: period.csv · 2행 · compare group value sum 2025→2026"
+          "reportSnippet": "```plotly\n# chart-hands source: period.csv · rows 1 of 2 · analysis compare group value sum 2025→2026 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"period.csv\",\"analysis\":{\"type\":\"compare\",\"columns\":[\"group\",\"value\"],\"period\":{\"column\":\"year\",\"base\":\"2025\",\"target\":\"2026\"}}},\"series\":[{\"column\":\"rate\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        100\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감률\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"+100%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감률(%)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2026 2, 2025 대비 +1 (+100%) · 양 기간 공통 1항목\n- 최댓값: A +100% · 표시 1항목 중 유효 1항목\n- 최솟값: A +100% · 표시 1항목 중 유효 1항목\n\n자료: period.csv · 2행 · compare group value sum 2025→2026"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -8951,7 +9039,7 @@
             "최솟값: A 1억원 · 표시 1곳 중 유효 1곳",
             "표시값 합계: 1억원 · 표시 1곳 중 유효 1곳"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: facts-ko.csv · rows 1 of 1 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1억원\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value3(억원)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 1억원 · 표시 1곳 중 유효 1곳\n- 최솟값: A 1억원 · 표시 1곳 중 유효 1곳\n- 표시값 합계: 1억원 · 표시 1곳 중 유효 1곳\n\n자료: facts-ko.csv · 1행"
+          "reportSnippet": "```plotly\n# chart-hands source: facts-ko.csv · rows 1 of 1 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"facts-ko.csv\",\"labels\":\"부서\"},\"series\":[{\"column\":\"value3\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"1억원\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value3(억원)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 1억원 · 표시 1곳 중 유효 1곳\n- 최솟값: A 1억원 · 표시 1곳 중 유효 1곳\n- 표시값 합계: 1억원 · 표시 1곳 중 유효 1곳\n\n자료: facts-ko.csv · 1행"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -9135,7 +9223,7 @@
             "최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목",
             "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"4\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"data.csv\",\"labels\":\"month\"},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"4\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -10332,7 +10420,7 @@
             "최솟값: A $3 · 표시 3항목 중 유효 3항목",
             "표시값 합계: $10 · 표시 3항목 중 유효 3항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 3 of 5 · analysis aggregate group value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"C\",\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        4,\n        3,\n        3\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"$4\",\n        \"$3\",\n        \"$3\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value($)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: C $4 · 표시 3항목 중 유효 3항목\n- 최솟값: A $3 · 표시 3항목 중 유효 3항목\n- 표시값 합계: $10 · 표시 3항목 중 유효 3항목\n\n자료: facts.csv · 5행 · aggregate group value sum"
+          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 3 of 5 · analysis aggregate group value sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"facts.csv\",\"analysis\":{\"type\":\"aggregate\",\"columns\":[\"group\",\"value\"]}},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"C\",\n        \"A\",\n        \"B\"\n      ],\n      \"y\": [\n        4,\n        3,\n        3\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"$4\",\n        \"$3\",\n        \"$3\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value($)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: C $4 · 표시 3항목 중 유효 3항목\n- 최솟값: A $3 · 표시 3항목 중 유효 3항목\n- 표시값 합계: $10 · 표시 3항목 중 유효 3항목\n\n자료: facts.csv · 5행 · aggregate group value sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -10440,7 +10528,7 @@
             "최댓값: A 2 · 표시 3항목 중 유효 3항목",
             "최솟값: B 1 · 표시 3항목 중 유효 3항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 3 of 5 · analysis aggregate group count · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"C\",\n        \"B\"\n      ],\n      \"y\": [\n        2,\n        2,\n        1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"건수\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"2\",\n        \"1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"건수\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 2 · 표시 3항목 중 유효 3항목\n- 최솟값: B 1 · 표시 3항목 중 유효 3항목\n\n자료: facts.csv · 5행 · aggregate group count"
+          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 3 of 5 · analysis aggregate group count · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"facts.csv\",\"analysis\":{\"type\":\"aggregate\",\"columns\":[\"group\"],\"function\":\"count\"}},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\",\n        \"C\",\n        \"B\"\n      ],\n      \"y\": [\n        2,\n        2,\n        1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"건수\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2\",\n        \"2\",\n        \"1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"건수\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: A 2 · 표시 3항목 중 유효 3항목\n- 최솟값: B 1 · 표시 3항목 중 유효 3항목\n\n자료: facts.csv · 5행 · aggregate group count"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -10549,7 +10637,7 @@
             "최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목",
             "최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: large.csv · rows 100 of 100 · analysis aggregate name value sum · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa99\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa0\"\n      ],\n      \"y\": [\n        99,\n        98,\n        97,\n        96,\n        95,\n        94,\n        93,\n        92,\n        91,\n        90,\n        89,\n        88,\n        87,\n        86,\n        85,\n        84,\n        83,\n        82,\n        81,\n        80,\n        79,\n        78,\n        77,\n        76,\n        75,\n        74,\n        73,\n        72,\n        71,\n        70,\n        69,\n        68,\n        67,\n        66,\n        65,\n        64,\n        63,\n        62,\n        61,\n        60,\n        59,\n        58,\n        57,\n        56,\n        55,\n        54,\n        53,\n        52,\n        51,\n        50,\n        49,\n        48,\n        47,\n        46,\n        45,\n        44,\n        43,\n        42,\n        41,\n        40,\n        39,\n        38,\n        37,\n        36,\n        35,\n        34,\n        33,\n        32,\n        31,\n        30,\n        29,\n        28,\n        27,\n        26,\n        25,\n        24,\n        23,\n        22,\n        21,\n        20,\n        19,\n        18,\n        17,\n        16,\n        15,\n        14,\n        13,\n        12,\n        11,\n        10,\n        9,\n        8,\n        7,\n        6,\n        5,\n        4,\n        3,\n        2,\n        1,\n        0\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n- 최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n\n자료: large.csv · 100행 · aggregate name value sum"
+          "reportSnippet": "```plotly\n# chart-hands source: large.csv · rows 100 of 100 · analysis aggregate name value sum · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"large.csv\",\"analysis\":{\"type\":\"aggregate\",\"columns\":[\"name\",\"value\"],\"limit\":100}},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa99\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa98\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa97\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa96\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa95\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa94\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa93\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa92\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa91\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa90\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa89\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa88\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa87\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa86\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa85\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa84\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa83\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa82\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa81\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa80\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa79\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa78\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa77\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa76\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa75\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa74\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa73\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa72\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa71\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa70\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa69\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa68\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa67\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa66\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa65\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa64\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa63\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa62\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa61\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa60\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa59\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa58\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa57\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa56\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa55\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa54\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa53\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa52\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa51\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa50\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa49\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa48\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa47\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa46\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa45\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa44\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa43\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa42\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa41\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa40\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa39\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa38\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa37\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa36\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa35\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa34\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa33\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa32\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa31\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa30\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa29\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa28\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa27\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa26\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa25\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa24\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa23\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa22\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa21\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa20\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa19\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa18\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa17\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa16\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa15\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa14\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa13\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa12\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa11\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa10\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa9\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa8\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa7\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa6\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa5\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa4\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa3\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa2\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa1\",\n        \"aaaaaaaaaaaaaaaaaaaaaaaaa0\"\n      ],\n      \"y\": [\n        99,\n        98,\n        97,\n        96,\n        95,\n        94,\n        93,\n        92,\n        91,\n        90,\n        89,\n        88,\n        87,\n        86,\n        85,\n        84,\n        83,\n        82,\n        81,\n        80,\n        79,\n        78,\n        77,\n        76,\n        75,\n        74,\n        73,\n        72,\n        71,\n        70,\n        69,\n        68,\n        67,\n        66,\n        65,\n        64,\n        63,\n        62,\n        61,\n        60,\n        59,\n        58,\n        57,\n        56,\n        55,\n        54,\n        53,\n        52,\n        51,\n        50,\n        49,\n        48,\n        47,\n        46,\n        45,\n        44,\n        43,\n        42,\n        41,\n        40,\n        39,\n        38,\n        37,\n        36,\n        35,\n        34,\n        33,\n        32,\n        31,\n        30,\n        29,\n        28,\n        27,\n        26,\n        25,\n        24,\n        23,\n        22,\n        21,\n        20,\n        19,\n        18,\n        17,\n        16,\n        15,\n        14,\n        13,\n        12,\n        11,\n        10,\n        9,\n        8,\n        7,\n        6,\n        5,\n        4,\n        3,\n        2,\n        1,\n        0\n      ],\n      \"type\": \"bar\",\n      \"name\": \"value\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: aaaaaaaaaaaaaaaaaaaaaaaaa99 99 · 표시 100항목 중 유효 100항목\n- 최솟값: aaaaaaaaaaaaaaaaaaaaaaaaa0 0 · 표시 100항목 중 유효 100항목\n\n자료: large.csv · 100행 · aggregate name value sum"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -10715,7 +10803,7 @@
             "최댓값: A $+1 · 표시 1항목 중 유효 1항목",
             "최솟값: A $+1 · 표시 1항목 중 유효 1항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 1 of 5 · analysis compare group value sum 2025→2026 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"$+1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감($)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2026 $2, 2025 대비 $+1 (+100%) · 양 기간 공통 1항목\n- 한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) · 양 기간 공통 1항목\n- 유효한 값이 없어 제외한 행: 1행 · 양 기간 공통 1항목\n- 최댓값: A $+1 · 표시 1항목 중 유효 1항목\n- 최솟값: A $+1 · 표시 1항목 중 유효 1항목\n\n자료: facts.csv · 5행 · compare group value sum 2025→2026"
+          "reportSnippet": "```plotly\n# chart-hands source: facts.csv · rows 1 of 5 · analysis compare group value sum 2025→2026 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"facts.csv\",\"analysis\":{\"type\":\"compare\",\"columns\":[\"group\",\"value\"],\"period\":{\"column\":\"year\",\"base\":\"2025\",\"target\":\"2026\"}}},\"series\":[{\"column\":\"difference\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"A\"\n      ],\n      \"y\": [\n        1\n      ],\n      \"type\": \"bar\",\n      \"name\": \"증감\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"$+1\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"증감($)\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2026 $2, 2025 대비 $+1 (+100%) · 양 기간 공통 1항목\n- 한쪽 기간에만 있어 비교에서 제외: 2항목 (B, C) · 양 기간 공통 1항목\n- 유효한 값이 없어 제외한 행: 1행 · 양 기간 공통 1항목\n- 최댓값: A $+1 · 표시 1항목 중 유효 1항목\n- 최솟값: A $+1 · 표시 1항목 중 유효 1항목\n\n자료: facts.csv · 5행 · compare group value sum 2025→2026"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -10839,7 +10927,7 @@
             "최댓값: 2025-02 4% · 표시 2항목 중 유효 2항목",
             "최솟값: 2025-01 2% · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2%\",\n        \"4%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"shapes\": [\n      {\n        \"type\": \"line\",\n        \"xref\": \"paper\",\n        \"x0\": 0,\n        \"x1\": 1,\n        \"yref\": \"y\",\n        \"y0\": 5,\n        \"y1\": 5,\n        \"line\": {\n          \"dash\": \"dot\",\n          \"color\": \"#C2410C\"\n        }\n      }\n    ],\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"x\": 1,\n        \"xanchor\": \"right\",\n        \"yref\": \"y\",\n        \"y\": 5,\n        \"yanchor\": \"bottom\",\n        \"showarrow\": false,\n        \"text\": \"목표 5%\"\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-02 4%, 목표 5% 대비 −1%p · 표시 2항목 중 유효 2항목\n- 2025-01→2025-02 +2%p · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4% · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2% · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"data.csv\",\"labels\":\"month\"},\"series\":[{\"column\":\"value\"}],\"target\":{\"value\":5},\"unit\":\"%\"}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        4\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"2%\",\n        \"4%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    },\n    \"shapes\": [\n      {\n        \"type\": \"line\",\n        \"xref\": \"paper\",\n        \"x0\": 0,\n        \"x1\": 1,\n        \"yref\": \"y\",\n        \"y0\": 5,\n        \"y1\": 5,\n        \"line\": {\n          \"dash\": \"dot\",\n          \"color\": \"#C2410C\"\n        }\n      }\n    ],\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"x\": 1,\n        \"xanchor\": \"right\",\n        \"yref\": \"y\",\n        \"y\": 5,\n        \"yanchor\": \"bottom\",\n        \"showarrow\": false,\n        \"text\": \"목표 5%\"\n      }\n    ]\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-02 4%, 목표 5% 대비 −1%p · 표시 2항목 중 유효 2항목\n- 2025-01→2025-02 +2%p · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4% · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2% · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -15420,7 +15508,7 @@
             "최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목",
             "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
           ],
-          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · sort month asc · built 2026-11-23\n{\n  \"data\": [\n    {\n      \"x\": [\n        4,\n        2\n      ],\n      \"y\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"4\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"type\": \"category\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
+          "reportSnippet": "```plotly\n# chart-hands source: data.csv · rows 2 of 2 · sort month asc · built 2026-11-23\n# chart-hands build v1: {\"type\":\"barh\",\"source\":{\"path\":\"data.csv\",\"x\":\"month\",\"sort\":{\"column\":\"month\"}},\"series\":[{\"column\":\"value\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        4,\n        2\n      ],\n      \"y\": [\n        \"2025-02\",\n        \"2025-01\"\n      ],\n      \"type\": \"bar\",\n      \"orientation\": \"h\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"4\",\n        \"2\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"title\": {\n        \"text\": \"value\"\n      },\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"type\": \"category\",\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 2025-01→2025-02 +2 · 표시 2항목 중 유효 2항목\n- 최댓값: 2025-02 4 · 표시 2항목 중 유효 2항목\n- 최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목\n\n자료: data.csv · 2행"
         },
         "_meta": {
           "dev.agentinterop/resource": {
@@ -15560,6 +15648,1998 @@
             "지표값 14.3%, 기준값 30.0%, 차이 −15.7%p, 기준 대비 47.7% · 표시 1항목 중 유효 1항목"
           ],
           "reportSnippet": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"indicator\",\n      \"mode\": \"gauge+number+delta\",\n      \"value\": 14.3,\n      \"delta\": {\n        \"reference\": 30,\n        \"relative\": false,\n        \"suffix\": \"%p\",\n        \"valueformat\": \",.1f\",\n        \"increasing\": {\n          \"color\": \"#0F766E\"\n        },\n        \"decreasing\": {\n          \"color\": \"#C2410C\"\n        }\n      },\n      \"gauge\": {\n        \"axis\": {\n          \"range\": [\n            0,\n            100\n          ]\n        },\n        \"threshold\": {\n          \"value\": 30\n        }\n      },\n      \"number\": {\n        \"valueformat\": \",\",\n        \"font\": {\n          \"color\": \"#0F172A\"\n        },\n        \"suffix\": \"%\"\n      }\n    }\n  ],\n  \"layout\": {\n    \"margin\": {\n      \"l\": 20,\n      \"r\": 20,\n      \"t\": 20,\n      \"b\": 20,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 지표값 14.3%, 기준값 30.0%, 차이 −15.7%p, 기준 대비 47.7% · 표시 1항목 중 유효 1항목"
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "invalid",
+          "columns": [
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "analysis.type은 summary, histogram, correlation, aggregate, compare, rows, pivot 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value",
+            "other"
+          ],
+          "sort": "desc"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "summary에 쓸 수 없는 분석 키: sort. 쓸 수 있는 키: type, columns, filter, function."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": [
+            "value",
+            "other"
+          ],
+          "function": "invalid"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "summary function은 count, sum, mean, min, max, median 중 하나를 쓰거나 생략하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "summary",
+          "columns": []
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "summary의 analysis.columns에 열 이름을 1~8개 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "pivot",
+          "columns": [
+            "missing",
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "analysis.columns[0]: 모르는 열 missing. 예: [\"month\",\"value\",\"other\"]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "pivot",
+          "columns": [
+            "month",
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "analysis.columns에 [x, series, value]를 주거나 analysis.function을 count로 지정하세요. 예: [\"month\",\"value\"]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "pivot",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "function": "invalid"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "analysis.function: sum, mean, count, min, max, median 중 하나를 고르세요. 예: {\"columns\":[\"month\",\"value\",\"other\"],\"function\":\"mean\"}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "sort": "invalid"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "rows sort는 asc 또는 desc여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "data.csv",
+        "analysis": {
+          "type": "rows",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ],
+          "sort_by": 1
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "rows sort_by에 열 이름을 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "line",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value",
+              "other"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.analysis.type summary: 차트 유형은 pie, donut, bar, barh, funnel, treemap, indicator 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value",
+              "other"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "sum"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series: summary에는 column이 value 또는 share인 계열 하나를 주세요. 예: [{\"column\":\"value\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value",
+              "other"
+            ]
+          },
+          "filter": []
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.filter: source.analysis를 쓸 때는 source.analysis.filter에 조건을 주세요. 예: source:{\"path\":\"data.csv\",\"analysis\":{\"type\":\"summary\",\"columns\":[\"value\",\"other\"]}}"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.analysis.columns: summary에 서로 다른 열 이름을 2–8개 주세요. 예: [\"month\",\"value\"]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "matrix-units.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "a",
+              "c"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.analysis.columns: summary 열의 단위가 다릅니다(a($), c(kg)). 같은 단위의 열을 고르세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "matrix-units.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "a",
+              "b"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ],
+        "unit": "%"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "unit %은 원자료 단위 $와 다릅니다. 원자료 단위를 쓰세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "matrix-dup.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "a",
+              "b"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "share"
+          }
+        ]
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Built a plotly block. Basic checks found no problems; call check_chart for full Plotly schema validation.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 값 축 제목(단위)이 없습니다.\n  - 제목이 없습니다.\nstaticBlock은 HWPX·PPTX 내보내기 전용입니다.\n최댓값: b 58.3% · 표시 2항목 중 유효 2항목\n최솟값: a 41.7% · 표시 2항목 중 유효 2항목\n다음 단계: 노트에 넣으라는 요청이면 편집 도구로 reportSnippet(또는 block)을 그 노트에 넣으세요. 답에만 보인 차트는 노트에 저장되지 않습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "advice": [
+            "값 축 제목(단위)이 없습니다.",
+            "제목이 없습니다."
+          ],
+          "staticBlock": "```chart-hands-static\n{\"type\":\"bar\",\"series\":[{\"quantity\":\"share\",\"values\":[41.66666666666667,58.333333333333336]}],\"labels\":[\"a\",\"b\"],\"unit\":\"%\"}\n```",
+          "staticBlockUse": "HWPX or PPTX export only; put reportSnippet (or block) in the note",
+          "source": {
+            "path": "matrix-dup.csv",
+            "rows": 2,
+            "labels": {
+              "first": "a",
+              "last": "b"
+            },
+            "analysis": {
+              "type": "summary",
+              "columns": [
+                "a",
+                "b"
+              ],
+              "function": "mean"
+            }
+          },
+          "facts": {
+            "type": "bar",
+            "place": false,
+            "series": [
+              {
+                "index": 0,
+                "unit": "%",
+                "quantity": "share",
+                "scope": {
+                  "shown": 2,
+                  "valid": 2
+                },
+                "count": 2,
+                "nulls": 0,
+                "display": {
+                  "count": "2",
+                  "nulls": "0"
+                },
+                "max": {
+                  "label": "b",
+                  "value": 58.333333333333336,
+                  "display": "58.3%"
+                },
+                "min": {
+                  "label": "a",
+                  "value": 41.66666666666667,
+                  "display": "41.7%"
+                }
+              }
+            ],
+            "scope": {
+              "shown": 2,
+              "valid": 2
+            }
+          },
+          "titleDraft": "b 58.3%로 가장 큼 · 표시 2항목 중 유효 2항목",
+          "factLines": [
+            "최댓값: b 58.3% · 표시 2항목 중 유효 2항목",
+            "최솟값: a 41.7% · 표시 2항목 중 유효 2항목"
+          ],
+          "reportSnippet": "```plotly\n# chart-hands source: matrix-dup.csv · rows 2 of 2 · analysis summary a b mean · built 2026-11-23\n# chart-hands build v1: {\"type\":\"bar\",\"source\":{\"path\":\"matrix-dup.csv\",\"analysis\":{\"type\":\"summary\",\"columns\":[\"a\",\"b\"]}},\"series\":[{\"column\":\"share\"}]}\n{\n  \"data\": [\n    {\n      \"x\": [\n        \"a\",\n        \"b\"\n      ],\n      \"y\": [\n        41.66666666666667,\n        58.333333333333336\n      ],\n      \"type\": \"bar\",\n      \"marker\": {\n        \"color\": \"#2563EB\"\n      },\n      \"texttemplate\": \"%{text}\",\n      \"textposition\": \"outside\",\n      \"cliponaxis\": false,\n      \"text\": [\n        \"41.7%\",\n        \"58.3%\"\n      ]\n    }\n  ],\n  \"layout\": {\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\"\n    }\n  },\n  \"config\": {\n    \"responsive\": true,\n    \"displaylogo\": false\n  }\n}\n```\n\n- 최댓값: b 58.3% · 표시 2항목 중 유효 2항목\n- 최솟값: a 41.7% · 표시 2항목 중 유효 2항목\n\n자료: matrix-dup.csv · summary a b mean"
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "matrix-dup.csv"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "zero-summary.csv",
+          "analysis": {
+            "type": "summary",
+            "columns": [
+              "value",
+              "other"
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "share"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[0].column share는 음수가 없고 합계가 양수인 summary 값에만 쓸 수 있습니다. column을 value로 바꾸세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "data.csv",
+          "analysis": {
+            "type": "pivot",
+            "columns": [
+              "month",
+              "value",
+              "other"
+            ],
+            "filter": [
+              {
+                "column": "month",
+                "op": "eq",
+                "value": "missing"
+              }
+            ]
+          }
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "source.analysis.filter: 피벗에 범주가 없습니다. x와 계열 열이 비어 있지 않은 행을 고르세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "eda_analyze",
+      "args": {
+        "path": "pivot-limit.csv",
+        "analysis": {
+          "type": "pivot",
+          "columns": [
+            "month",
+            "value",
+            "other"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "피벗이 차트 또는 결과 크기 한도를 넘습니다. analysis.filter로 행을 줄이세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "source": {
+          "path": "units.csv",
+          "labels": "label"
+        },
+        "series": [
+          {
+            "column": "value"
+          }
+        ]
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "series[0].column: 열 value의 선택된 행에 단위가 섞여 있습니다($, €). filter로 한 단위의 행만 고르거나 자료를 고치세요. 예: source:{\"path\":\"units.csv\",\"labels\":\"label\"},series:[{\"column\":\"label\"}]"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "Note existing.md · 7 plotly chart(s) · showing 1-7\nChart 1 · lines 1-4 · traces: 1(bar 2 points) · no problems · 3 advice\nChart 2 · lines 6-9 · traces: 1(bar 2 points) · no problems · 3 advice\nChart 3 · lines 11-13 · traces: 1(bar 2 points) · no problems · 2 advice\nChart 4 · lines 15-17 · traces: 13(bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points, bar 2 points) · no problems · 3 advice\nChart 5 · lines 19-21 · traces: 1(pie 1 points) · no problems · 1 advice\nChart 6 · lines 23-28 · traces: 0 · 1 problem(s)\n  - Cannot parse as YAML/JSON: Unexpected token 'd', \"data: [ st\"... is not valid JSON\n  - 2줄: 최상위 키는 data, layout, config, fit만 쓸 수 있습니다.\n  - 3줄: 색상값을 따옴표로 감싸세요.\n  - 4줄: 들여쓰기에 탭 대신 공백을 쓰세요.\nChart 7 · lines 30-31 · no closing fence · traces: 1(bar 2 points) · no problems · 3 advice"
+          }
+        ],
+        "structuredContent": {
+          "charts": 7,
+          "from": 1,
+          "to": 7,
+          "withProblems": 1,
+          "dataviewBlocks": 0,
+          "complete": true,
+          "items": [
+            {
+              "chart": 1,
+              "startLine": 1,
+              "endLine": 4,
+              "closed": true,
+              "snippet": {
+                "startLine": 1,
+                "endLine": 4
+              },
+              "rebuild": null,
+              "rebuildReason": "다시 만들기 주석의 JSON 또는 인자가 잘못되었습니다.",
+              "advice": [
+                "빈 fit을 지우세요.",
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            },
+            {
+              "chart": 2,
+              "startLine": 6,
+              "endLine": 9,
+              "closed": true,
+              "snippet": {
+                "startLine": 6,
+                "endLine": 9
+              },
+              "rebuild": null,
+              "rebuildReason": "지원하지 않는 다시 만들기 주석 버전입니다.",
+              "advice": [
+                "빈 fit을 지우세요.",
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            },
+            {
+              "chart": 3,
+              "startLine": 11,
+              "endLine": 13,
+              "closed": true,
+              "snippet": {
+                "startLine": 11,
+                "endLine": 13
+              },
+              "rebuild": null,
+              "advice": [
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            },
+            {
+              "chart": 4,
+              "startLine": 15,
+              "endLine": 17,
+              "closed": true,
+              "snippet": {
+                "startLine": 15,
+                "endLine": 17
+              },
+              "rebuild": null,
+              "advice": [
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다.",
+                "한 축에 계열이 13개입니다. 구분이 어려울 수 있습니다."
+              ]
+            },
+            {
+              "chart": 5,
+              "startLine": 19,
+              "endLine": 21,
+              "closed": true,
+              "snippet": {
+                "startLine": 19,
+                "endLine": 21
+              },
+              "rebuild": null,
+              "advice": [
+                "제목이 없습니다."
+              ]
+            },
+            {
+              "chart": 6,
+              "startLine": 23,
+              "endLine": 28,
+              "closed": true,
+              "snippet": {
+                "startLine": 23,
+                "endLine": 28
+              },
+              "rebuild": null,
+              "hints": [
+                {
+                  "line": 2,
+                  "code": "UNKNOWN_TOP_LEVEL_KEY",
+                  "message": "최상위 키는 data, layout, config, fit만 쓸 수 있습니다."
+                },
+                {
+                  "line": 3,
+                  "code": "UNQUOTED_HEX",
+                  "message": "색상값을 따옴표로 감싸세요."
+                },
+                {
+                  "line": 4,
+                  "code": "TAB_INDENT",
+                  "message": "들여쓰기에 탭 대신 공백을 쓰세요."
+                }
+              ]
+            },
+            {
+              "chart": 7,
+              "startLine": 30,
+              "endLine": 31,
+              "closed": false,
+              "snippet": {
+                "startLine": 30,
+                "endLine": 31
+              },
+              "rebuild": null,
+              "advice": [
+                "빈 fit을 지우세요.",
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            }
+          ],
+          "advice": [
+            {
+              "chart": 1,
+              "count": 3
+            },
+            {
+              "chart": 2,
+              "count": 3
+            },
+            {
+              "chart": 3,
+              "count": 2
+            },
+            {
+              "chart": 4,
+              "count": 3
+            },
+            {
+              "chart": 5,
+              "count": 1
+            },
+            {
+              "chart": 7,
+              "count": 3
+            }
+          ]
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "existing.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "chart": 8
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "chart에 실제 차트 번호를 주세요. 차트 수 7개."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare에는 chart 번호와 자료 설정을 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ]
+        },
+        "chart": 1
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "원자료 열과 같은 값을 그린 차트에만 뜻이 있습니다.\n1계열 · 비교 2점 · 다른 값 1개: 2025-02 차트 5, 자료 4 · 차트에만 0개 · 자료에만 0개\nNote existing.md · 7 plotly chart(s) · showing 1-1\nChart 1 · lines 1-4 · traces: 1(bar 2 points) · no problems · 3 advice"
+          }
+        ],
+        "structuredContent": {
+          "charts": 7,
+          "from": 1,
+          "to": 1,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true,
+          "items": [
+            {
+              "chart": 1,
+              "startLine": 1,
+              "endLine": 4,
+              "closed": true,
+              "snippet": {
+                "startLine": 1,
+                "endLine": 4
+              },
+              "rebuild": null,
+              "rebuildReason": "다시 만들기 주석의 JSON 또는 인자가 잘못되었습니다.",
+              "advice": [
+                "빈 fit을 지우세요.",
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            }
+          ],
+          "advice": [
+            {
+              "chart": 1,
+              "count": 3
+            }
+          ],
+          "compare": {
+            "path": "data.csv",
+            "traces": [
+              {
+                "trace": 1,
+                "column": "value",
+                "compared": 2,
+                "mismatchCount": 1,
+                "mismatches": [
+                  {
+                    "label": "2025-02",
+                    "chart": 5,
+                    "data": 4
+                  }
+                ],
+                "chartOnly": {
+                  "count": 0,
+                  "labels": []
+                },
+                "dataOnly": {
+                  "count": 0,
+                  "labels": []
+                }
+              }
+            ]
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ],
+          "tolerance": -1
+        },
+        "chart": 1
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "tolerance에는 0 이상의 유한한 숫자를 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          },
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "missing",
+          "columns": [
+            "value"
+          ]
+        },
+        "chart": 1
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "compare.labels에 자료의 라벨 열 이름을 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          },
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month"
+        },
+        "chart": 1
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "계열마다 숫자 열을 하나씩 compare.columns에 지정하세요. 숫자 열: value, other"
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          },
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "trend-dup.csv",
+          "labels": "month",
+          "columns": [
+            "a"
+          ]
+        },
+        "chart": 1
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "자료의 라벨 열에서 같은 라벨이 여러 행에 있습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          },
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "trend-dup.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "trend-dup.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ]
+        },
+        "chart": 1
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "원자료 열과 같은 값을 그린 차트에만 뜻이 있습니다.\n1계열 · 비교 2점 · 다른 값 1개: 2025-02 차트 5, 자료 4 · 차트에만 0개 · 자료에만 0개\nNote existing.md · 7 plotly chart(s) · showing 1-1\nChart 1 · lines 1-4 · traces: 1(bar 2 points) · no problems · 3 advice"
+          }
+        ],
+        "structuredContent": {
+          "charts": 7,
+          "from": 1,
+          "to": 1,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true,
+          "items": [
+            {
+              "chart": 1,
+              "startLine": 1,
+              "endLine": 4,
+              "closed": true,
+              "snippet": {
+                "startLine": 1,
+                "endLine": 4
+              },
+              "rebuild": null,
+              "rebuildReason": "다시 만들기 주석의 JSON 또는 인자가 잘못되었습니다.",
+              "advice": [
+                "빈 fit을 지우세요.",
+                "값 축 제목(단위)이 없습니다.",
+                "제목이 없습니다."
+              ]
+            }
+          ],
+          "advice": [
+            {
+              "chart": 1,
+              "count": 3
+            }
+          ],
+          "compare": {
+            "path": "data.csv",
+            "traces": [
+              {
+                "trace": 1,
+                "column": "value",
+                "compared": 2,
+                "mismatchCount": 1,
+                "mismatches": [
+                  {
+                    "label": "2025-02",
+                    "chart": 5,
+                    "data": 4
+                  }
+                ],
+                "chartOnly": {
+                  "count": 0,
+                  "labels": []
+                },
+                "dataOnly": {
+                  "count": 0,
+                  "labels": []
+                }
+              }
+            ]
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "existing.md",
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ]
+        },
+        "chart": 5
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "원자료 열과 같은 값을 그린 차트에만 뜻이 있습니다.\n1계열 · 비교 0점 · 다른 값 0개 · 차트에만 1개 · 자료에만 2개\nNote existing.md · 7 plotly chart(s) · showing 5-5\nChart 5 · lines 19-21 · traces: 1(pie 1 points) · no problems · 1 advice"
+          }
+        ],
+        "structuredContent": {
+          "charts": 7,
+          "from": 5,
+          "to": 5,
+          "withProblems": 0,
+          "dataviewBlocks": 0,
+          "complete": true,
+          "items": [
+            {
+              "chart": 5,
+              "startLine": 19,
+              "endLine": 21,
+              "closed": true,
+              "snippet": {
+                "startLine": 19,
+                "endLine": 21
+              },
+              "rebuild": null,
+              "advice": [
+                "제목이 없습니다."
+              ]
+            }
+          ],
+          "advice": [
+            {
+              "chart": 5,
+              "count": 1
+            }
+          ],
+          "compare": {
+            "path": "data.csv",
+            "traces": [
+              {
+                "trace": 1,
+                "column": "value",
+                "compared": 0,
+                "mismatchCount": 0,
+                "mismatches": [],
+                "chartOnly": {
+                  "count": 1,
+                  "labels": [
+                    "A"
+                  ]
+                },
+                "dataOnly": {
+                  "count": 2,
+                  "labels": [
+                    "2025-01",
+                    "2025-02"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "existing.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "no-labels.md",
+        "chart": 1,
+        "compare": {
+          "path": "data.csv",
+          "labels": "month",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "라벨과 숫자 값이 같은 개수로 있는 계열만 대조할 수 있습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          },
+          "dev.agentinterop/resource": {
+            "path": "no-labels.md",
+            "paths": [
+              "data.csv"
+            ]
+          },
+          "dev.agentinterop/evidencePaths": [
+            "data.csv"
+          ]
+        }
+      }
+    },
+    {
+      "name": "read_charts",
+      "args": {
+        "path": "wide-labels.md",
+        "chart": 1,
+        "compare": {
+          "path": "wide-labels.csv",
+          "labels": "label",
+          "columns": [
+            "value"
+          ]
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "차트 읽기 결과가 문자 한도를 넘습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "RESULT_TOO_LARGE",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "RESULT_TOO_LARGE",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 1
+        },
+        "target": {
+          "value": 3
+        },
+        "title": "Edited title",
+        "style": "slides"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "차트 블록을 바꾸고 검사했습니다.\n참고(사용자에게 알릴 선택 사항입니다. 차트는 완성됐으니 이것만을 위해 다시 만들거나 다시 검사하지 마세요):\n  - 빈 fit을 지우세요.\n  - 값 축 제목(단위)이 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "valid": true,
+          "problems": 0,
+          "advice": [
+            "빈 fit을 지우세요.",
+            "값 축 제목(단위)이 없습니다."
+          ],
+          "ignoredArgs": [
+            "type"
+          ],
+          "replaces": {
+            "startLine": 1,
+            "endLine": 4
+          },
+          "staticBlockMissing": "unsupported",
+          "facts": [
+            {
+              "trace": 1,
+              "type": "bar",
+              "place": false,
+              "series": [
+                {
+                  "index": 0,
+                  "unit": "",
+                  "quantity": "value",
+                  "scope": {
+                    "shown": 2,
+                    "valid": 2
+                  },
+                  "count": 2,
+                  "nulls": 0,
+                  "display": {
+                    "count": "2",
+                    "nulls": "0"
+                  },
+                  "max": {
+                    "label": "2025-02",
+                    "value": 5,
+                    "display": "5"
+                  },
+                  "min": {
+                    "label": "2025-01",
+                    "value": 2,
+                    "display": "2"
+                  },
+                  "first": {
+                    "label": "2025-01",
+                    "value": 2,
+                    "display": "2"
+                  },
+                  "last": {
+                    "label": "2025-02",
+                    "value": 5,
+                    "display": "5"
+                  },
+                  "change": {
+                    "from": "2025-01",
+                    "to": "2025-02",
+                    "value": 3,
+                    "display": "+3",
+                    "skippedNulls": 0,
+                    "skippedNullsDisplay": "0"
+                  },
+                  "target": {
+                    "value": 3,
+                    "display": "3",
+                    "atOrAbove": 1,
+                    "below": 1,
+                    "atOrAboveDisplay": "1",
+                    "belowDisplay": "1",
+                    "lastGap": {
+                      "value": 2,
+                      "display": "+2"
+                    }
+                  }
+                }
+              ],
+              "scope": {
+                "shown": 2,
+                "valid": 2
+              }
+            }
+          ],
+          "factLines": [
+            "2025-02 5, 목표 3 대비 +2 · 표시 2항목 중 유효 2항목",
+            "2025-01→2025-02 +3 · 표시 2항목 중 유효 2항목",
+            "최댓값: 2025-02 5 · 표시 2항목 중 유효 2항목",
+            "최솟값: 2025-01 2 · 표시 2항목 중 유효 2항목"
+          ],
+          "block": "```plotly\n{\n  \"data\": [\n    {\n      \"type\": \"bar\",\n      \"x\": [\n        \"2025-01\",\n        \"2025-02\"\n      ],\n      \"y\": [\n        2,\n        5\n      ]\n    }\n  ],\n  \"fit\": {},\n  \"layout\": {\n    \"title\": {\n      \"text\": \"Edited title\",\n      \"font\": {\n        \"color\": \"#0F172A\",\n        \"size\": 26\n      },\n      \"x\": 0,\n      \"xanchor\": \"left\"\n    },\n    \"xaxis\": {\n      \"automargin\": true,\n      \"showgrid\": false,\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"yaxis\": {\n      \"automargin\": true,\n      \"showgrid\": true,\n      \"gridcolor\": \"#E2E8F0\",\n      \"griddash\": \"dot\",\n      \"showline\": false,\n      \"zeroline\": false\n    },\n    \"margin\": {\n      \"l\": 50,\n      \"r\": 30,\n      \"t\": 90,\n      \"b\": 50,\n      \"autoexpand\": true\n    },\n    \"font\": {\n      \"color\": \"#334155\",\n      \"family\": \"\\\"Malgun Gothic\\\", \\\"Apple SD Gothic Neo\\\", \\\"Noto Sans KR\\\", sans-serif\",\n      \"size\": 16\n    },\n    \"shapes\": [\n      {\n        \"type\": \"line\",\n        \"xref\": \"paper\",\n        \"x0\": 0,\n        \"x1\": 1,\n        \"yref\": \"y\",\n        \"y0\": 3,\n        \"y1\": 3,\n        \"line\": {\n          \"dash\": \"dot\",\n          \"color\": \"#C2410C\"\n        }\n      }\n    ],\n    \"annotations\": [\n      {\n        \"xref\": \"paper\",\n        \"x\": 1,\n        \"xanchor\": \"right\",\n        \"yref\": \"y\",\n        \"y\": 3,\n        \"yanchor\": \"bottom\",\n        \"showarrow\": false,\n        \"text\": \"목표 3\"\n      }\n    ]\n  }\n}\n```"
+        },
+        "_meta": {
+          "dev.agentinterop/resource": {
+            "path": "existing.md"
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 1
+        },
+        "labels": []
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "from_chart와 함께 source, labels, series[].values를 쓸 수 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 1
+        },
+        "style": "plain"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "from_chart의 style은 report, print, slides 중 하나여야 합니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 1
+        },
+        "target": {
+          "value": "invalid"
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "target의 값 또는 계열이 잘못되었습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 1
+        },
+        "caption": "two\nlines"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "caption에는 200자 이하의 한 줄을 주세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 3
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "보조축이 있는 차트는 바꿀 수 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 4
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "계열이 12개를 넘는 차트는 바꿀 수 없습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 5
+        },
+        "style": "report"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "이 차트에서는 title과 caption만 바꿀 수 있습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 6
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "차트 정의를 읽을 수 없습니다. check_chart로 검사하세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "existing.md",
+          "chart": 7
+        }
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "차트 펜스를 먼저 닫으세요."
+          }
+        ],
+        "structuredContent": {
+          "code": "INVALID_ARGUMENT",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "INVALID_ARGUMENT",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "build_chart",
+      "args": {
+        "type": "bar",
+        "from_chart": {
+          "path": "large-chart.md",
+          "chart": 1
+        },
+        "title": "Edited title"
+      },
+      "result": {
+        "isError": true,
+        "content": [
+          {
+            "type": "text",
+            "text": "차트 블록이 결과 한도를 넘습니다."
+          }
+        ],
+        "structuredContent": {
+          "code": "RESULT_TOO_LARGE",
+          "retryable": true
+        },
+        "_meta": {
+          "dev.agentinterop/error": {
+            "code": "RESULT_TOO_LARGE",
+            "retryable": true
+          }
+        }
+      }
+    },
+    {
+      "name": "get_chart_guide",
+      "args": {
+        "topic": "dataviewjs"
+      },
+      "result": {
+        "content": [
+          {
+            "type": "text",
+            "text": "지금 상태: Dataview 켜짐 · JavaScript 쿼리 꺼짐 — dataviewjs 블록은 코드로만 보입니다.\n\nUse DataviewJS only when the user explicitly wants a chart computed from dynamic vault data and the Dataview plugin is enabled. Present the block for the user to run; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.\n\n```dataviewjs\n// Compute data, layout and config yourself, then call:\nawait window.renderPlotly(this.container, data, layout, config);\n```\n\nCode that reads window.Plotly or window.d3 directly must first run: const { Plotly, d3 } = await window.loadPlotlyLibraries();\nwindow.renderPlotly waits for the libraries by itself. Plotly.newPlot does not work inside DataviewJS; use window.renderPlotly. The read_charts tool counts dataviewjs chart blocks but does not check them.\n\nOther topics: basics, style, report, examples, statistical, hierarchy, timeseries, scientific, maps, layout, errors."
+          }
+        ],
+        "structuredContent": {
+          "topic": "dataviewjs",
+          "topics": [
+            "basics",
+            "style",
+            "report",
+            "examples",
+            "statistical",
+            "hierarchy",
+            "timeseries",
+            "scientific",
+            "maps",
+            "layout",
+            "dataviewjs",
+            "errors"
+          ],
+          "dataview": {
+            "enabled": true,
+            "javascript": false
+          }
         }
       }
     },
