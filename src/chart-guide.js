@@ -494,12 +494,24 @@ Animations are not available: the block allows only data, layout, config and fit
 
 Legends: legendgroup ties traces that toggle together; legend.groupclick togglegroup; showlegend false hides helper traces such as bands. Put a horizontal legend above the plot with legend: {orientation: h, y: 1.02, yanchor: bottom, x: 0}.`;
 
-const DATAVIEWJS = `Use DataviewJS only when the user explicitly wants a chart computed from dynamic vault data and the Dataview plugin is enabled. Present the block for the user to run; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.
+const DATAVIEWJS = `Use DataviewJS only when the user explicitly wants a chart that updates from vault data, the Dataview plugin is enabled and its JavaScript queries are on (the state line at the top of this result). Otherwise say what is off and offer a fixed chart built from the host's counts instead. Present the block for the user to view; never promise that you executed JavaScript. Do not convert an existing dataviewjs chart into static YAML. When the user explicitly asks to change one, edit only its static layout and config literals.
+
+Notes in a folder counted by one property (change FOLDER and FIELD; for a date property per month use String(page.date?.toFormat?.('yyyy-MM') ?? '(none)')):
 
 \`\`\`dataviewjs
-// Compute data, layout and config yourself, then call:
-await window.renderPlotly(this.container, data, layout, config);
+const FOLDER = '"30 Policies"', FIELD = 'status';
+const counts = {};
+for (const page of dv.pages(FOLDER)) {
+  const value = String(page[FIELD] ?? '(none)');
+  counts[value] = (counts[value] || 0) + 1;
+}
+const labels = Object.keys(counts).sort((a, b) => counts[b] - counts[a]);
+await window.renderPlotly(this.container,
+  [{type: 'bar', x: labels, y: labels.map(label => counts[label]), marker: {color: '#2563EB'}}],
+  {title: {text: 'Notes per ' + FIELD}, yaxis: {title: {text: 'Notes'}}});
 \`\`\`
+
+dv.pages takes a Dataview source: a quoted folder ('"30 Policies"'), a tag ('#meeting') or both ('"Meetings" and #audit'). Keep FOLDER and FIELD as the only things you change; do not add network calls or file writes.
 
 Code that reads window.Plotly or window.d3 directly must first run: const { Plotly, d3 } = await window.loadPlotlyLibraries();
 window.renderPlotly waits for the libraries by itself. Plotly.newPlot does not work inside DataviewJS; use window.renderPlotly. The read_charts tool counts dataviewjs chart blocks but does not check them.`;
